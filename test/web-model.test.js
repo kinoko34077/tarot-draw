@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import {
   appendAxisLabel,
   buildPositionIds,
+  cardDisplayParts,
   cardDisplayText,
   customCardNotesForResults,
   formatReadingText,
@@ -32,14 +33,25 @@ test('card display text is compact and uses major roman numerals where available
   );
 });
 
-test('RWS image URLs use the public-domain Commons set and omit custom cards', () => {
+test('card display parts separate title and orientation for visual rendering', () => {
+  assert.deepEqual(
+    cardDisplayParts({ card_id: 'major.hanged-man', name_ja: '吊るされた男', orientation: 'reversed' }),
+    { title: 'XII 吊るされた男', orientation: '逆位置' }
+  );
+});
+
+test('RWS image URLs use lightweight Commons thumbnails and omit custom cards', () => {
   assert.equal(
     rwsImageUrl({ card_id: 'meta.title', name_en: 'Title Card' }),
     null
   );
   assert.match(
     rwsImageUrl({ card_id: 'major.fool', name_en: 'The Fool' }),
-    /commons\.wikimedia\.org\/wiki\/Special:Redirect\/file\/The%20Fool%20\(Rider-Waite%20Smith%20tarot%20deck\)\.png\?width=320/
+    /commons\.wikimedia\.org\/wiki\/Special:Redirect\/file\/The%20Fool%20\(Rider-Waite%20Smith%20tarot%20deck\)\.png\?width=128/
+  );
+  assert.match(
+    rwsImageUrl({ card_id: 'major.fool', name_en: 'The Fool' }, 224),
+    /\?width=224$/
   );
   assert.match(
     rwsImageUrl({ card_id: 'minor.pentacles.ace', name_en: 'Ace of Pentacles' }),

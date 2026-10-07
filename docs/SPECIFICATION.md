@@ -42,8 +42,8 @@ Card catalog -> deck session -> shuffle (order + orientation fixed) -> three-way
 
 ## Non-goals for v1
 
-- Tarot card meaning/interpretation database.
-- Automated reading text.
+- Automated tarot interpretation or generated reading text.
+- A static display-only 78-card reference dataset is allowed only for user-invoked card detail UI; it must not alter draw results.
 - Special draw probability for Title or GUARANTEE.
 - Fixed named spreads as API concepts.
 
@@ -58,3 +58,12 @@ Card catalog -> deck session -> shuffle (order + orientation fixed) -> three-way
 - Standard 78-card results may display public-domain Rider-Waite-Smith artwork; orientation applies visually to the artwork while the card name/orientation text remains readable.
 - Title Card and GUARANTEE do not borrow Rider-Waite imagery and use distinct non-RWS faces.
 - Image loading is presentation-only and must not alter or block the authoritative API draw result.
+
+
+## Card detail reference extension
+
+- Standard 78-card results may expose a user-invoked detail popup containing static reference text.
+- The reference text source is the user-supplied `タロット78枚_意味と画像索引.md` dataset, normalized as `essence`, `upright`, and `reversed`.
+- Card detail reference data is presentation-only. It must not affect shuffle, orientation, pile selection, draw order, branch state, copy matrix semantics, or probability.
+- Title Card and GUARANTEE are outside that 78-card source and must not be assigned invented divinatory meanings.
+- Standard-card matrix thumbnails should request a substantially smaller RWS thumbnail than the prior 320px request; the detail view may lazily request a larger bounded thumbnail.

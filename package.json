@@ -9,7 +9,7 @@
   "scripts": {
     "start": "node src/server.js",
     "test": "node --test",
-    "check": "node --check src/cards.js && node --check src/domain.js && node --check src/engine.js && node --check src/store.js && node --check src/server.js && node --check src/worker.js && node --check web/model.js && node --check web/runtime-config.js && node --check web/app.js",
+    "check": "node --check src/cards.js && node --check src/domain.js && node --check src/engine.js && node --check src/store.js && node --check src/server.js && node --check src/worker.js && node --check web/model.js && node --check web/card-details.js && node --check web/runtime-config.js && node --check web/app.js",
     "build:pages": "node scripts/build-pages.mjs",
     "deploy:cloudflare": "npx wrangler@4.148.0 deploy",
     "check:cloudflare": "npx wrangler@4.148.0 deploy --dry-run --outdir dist-worker"

@@ -62,24 +62,29 @@ export function orientationLabel(value) {
   return value === 'reversed' ? '逆位置' : '正位置';
 }
 
-export function cardDisplayText(card) {
-  if (!card) return '—';
+export function cardDisplayParts(card) {
+  if (!card) return { title: '—', orientation: '' };
 
-  let name = card.name_ja;
+  let title = card.name_ja;
   if (card.card_id === 'meta.guarantee') {
-    name = 'GUARANTEE';
+    title = 'GUARANTEE';
   } else if (card.card_id === 'meta.title') {
-    name = 'タイトルカード';
+    title = 'タイトルカード';
   } else if (card.card_id?.startsWith('major.')) {
     const slug = card.card_id.slice('major.'.length);
     const number = MAJOR_NUMBERS[slug];
-    if (number) name = `${number} ${name}`;
+    if (number) title = `${number} ${title}`;
   }
 
-  return `${name} ${orientationLabel(card.orientation)}`;
+  return { title, orientation: orientationLabel(card.orientation) };
 }
 
-export function rwsImageUrl(card, width = 320) {
+export function cardDisplayText(card) {
+  const parts = cardDisplayParts(card);
+  return parts.orientation ? `${parts.title} ${parts.orientation}` : parts.title;
+}
+
+export function rwsImageUrl(card, width = 128) {
   if (!card?.card_id || card.card_id.startsWith('meta.')) return null;
 
   let fileTitle = card.name_en;
@@ -87,7 +92,7 @@ export function rwsImageUrl(card, width = 320) {
   if (card.card_id === 'minor.swords.ace') fileTitle = 'One of Swords';
 
   const filename = `${fileTitle} (Rider-Waite Smith tarot deck).png`;
-  const safeWidth = Number.isFinite(width) ? Math.max(120, Math.min(800, Math.round(width))) : 320;
+  const safeWidth = Number.isFinite(width) ? Math.max(96, Math.min(800, Math.round(width))) : 128;
   return `https://commons.wikimedia.org/wiki/Special:Redirect/file/${encodeURIComponent(filename)}?width=${safeWidth}`;
 }
 
