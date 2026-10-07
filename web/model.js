@@ -29,7 +29,7 @@ export function formatReadingText({ rowCount, columnCount, rowLabels, columnLabe
   return sections.join('\n\n');
 
   function formatBranch(branchLabel, result) {
-    const lines = [`【${branchLabel}逑`];
+    const lines = [`【${branchLabel}】`];
     for (let row = 0; row < rowCount; row += 1) {
       for (let column = 0; column < columnCount; column += 1) {
         const positionId = `r${row}c${column}`;
