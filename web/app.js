@@ -7,6 +7,7 @@ import {
   formatReadingText,
   labelOrFallback,
   removeAxisLabel,
+  referenceImageUrl,
   rwsImageUrl
 } from './model.js';
 import { cardDetail } from './card-details.js';
@@ -83,6 +84,43 @@ function createCardVisual(card, { detail = false } = {}) {
   return visual;
 }
 
+function setCardTitle(element, parts) {
+  element.replaceChildren();
+  if (parts.titleHtml) {
+    element.innerHTML = parts.titleHtml;
+  } else {
+    element.textContent = parts.title;
+  }
+  element.setAttribute('aria-label', parts.plainTitle);
+}
+
+function createReferenceVisual(card, parts) {
+  const imageUrl = referenceImageUrl(card);
+  if (!imageUrl) return createCardVisual(card, { detail: true });
+
+  const visual = document.createElement('figure');
+  visual.className = 'detail-reference-visual';
+
+  const image = document.createElement('img');
+  image.className = 'detail-reference-art';
+  image.src = imageUrl;
+  image.alt = `${parts.plainTitle}の関連語・関連概念図`;
+  image.loading = 'eager';
+  image.decoding = 'async';
+
+  const caption = document.createElement('figcaption');
+  caption.textContent = '関連語・関連概念';
+
+  image.addEventListener('error', () => {
+    visual.classList.add('art-failed');
+    image.remove();
+    caption.textContent = '関連語・関連概念画像を表示できません';
+  }, { once: true });
+
+  visual.append(image, caption);
+  return visual;
+}
+
 function closeCardDetail() {
   if (page.cardDetailDialog.open) page.cardDetailDialog.close();
 }
@@ -92,9 +130,9 @@ function openCardDetail(card, trigger) {
   const detail = cardDetail(card.card_id);
   lastCardTrigger = trigger;
 
-  page.cardDetailTitle.textContent = parts.title;
+  setCardTitle(page.cardDetailTitle, parts);
   page.cardDetailOrientation.textContent = parts.orientation;
-  page.cardDetailVisual.replaceChildren(createCardVisual(card, { detail: true }));
+  page.cardDetailVisual.replaceChildren(createReferenceVisual(card, parts));
 
   if (detail) {
     page.cardDetailReference.classList.remove('hidden');
@@ -460,7 +498,7 @@ function createReadingController(number) {
 
     const title = document.createElement('span');
     title.className = 'card-title';
-    title.textContent = parts.title;
+    setCardTitle(title, parts);
 
     const orientation = document.createElement('span');
     orientation.className = 'card-orientation';
@@ -468,7 +506,7 @@ function createReadingController(number) {
 
     label.append(title, orientation);
     result.append(visual, label);
-    result.setAttribute('aria-label', `${parts.title} ${parts.orientation}の詳細を表示`);
+    result.setAttribute('aria-label', `${parts.plainTitle} ${parts.orientation}の詳細を表示`);
     result.addEventListener('click', () => openCardDetail(card, result));
     return result;
   }
