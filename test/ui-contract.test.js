@@ -68,9 +68,9 @@ test('result cells use compact title/orientation lines and tap/click detail trig
   assert.ok(css.includes('.card-orientation'));
 });
 
-test('standard cards render lightweight Commons RWS art and reversed art rotates without rotating label text', async () => {
+test('standard cards render self-hosted lightweight RWS WebP and reversed art rotates without rotating label text', async () => {
   const [app, css] = await Promise.all([read('../web/app.js'), read('../web/styles.css')]);
-  assert.ok(app.includes('rwsImageUrl(card, detail ? 224 : 128)'));
+  assert.ok(app.includes('rwsImageUrl(card)'));
   assert.ok(app.includes("image.classList.add('is-reversed')"));
   assert.ok(app.includes("image.addEventListener('error'"));
   assert.ok(app.includes("face.classList.add('is-reversed')"));
@@ -134,7 +134,7 @@ test('card detail uses an accessible native dialog with attachment-backed text a
   assert.ok(app.includes("addEventListener('close'"));
   assert.ok(app.includes('focus({ preventScroll: true })'));
   assert.ok(app.includes('createCardVisual(card, { detail: true })'));
-  assert.ok(app.includes('rwsImageUrl(card, detail ? 224 : 128)'));
+  assert.ok(app.includes('rwsImageUrl(card)'));
   assert.ok(css.includes('.card-detail-dialog::backdrop'));
   assert.ok(css.includes('.detail-meaning[data-active="true"]'));
 });

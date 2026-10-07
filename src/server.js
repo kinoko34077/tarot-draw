@@ -21,7 +21,7 @@ function setCommonHeaders(res) {
   res.setHeader('Cross-Origin-Opener-Policy', 'same-origin');
   res.setHeader(
     'Content-Security-Policy',
-    "default-src 'self'; script-src 'self'; style-src 'self'; connect-src 'self' https:; img-src 'self' data: https://commons.wikimedia.org https://upload.wikimedia.org https://thumb.wikimedia.org; base-uri 'none'; frame-ancestors 'none'"
+    "default-src 'self'; script-src 'self'; style-src 'self'; connect-src 'self' https:; img-src 'self' data:; base-uri 'none'; frame-ancestors 'none'"
   );
 }
 
@@ -63,15 +63,32 @@ function errorPayload(error) {
 
 async function serveStatic(pathname, res) {
   const entry = STATIC_FILES.get(pathname);
-  if (!entry) return false;
-  const [filename, contentType] = entry;
-  const data = await readFile(resolve(WEB_ROOT, filename));
-  setCommonHeaders(res);
-  res.statusCode = 200;
-  res.setHeader('Content-Type', contentType);
-  res.setHeader('Cache-Control', 'no-cache');
-  res.end(data);
-  return true;
+  if (entry) {
+    const [filename, contentType] = entry;
+    const data = await readFile(resolve(WEB_ROOT, filename));
+    setCommonHeaders(res);
+    res.statusCode = 200;
+    res.setHeader('Content-Type', contentType);
+    res.setHeader('Cache-Control', 'no-cache');
+    res.end(data);
+    return true;
+  }
+
+  const assetMatch = pathname.match(/^\/assets\/rws\/([a-z0-9.-]+\.webp)$/);
+  if (!assetMatch) return false;
+
+  try {
+    const data = await readFile(resolve(WEB_ROOT, 'assets', 'rws', assetMatch[1]));
+    setCommonHeaders(res);
+    res.statusCode = 200;
+    res.setHeader('Content-Type', 'image/webp');
+    res.setHeader('Cache-Control', 'public, max-age=31536000, immutable');
+    res.end(data);
+    return true;
+  } catch (error) {
+    if (error?.code === 'ENOENT') return false;
+    throw error;
+  }
 }
 
 export function createTarotServer({ store = new TarotStore() } = {}) {

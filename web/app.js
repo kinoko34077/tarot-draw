@@ -44,7 +44,7 @@ function createCardVisual(card, { detail = false } = {}) {
   const visual = document.createElement('div');
   visual.className = detail ? 'card-visual detail-card-visual' : 'card-visual';
 
-  const imageUrl = rwsImageUrl(card, detail ? 224 : 128);
+  const imageUrl = rwsImageUrl(card);
   if (imageUrl) {
     const image = document.createElement('img');
     image.className = detail ? 'card-art detail-card-art' : 'card-art';

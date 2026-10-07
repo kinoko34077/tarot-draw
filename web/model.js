@@ -84,16 +84,9 @@ export function cardDisplayText(card) {
   return parts.orientation ? `${parts.title} ${parts.orientation}` : parts.title;
 }
 
-export function rwsImageUrl(card, width = 128) {
+export function rwsImageUrl(card) {
   if (!card?.card_id || card.card_id.startsWith('meta.')) return null;
-
-  let fileTitle = card.name_en;
-  if (card.card_id === 'minor.pentacles.ace') fileTitle = 'One of Pentacles';
-  if (card.card_id === 'minor.swords.ace') fileTitle = 'One of Swords';
-
-  const filename = `${fileTitle} (Rider-Waite Smith tarot deck).png`;
-  const safeWidth = Number.isFinite(width) ? Math.max(96, Math.min(800, Math.round(width))) : 128;
-  return `https://commons.wikimedia.org/wiki/Special:Redirect/file/${encodeURIComponent(filename)}?width=${safeWidth}`;
+  return `./assets/rws/${encodeURIComponent(card.card_id)}.webp`;
 }
 
 export function customCardNotesForResults(...results) {
