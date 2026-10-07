@@ -119,14 +119,14 @@ async function encodeReadable(sourceBuffer) {
 
   for (const quality of QUALITIES) {
     const { data, info } = await sharp(sourceBuffer)
-      .resize({ width: OUTPUT_WIDTH, withoutEnlargement: true })
+      .resize({ width: OUTPUT_WIDTH, withoutEnlargement: false })
       .webp({ quality, effort: 6, smartSubsample: true })
       .toBuffer({ resolveWithObject: true });
     if (data.length <= TARGET_BYTES) return { buffer: data, info, quality, source: metadata };
   }
 
   const { data, info } = await sharp(sourceBuffer)
-    .resize({ width: OUTPUT_WIDTH, withoutEnlargement: true })
+    .resize({ width: OUTPUT_WIDTH, withoutEnlargement: false })
     .webp({ quality: 38, effort: 6, smartSubsample: true })
     .toBuffer({ resolveWithObject: true });
   if (data.length > HARD_LIMIT_BYTES) {
