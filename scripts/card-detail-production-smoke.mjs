@@ -4,13 +4,15 @@ import { mkdtemp } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { CARD_CATALOG } from '../src/cards.js';
-import { rwsImageUrl } from '../web/model.js';
+import { referenceImageUrl, rwsImageUrl } from '../web/model.js';
 
 const CHROME_BIN = process.env.CHROME_BIN || resolveChrome();
 const DEBUG_PORT = 9233;
 const PROD_URL = `https://kinoko34077.github.io/tarot-draw/?card-detail-smoke=${Date.now()}`;
 const GRID_IMAGE_BUDGET = 24 * 1024;
 const DETAIL_IMAGE_BUDGET = 56 * 1024;
+const REFERENCE_IMAGE_AVERAGE_BUDGET = 64 * 1024;
+const REFERENCE_IMAGE_HARD_BUDGET = 96 * 1024;
 
 function resolveChrome() {
   for (const command of ['google-chrome', 'chromium', 'chromium-browser']) {
@@ -97,7 +99,8 @@ async function verifyAllImageBudgets() {
   const measurements = await mapLimited(standardCards, 8, async card => ({
     card_id: card.card_id,
     grid: await fetchBytes(new URL(rwsImageUrl(card, 128), PROD_URL).toString()),
-    detail: await fetchBytes(new URL(rwsImageUrl(card, 224), PROD_URL).toString())
+    detail: await fetchBytes(new URL(rwsImageUrl(card, 224), PROD_URL).toString()),
+    reference: await fetchBytes(new URL(referenceImageUrl(card), PROD_URL).toString())
   }));
 
   const summarize = (key, budget) => {
@@ -114,13 +117,20 @@ async function verifyAllImageBudgets() {
     };
   };
 
+  const reference = summarize('reference', REFERENCE_IMAGE_HARD_BUDGET);
   const summary = {
     grid: summarize('grid', GRID_IMAGE_BUDGET),
-    detail: summarize('detail', DETAIL_IMAGE_BUDGET)
+    detail: summarize('detail', DETAIL_IMAGE_BUDGET),
+    reference
   };
   console.log('WEBP_IMAGE_BUDGET=' + JSON.stringify(summary));
 
-  if (summary.grid.overBudget > 0 || summary.detail.overBudget > 0) {
+  if (
+    summary.grid.overBudget > 0
+    || summary.detail.overBudget > 0
+    || reference.overBudget > 0
+    || reference.averageBytes > REFERENCE_IMAGE_AVERAGE_BUDGET
+  ) {
     throw new Error('Self-hosted WebP image budget exceeded: ' + JSON.stringify(summary));
   }
   return summary;
@@ -198,6 +208,17 @@ try {
       .find(trigger => trigger.querySelector('img.card-art'));
     if (!standardTrigger) throw new Error('No standard-card trigger found.');
 
+    const minorTrigger = all('.primary-matrix .card-detail-trigger')
+      .find(trigger => trigger.querySelector('.card-title ruby'));
+    const rubyCount = all('.primary-matrix .card-title ruby').length;
+    if (minorTrigger && rubyCount < 1) throw new Error('Minor Arcana ruby rendering failed.');
+    if (minorTrigger) {
+      const readings = all('.primary-matrix .card-title rt').map(rt => rt.textContent);
+      if (!readings.some(value => ['ワンド', 'カップ', 'ソード', 'ペンタクル'].includes(value))) {
+        throw new Error('Suit ruby reading is missing.');
+      }
+    }
+
     const gridImage = standardTrigger.querySelector('img.card-art');
     if (!gridImage.src.includes('/assets/cards/grid/') || !gridImage.src.endsWith('.webp')) {
       throw new Error('Grid image is not using self-hosted WebP.');
@@ -219,14 +240,17 @@ try {
     const expectedActiveId = triggerOrientation === '逆位置' ? 'cardDetailReversedBlock' : 'cardDetailUprightBlock';
     if (active?.id !== expectedActiveId) throw new Error('Actual orientation meaning is not emphasized.');
 
-    const detailImage = one('#cardDetailVisual img.card-art');
-    if (!detailImage || !detailImage.src.includes('/assets/cards/detail/') || !detailImage.src.endsWith('.webp')) {
-      throw new Error('Detail image is not using lazy self-hosted WebP.');
+    const detailImage = one('#cardDetailVisual img.detail-reference-art');
+    if (!detailImage || !detailImage.src.includes('/assets/cards/reference/') || !detailImage.src.endsWith('.webp')) {
+      throw new Error('Detail image is not using attachment-derived reference WebP.');
     }
     for (let i = 0; i < 80 && !detailImage.complete; i += 1) await sleep(50);
-    if (detailImage.naturalWidth <= 0) throw new Error('Detail image failed to load.');
-    if ((triggerOrientation === '逆位置') !== detailImage.classList.contains('is-reversed')) {
-      throw new Error('Detail image orientation mismatch.');
+    if (detailImage.naturalWidth <= 0) throw new Error('Reference detail image failed to load.');
+    if (detailImage.classList.contains('is-reversed')) {
+      throw new Error('Reference concept image must remain upright for readability.');
+    }
+    if (!detailImage.alt.includes('関連語・関連概念図')) {
+      throw new Error('Reference image accessible description is missing.');
     }
 
     dialog.dispatchEvent(new MouseEvent('click', { bubbles: true }));
@@ -273,7 +297,9 @@ try {
       buttonClosed,
       focusRestored: backdropFocusRestored && escapeFocusRestored && buttonFocusRestored,
       gridAssetWebp: gridImage.src.endsWith('.webp'),
-      detailAssetWebp: detailImage.src.endsWith('.webp'),
+      referenceAssetWebp: detailImage.src.endsWith('.webp'),
+      referenceImageUpright: !detailImage.classList.contains('is-reversed'),
+      rubyRendered: rubyCount > 0,
       detailTitle: triggerTitle,
       detailOrientation: triggerOrientation,
       browserMeasuredImages: measurable.length,
