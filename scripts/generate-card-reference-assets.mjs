@@ -78,9 +78,38 @@ async function resolveSource(cardId, entry) {
   }
 
   const tag = candidates[0];
+  const srcset = attribute(tag, 'data-srcset') || attribute(tag, 'srcset');
+  if (srcset) {
+    const variants = srcset
+      .split(',')
+      .map(part => part.trim().match(/^(\S+)\s+(\d+)w$/))
+      .filter(Boolean)
+      .map(match => ({ url: match[1], width: Number(match[2]) }))
+      .sort((a, b) => b.width - a.width);
+    if (variants.length > 0) {
+      return { imageUrl: new URL(variants[0].url, entry.page_url).toString(), pageUrl: entry.page_url };
+    }
+  }
+
   const raw = attribute(tag, 'data-src') || attribute(tag, 'data-lazy-src') || attribute(tag, 'src');
   if (!raw) throw new Error(`Keyword image has no usable src for ${cardId}`);
-  return { imageUrl: new URL(raw, entry.page_url).toString(), pageUrl: entry.page_url };
+
+  const resolved = new URL(raw, entry.page_url);
+  const fullSize = new URL(resolved);
+  fullSize.pathname = fullSize.pathname.replace(/-\d+x\d+(?=\.[^.\/]+$)/, '');
+  if (fullSize.href !== resolved.href) {
+    try {
+      const probe = await fetch(fullSize, {
+        redirect: 'follow',
+        headers: { 'User-Agent': 'tarot-draw-reference-image-generator/1.0' }
+      });
+      if (probe.ok) return { imageUrl: fullSize.href, pageUrl: entry.page_url };
+    } catch {
+      // Fall through to the page-provided thumbnail.
+    }
+  }
+
+  return { imageUrl: resolved.toString(), pageUrl: entry.page_url };
 }
 
 async function encodeReadable(sourceBuffer) {

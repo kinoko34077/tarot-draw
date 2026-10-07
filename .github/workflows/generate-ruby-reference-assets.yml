@@ -38,7 +38,7 @@ jobs:
         run: |
           test "$(find web/assets/cards/reference -maxdepth 1 -type f -name '*.webp' | wc -l)" -eq 78
           node -e "import('./web/card-name-ruby.js').then(m=>{if(Object.keys(m.MINOR_CARD_DISPLAY).length!==56)process.exit(1)})"
-          node -e "const m=require('./web/assets/cards/reference/manifest.json'); if(m.cards!==78||m.max_bytes>98304||m.average_bytes>65536) process.exit(1); console.log({cards:m.cards,average:m.average_bytes,max:m.max_bytes,maxCard:m.max_card})"
+          node -e "const m=require('./web/assets/cards/reference/manifest.json'); const minWidth=Math.min(...m.entries.map(e=>e.output_width)); if(m.cards!==78||m.max_bytes>98304||m.average_bytes>65536||minWidth<600) process.exit(1); console.log({cards:m.cards,average:m.average_bytes,max:m.max_bytes,maxCard:m.max_card,minWidth})"
       - name: Commit generated outputs
         shell: bash
         run: |
