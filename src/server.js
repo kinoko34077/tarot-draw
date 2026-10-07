@@ -20,7 +20,7 @@ function setCommonHeaders(res) {
   res.setHeader('Cross-Origin-Opener-Policy', 'same-origin');
   res.setHeader(
     'Content-Security-Policy',
-    "default-src 'self'; script-src 'self'; style-src 'self'; connect-src 'self' https:; img-src 'self' data: https://commons.wikimedia.org https://upload.wikimedia.org; base-uri 'none'; frame-ancestors 'none'"
+    "default-src 'self'; script-src 'self'; style-src 'self'; connect-src 'self' https:; img-src 'self' data: https://commons.wikimedia.org https://upload.wikimedia.org https://thumb.wikimedia.org; base-uri 'none'; frame-ancestors 'none'"
   );
 }
 

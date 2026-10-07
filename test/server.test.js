@@ -84,7 +84,7 @@ test('same server serves the append-only reading workspace and Commons image pol
     assert.match(html, /id="newReadingButton"/);
     assert.match(html, /id="axisMenu"/);
     const csp = response.headers.get('content-security-policy') ?? '';
-    assert.match(csp, /img-src 'self' data: https:\/\/commons\.wikimedia\.org https:\/\/upload\.wikimedia\.org/);
+    assert.match(csp, /img-src 'self' data: https:\/\/commons\.wikimedia\.org https:\/\/upload\.wikimedia\.org https:\/\/thumb\.wikimedia\.org/);
   });
 });
 
