@@ -1,0 +1,53 @@
+name: Generate Ruby and Reference Assets
+
+on:
+  push:
+    branches: [ui/ruby-reference-images]
+    paths:
+      - 'package.json'
+      - 'scripts/card-reference-sources.mjs'
+      - 'scripts/generate-card-name-ruby.mjs'
+      - 'scripts/generate-card-reference-assets.mjs'
+      - '.github/workflows/generate-ruby-reference-assets.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  generate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout generation branch
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          ref: ui/ruby-reference-images
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install generation dependencies
+        run: npm install
+      - name: Generate aozora-wasm ruby mapping
+        run: node scripts/generate-card-name-ruby.mjs
+      - name: Generate attachment reference WebP assets
+        run: node scripts/generate-card-reference-assets.mjs
+      - name: Verify generated outputs
+        shell: bash
+        run: |
+          test "$(find web/assets/cards/reference -maxdepth 1 -type f -name '*.webp' | wc -l)" -eq 78
+          node -e "import('./web/card-name-ruby.js').then(m=>{if(Object.keys(m.MINOR_CARD_DISPLAY).length!==56)process.exit(1)})"
+          node -e "const m=require('./web/assets/cards/reference/manifest.json'); if(m.cards!==78||m.max_bytes>98304||m.average_bytes>65536) process.exit(1); console.log({cards:m.cards,average:m.average_bytes,max:m.max_bytes,maxCard:m.max_card})"
+      - name: Commit generated outputs
+        shell: bash
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add package-lock.json web/card-name-ruby.js web/assets/cards/reference
+          if git diff --cached --quiet; then
+            echo "No generated changes."
+            exit 0
+          fi
+          git commit -m "assets: generate ruby names and reference WebP"
+          git push origin HEAD:ui/ruby-reference-images
