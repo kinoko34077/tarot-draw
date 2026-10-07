@@ -6,50 +6,71 @@ async function read(path) {
   return readFile(new URL(path, import.meta.url), 'utf8');
 }
 
-test('initial page exposes one primary action and hides later-stage primary actions', async () => {
+test('initial page exposes one strongest primary action and keeps copy/draw hidden', async () => {
   const html = await read('../web/index.html');
-  assert.match(html, /id="shuffleButton" class="primary"/);
-  assert.match(html, /id="drawButton" class="primary hidden"/);
-  assert.match(html, /id="resultSection" class="panel hidden"/);
-  assert.match(html, /id="copyButton" class="primary"/);
+  assert.ok(html.includes('id="shuffleButton" class="primary"'));
+  assert.ok(html.includes('id="drawButton" class="primary hidden"'));
+  assert.ok(html.includes('id="copyButton" class="secondary hidden"'));
+  assert.ok(!html.includes('id="copyButton" class="primary"'));
+});
+
+test('matrix is the central work surface with compact dimensions and semantic table construction', async () => {
+  const [html, app] = await Promise.all([read('../web/index.html'), read('../web/app.js')]);
+  assert.ok(html.includes('id="primaryMatrix" class="table-scroll"'));
+  assert.ok(html.includes('id="rowCount"'));
+  assert.ok(html.includes('id="columnCount"'));
+  assert.ok(!html.includes('id="rowLabels"'));
+  assert.ok(!html.includes('id="columnLabels"'));
+  assert.ok(!html.includes('result-grid'));
+  assert.ok(app.includes("document.createElement('table')"));
+  assert.ok(app.includes("table.className = 'reading-table'"));
+  assert.ok(app.includes("th.scope = 'col'"));
+  assert.ok(app.includes("rowHeader.scope = 'row'"));
+  assert.ok(app.includes("createAxisEditor('column'"));
+  assert.ok(app.includes("createAxisEditor('row'"));
+});
+
+test('narrow layout preserves matrix geometry with horizontal scrolling instead of one-column collapse', async () => {
+  const css = await read('../web/styles.css');
+  assert.ok(css.includes('overflow-x: auto'));
+  assert.ok(css.includes('.row-header {'));
+  assert.ok(css.includes('position: sticky'));
+  assert.ok(css.includes('@media (max-width: 720px)'));
+  assert.ok(!css.includes('.result-grid'));
+  assert.ok(!css.includes('grid-template-columns: 1fr'));
+});
+
+test('pile selection is compact and result UI remains result-only', async () => {
+  const [css, app] = await Promise.all([read('../web/styles.css'), read('../web/app.js')]);
+  assert.ok(css.includes('min-height: 34px'));
+  assert.ok(app.includes('cardDisplayText(card)'));
+  assert.ok(!app.includes('card.meaning'));
+  assert.ok(!app.includes('card.interpretation'));
+  assert.ok(!app.includes('meaning_up'));
+  assert.ok(!app.includes('meaning_rev'));
 });
 
 test('UI contract includes accessible status and pile-selection semantics', async () => {
   const [html, app] = await Promise.all([read('../web/index.html'), read('../web/app.js')]);
-  assert.match(html, /role="status" aria-live="polite"/);
-  assert.match(html, /<button id="resetButton"/);
-  assert.match(html, /<input id="rowCount"/);
-  assert.match(html, /<input id="columnCount"/);
-  assert.match(app, /setAttribute\('aria-pressed'/);
-  assert.match(app, /setAttribute\('aria-label'/);
+  assert.ok(html.includes('role="status" aria-live="polite"'));
+  assert.ok(html.includes('<button id="resetButton"'));
+  assert.ok(app.includes("setAttribute('aria-pressed'"));
+  assert.ok(app.includes("setAttribute('aria-label'"));
+  assert.ok(app.includes("table.setAttribute('aria-label'"));
 });
-
-test('narrow layout reflows piles and result matrices to one column', async () => {
-  const css = await read('../web/styles.css');
-  assert.match(css, /@media \(max-width: 720px\)/);
-  assert.match(css, /\.pile-grid \{ grid-template-columns: 1fr; \}/);
-  assert.match(css, /\.result-grid \{ grid-template-columns: 1fr; \}/);
-});
-
-test('result UI is result-only and does not render interpretation fields', async () => {
-  const app = await read('../web/app.js');
-  assert.match(app, /card\.name_ja/);
-  assert.match(app, /orientationLabel\(card\.orientation\)/);
-  assert.doesNotMatch(app, /card\.meaning|card\.interpretation|meaning_up|meaning_rev/);
-});
-
 
 test('Pages assets are relative and runtime config loads before app module', async () => {
   const html = await read('../web/index.html');
-  assert.match(html, /href="\.\/styles\.css"/);
-  assert.match(html, /src="\.\/config\.js"/);
-  assert.match(html, /type="module" src="\.\/app\.js"/);
+  assert.ok(html.includes('href="./styles.css"'));
+  assert.ok(html.includes('src="./config.js"'));
+  assert.ok(html.includes('type="module" src="./app.js"'));
   assert.ok(html.indexOf('src="./config.js"') < html.indexOf('src="./app.js"'));
 });
 
 test('Pages-safe UI disables authoritative drawing when external API is unconfigured', async () => {
   const app = await read('../web/app.js');
-  assert.match(app, /!runtime\.apiAvailable/);
-  assert.match(app, /API未接続/);
-  assert.doesNotMatch(app, /Math\.random|crypto\.getRandomValues/);
+  assert.ok(app.includes('!runtime.apiAvailable'));
+  assert.ok(app.includes('API未接続'));
+  assert.ok(!app.includes('Math.random'));
+  assert.ok(!app.includes('crypto.getRandomValues'));
 });

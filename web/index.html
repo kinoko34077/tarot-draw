@@ -9,75 +9,61 @@
 </head>
 <body>
   <header class="topbar">
-    <div>
-      <h1>Tarot Draw</h1>
-      <p>カード結果だけを引く、80枚版リーディング。</p>
-    </div>
-    <button id="resetButton" class="secondary" type="button">新しいリーディング</button>
+    <h1>Tarot Draw</h1>
+    <button id="resetButton" class="secondary compact-button" type="button">新規</button>
   </header>
 
   <main class="workspace">
-    <section class="panel" aria-labelledby="setupTitle">
-      <div class="section-heading">
-        <div>
-          <h2 id="setupTitle">1. 配置</h2>
-          <p>行列数とラベルを決めます。ラベルはサイト側だけで扱います。</p>
+    <section class="workbench" aria-labelledby="matrixTitle">
+      <div class="toolbar" aria-label="リーディング操作">
+        <div class="toolbar-group">
+          <label class="compact-field">
+            <span>行</span>
+            <input id="rowCount" type="number" min="1" max="27" value="1" inputmode="numeric">
+          </label>
+          <span class="dimension-separator" aria-hidden="true">×</span>
+          <label class="compact-field">
+            <span>列</span>
+            <input id="columnCount" type="number" min="1" max="27" value="3" inputmode="numeric">
+          </label>
+          <output id="cellCount" class="badge">3枚</output>
         </div>
-        <output id="cellCount" class="badge">3枚</output>
+
+        <div class="toolbar-actions">
+          <button id="copyButton" class="secondary hidden" type="button">コピー</button>
+          <button id="shuffleButton" class="primary" type="button">シャッフル</button>
+          <button id="drawButton" class="primary hidden" type="button">引く</button>
+        </div>
       </div>
 
-      <div class="dimension-grid">
-        <label>行数
-          <input id="rowCount" type="number" min="1" max="27" value="1" inputmode="numeric">
-        </label>
-        <label>列数
-          <input id="columnCount" type="number" min="1" max="27" value="3" inputmode="numeric">
-        </label>
-      </div>
-
-      <div class="label-columns">
-        <fieldset>
-          <legend>行ラベル</legend>
-          <div id="rowLabels" class="label-list"></div>
-        </fieldset>
-        <fieldset>
-          <legend>列ラベル</legend>
-          <div id="columnLabels" class="label-list"></div>
-        </fieldset>
-      </div>
       <p id="layoutMessage" class="helper" role="status"></p>
-    </section>
 
-    <section class="panel" aria-labelledby="drawTitle">
-      <div class="section-heading">
-        <div>
-          <h2 id="drawTitle">2. シャッフル・山選択</h2>
-          <p>最初の山がPrimary、必要なら別の山をParallelとして選びます。</p>
-        </div>
+      <div id="pilePanel" class="pile-panel hidden" aria-labelledby="pileTitle">
+        <div class="pile-label" id="pileTitle">山</div>
+        <div id="piles" class="pile-options" aria-label="3分割した山"></div>
+        <p id="selectionMessage" class="helper pile-status" role="status"></p>
       </div>
 
-      <div class="action-row">
-        <button id="shuffleButton" class="primary" type="button">シャッフル</button>
-        <button id="drawButton" class="primary hidden" type="button">引く</button>
+      <div class="matrix-stack">
+        <section class="matrix-section" aria-labelledby="matrixTitle">
+          <div class="matrix-heading">
+            <h2 id="matrixTitle">配置</h2>
+            <span id="primaryPileLabel" class="branch-meta"></span>
+          </div>
+          <div id="primaryMatrix" class="table-scroll"></div>
+        </section>
+
+        <section id="parallelSection" class="matrix-section hidden" aria-labelledby="parallelTitle">
+          <div class="matrix-heading">
+            <h2 id="parallelTitle">Parallel</h2>
+            <span id="parallelPileLabel" class="branch-meta"></span>
+          </div>
+          <div id="parallelMatrix" class="table-scroll"></div>
+        </section>
       </div>
 
-      <div id="piles" class="pile-grid" aria-label="3分割した山"></div>
-      <p id="selectionMessage" class="helper" role="status"></p>
+      <p id="globalStatus" class="status" role="status" aria-live="polite"></p>
     </section>
-
-    <section id="resultSection" class="panel hidden" aria-labelledby="resultTitle">
-      <div class="section-heading">
-        <div>
-          <h2 id="resultTitle">3. 結果</h2>
-          <p>カード名・正逆・配置だけを表示します。</p>
-        </div>
-        <button id="copyButton" class="primary" type="button">コピー</button>
-      </div>
-
-      <div id="results" class="results"></div>
-    </section>
-
-    <p id="globalStatus" class="status" role="status" aria-live="polite"></p>
   </main>
 
   <script src="./config.js"></script>
