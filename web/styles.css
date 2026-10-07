@@ -229,11 +229,11 @@ input:focus-visible {
   scrollbar-gutter: stable;
 }
 .reading-table {
-  width: max(100%, max-content);
+  width: max-content;
   min-width: 100%;
   border-collapse: separate;
   border-spacing: 0;
-  table-layout: fixed;
+  table-layout: auto;
   font-size: .82rem;
 }
 .reading-table th,
@@ -254,16 +254,16 @@ input:focus-visible {
   position: sticky;
   left: 0;
   z-index: 4;
-  width: 170px;
-  min-width: 170px;
+  width: 180px;
+  min-width: 180px;
   padding: 6px 8px;
   color: var(--muted);
   text-align: left;
   white-space: nowrap;
 }
 .column-header {
-  min-width: 160px;
-  width: 160px;
+  min-width: 180px;
+  width: 180px;
   padding: 5px 6px;
   vertical-align: top;
   text-align: left;
@@ -272,8 +272,8 @@ input:focus-visible {
   position: sticky;
   left: 0;
   z-index: 3;
-  width: 170px;
-  min-width: 170px;
+  width: 180px;
+  min-width: 180px;
   padding: 5px 6px;
   text-align: left;
   vertical-align: top;
@@ -305,8 +305,8 @@ input:focus-visible {
 .axis-input::placeholder { color: var(--muted); font-weight: 400; opacity: .75; }
 
 .reading-cell {
-  min-width: 160px;
-  width: 160px;
+  min-width: 180px;
+  width: 180px;
   min-height: 48px;
   padding: 8px;
   vertical-align: middle;
@@ -317,6 +317,7 @@ input:focus-visible {
   font-weight: 600;
   line-height: 1.35;
   overflow-wrap: anywhere;
+  white-space: nowrap;
 }
 .cell-placeholder {
   display: block;
@@ -353,13 +354,13 @@ input:focus-visible {
   }
   .corner-header,
   .row-header {
-    width: 138px;
-    min-width: 138px;
+    width: 150px;
+    min-width: 150px;
   }
   .column-header,
   .reading-cell {
-    width: 150px;
-    min-width: 150px;
+    width: 168px;
+    min-width: 168px;
   }
 }
 
