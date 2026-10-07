@@ -55,7 +55,7 @@ async function resolveSource(cardId, entry) {
   const html = await fetchWithRetry(entry.page_url, true);
   const imageTags = html.match(/<img\b[^>]*>/gi) ?? [];
   let candidates = imageTags.filter(tag => {
-    const alt = attribute(tag, 'alt') ?? '';
+    const alt = (attribute(tag, 'alt') ?? '').normalize('NFKC');
     return alt.includes('キーワード解説画像');
   });
 
@@ -65,7 +65,7 @@ async function resolveSource(cardId, entry) {
       : cardId.includes('.swords.') ? 'ソード'
       : 'ペンタクル';
     candidates = imageTags.filter(tag => {
-      const alt = attribute(tag, 'alt') ?? '';
+      const alt = (attribute(tag, 'alt') ?? '').normalize('NFKC');
       return alt.includes(suitJa)
         && (alt.includes('意味') || alt.includes('小アルカナ'))
         && !alt.includes('アイキャッチ')
