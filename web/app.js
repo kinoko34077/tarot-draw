@@ -83,6 +83,13 @@ function createCardVisual(card, { detail = false } = {}) {
   return visual;
 }
 
+function setCardTitle(element, parts) {
+  element.replaceChildren();
+  if (parts.titleHtml) element.innerHTML = parts.titleHtml;
+  else element.textContent = parts.title;
+  element.setAttribute('aria-label', parts.plainTitle);
+}
+
 function closeCardDetail() {
   if (page.cardDetailDialog.open) page.cardDetailDialog.close();
 }
@@ -92,7 +99,7 @@ function openCardDetail(card, trigger) {
   const detail = cardDetail(card.card_id);
   lastCardTrigger = trigger;
 
-  page.cardDetailTitle.textContent = parts.title;
+  setCardTitle(page.cardDetailTitle, parts);
   page.cardDetailOrientation.textContent = parts.orientation;
   page.cardDetailVisual.replaceChildren(createCardVisual(card, { detail: true }));
 
@@ -460,7 +467,7 @@ function createReadingController(number) {
 
     const title = document.createElement('span');
     title.className = 'card-title';
-    title.textContent = parts.title;
+    setCardTitle(title, parts);
 
     const orientation = document.createElement('span');
     orientation.className = 'card-orientation';
@@ -468,7 +475,7 @@ function createReadingController(number) {
 
     label.append(title, orientation);
     result.append(visual, label);
-    result.setAttribute('aria-label', `${parts.title} ${parts.orientation}の詳細を表示`);
+    result.setAttribute('aria-label', `${parts.plainTitle} ${parts.orientation}の詳細を表示`);
     result.addEventListener('click', () => openCardDetail(card, result));
     return result;
   }

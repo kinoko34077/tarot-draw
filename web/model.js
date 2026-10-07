@@ -1,3 +1,5 @@
+import { MINOR_CARD_DISPLAY } from './card-name-ruby.js';
+
 const MAJOR_NUMBERS = Object.freeze({
   fool: '0',
   magician: 'I',
@@ -63,25 +65,38 @@ export function orientationLabel(value) {
 }
 
 export function cardDisplayParts(card) {
-  if (!card) return { title: '—', orientation: '' };
+  if (!card) return { title: '—', titleHtml: null, plainTitle: '—', orientation: '' };
 
   let title = card.name_ja;
+  let titleHtml = null;
+  let plainTitle = title;
+
   if (card.card_id === 'meta.guarantee') {
     title = 'GUARANTEE';
+    plainTitle = title;
   } else if (card.card_id === 'meta.title') {
     title = 'タイトルカード';
+    plainTitle = title;
   } else if (card.card_id?.startsWith('major.')) {
     const slug = card.card_id.slice('major.'.length);
     const number = MAJOR_NUMBERS[slug];
     if (number) title = `${number} ${title}`;
+    plainTitle = title;
+  } else if (card.card_id?.startsWith('minor.')) {
+    const display = MINOR_CARD_DISPLAY[card.card_id];
+    if (display) {
+      title = display.compact;
+      titleHtml = display.html;
+      plainTitle = display.plain;
+    }
   }
 
-  return { title, orientation: orientationLabel(card.orientation) };
+  return { title, titleHtml, plainTitle, orientation: orientationLabel(card.orientation) };
 }
 
 export function cardDisplayText(card) {
   const parts = cardDisplayParts(card);
-  return parts.orientation ? `${parts.title} ${parts.orientation}` : parts.title;
+  return parts.orientation ? `${parts.plainTitle} ${parts.orientation}` : parts.plainTitle;
 }
 
 export function rwsImageUrl(card, width = 128) {
@@ -91,6 +106,7 @@ export function rwsImageUrl(card, width = 128) {
   const filename = card.card_id.replaceAll('.', '-') + '.webp';
   return `./assets/cards/${variant}/${filename}`;
 }
+
 
 export function customCardNotesForResults(...results) {
   const seen = new Set();
