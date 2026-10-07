@@ -56,7 +56,18 @@ test('matrix remains semantic and narrow layouts preserve geometry', async () =>
   assert.ok(!css.includes('grid-template-columns: 1fr'));
 });
 
-test('standard cards render Commons RWS art and reversed art rotates without rotating label text', async () => {
+test('result cells use compact title/orientation lines and tap/click detail triggers', async () => {
+  const [app, css] = await Promise.all([read('../web/app.js'), read('../web/styles.css')]);
+  assert.ok(app.includes("document.createElement('button')"));
+  assert.ok(app.includes("title.className = 'card-title'"));
+  assert.ok(app.includes("orientation.className = 'card-orientation'"));
+  assert.ok(app.includes("openCardDetail(card, result)"));
+  assert.ok(css.includes('min-width: 108px'));
+  assert.ok(css.includes('.card-title'));
+  assert.ok(css.includes('.card-orientation'));
+});
+
+test('standard cards render lightweight Commons RWS art and reversed art rotates without rotating label text', async () => {
   const [app, css] = await Promise.all([read('../web/app.js'), read('../web/styles.css')]);
   assert.ok(app.includes('rwsImageUrl(card)'));
   assert.ok(app.includes("image.classList.add('is-reversed')"));
@@ -98,4 +109,29 @@ test('Pages-safe UI keeps authoritative drawing server-side', async () => {
   assert.ok(app.includes('API未接続'));
   assert.ok(!app.includes('Math.random'));
   assert.ok(!app.includes('crypto.getRandomValues'));
+});
+
+
+test('card detail uses an accessible native dialog with attachment-backed text and all close paths', async () => {
+  const [html, app, css] = await Promise.all([
+    read('../web/index.html'),
+    read('../web/app.js'),
+    read('../web/styles.css')
+  ]);
+  assert.ok(html.includes('<dialog id="cardDetailDialog"'));
+  assert.ok(html.includes('aria-labelledby="cardDetailTitle"'));
+  assert.ok(html.includes('id="cardDetailClose"'));
+  assert.ok(html.includes('id="cardDetailEssence"'));
+  assert.ok(html.includes('id="cardDetailUpright"'));
+  assert.ok(html.includes('id="cardDetailReversed"'));
+  assert.ok(app.includes("import { cardDetail } from './card-details.js'"));
+  assert.ok(app.includes('page.cardDetailDialog.showModal()'));
+  assert.ok(app.includes("event.target === page.cardDetailDialog"));
+  assert.ok(app.includes("addEventListener('cancel'"));
+  assert.ok(app.includes("addEventListener('close'"));
+  assert.ok(app.includes('focus({ preventScroll: true })'));
+  assert.ok(app.includes('createCardVisual(card, { detail: true })'));
+  assert.ok(app.includes('rwsImageUrl(card, detail ? 224 : 128)'));
+  assert.ok(css.includes('.card-detail-dialog::backdrop'));
+  assert.ok(css.includes('.detail-meaning[data-active="true"]'));
 });

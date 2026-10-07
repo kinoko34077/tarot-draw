@@ -29,6 +29,41 @@
     <button id="deleteAxisButton" class="danger-menu-item" type="button" role="menuitem">削除</button>
   </div>
 
+  <dialog id="cardDetailDialog" class="card-detail-dialog" aria-labelledby="cardDetailTitle">
+    <div class="card-detail-panel">
+      <header class="card-detail-header">
+        <div>
+          <h2 id="cardDetailTitle"></h2>
+          <p id="cardDetailOrientation" class="detail-orientation"></p>
+        </div>
+        <button id="cardDetailClose" class="detail-close" type="button" aria-label="カード詳細を閉じる">×</button>
+      </header>
+      <div class="card-detail-body">
+        <div id="cardDetailVisual" class="detail-visual-slot"></div>
+        <div class="card-detail-copy">
+          <div id="cardDetailReference">
+            <section class="detail-meaning">
+              <h3>本質</h3>
+              <p id="cardDetailEssence"></p>
+            </section>
+            <section id="cardDetailUprightBlock" class="detail-meaning" data-active="false">
+              <h3>正位置</h3>
+              <p id="cardDetailUpright"></p>
+            </section>
+            <section id="cardDetailReversedBlock" class="detail-meaning" data-active="false">
+              <h3>逆位置</h3>
+              <p id="cardDetailReversed"></p>
+            </section>
+          </div>
+          <section id="cardDetailCustom" class="detail-meaning hidden">
+            <h3>独自カード</h3>
+            <p id="cardDetailCustomText"></p>
+          </section>
+        </div>
+      </div>
+    </div>
+  </dialog>
+
   <script src="./config.js"></script>
   <script type="module" src="./app.js"></script>
 </body>

@@ -1,12 +1,15 @@
 import {
   appendAxisLabel,
   buildPositionIds,
+  cardDisplayParts,
   cardDisplayText,
+  CUSTOM_CARD_NOTES,
   formatReadingText,
   labelOrFallback,
   removeAxisLabel,
   rwsImageUrl
 } from './model.js';
+import { cardDetail } from './card-details.js';
 import { buildApiUrl, resolveRuntimeConfig } from './runtime-config.js';
 
 const runtime = resolveRuntimeConfig(globalThis.__TAROT_DRAW_CONFIG__ ?? {});
@@ -16,12 +19,112 @@ const page = {
   readings: document.querySelector('#readings'),
   newReadingButton: document.querySelector('#newReadingButton'),
   axisMenu: document.querySelector('#axisMenu'),
-  deleteAxisButton: document.querySelector('#deleteAxisButton')
+  deleteAxisButton: document.querySelector('#deleteAxisButton'),
+  cardDetailDialog: document.querySelector('#cardDetailDialog'),
+  cardDetailClose: document.querySelector('#cardDetailClose'),
+  cardDetailTitle: document.querySelector('#cardDetailTitle'),
+  cardDetailOrientation: document.querySelector('#cardDetailOrientation'),
+  cardDetailVisual: document.querySelector('#cardDetailVisual'),
+  cardDetailReference: document.querySelector('#cardDetailReference'),
+  cardDetailEssence: document.querySelector('#cardDetailEssence'),
+  cardDetailUpright: document.querySelector('#cardDetailUpright'),
+  cardDetailReversed: document.querySelector('#cardDetailReversed'),
+  cardDetailUprightBlock: document.querySelector('#cardDetailUprightBlock'),
+  cardDetailReversedBlock: document.querySelector('#cardDetailReversedBlock'),
+  cardDetailCustom: document.querySelector('#cardDetailCustom'),
+  cardDetailCustomText: document.querySelector('#cardDetailCustomText')
 };
 
 const readings = [];
 let nextReadingNumber = 1;
 let axisMenuContext = null;
+let lastCardTrigger = null;
+
+function createCardVisual(card, { detail = false } = {}) {
+  const visual = document.createElement('div');
+  visual.className = detail ? 'card-visual detail-card-visual' : 'card-visual';
+
+  const imageUrl = rwsImageUrl(card, detail ? 224 : 128);
+  if (imageUrl) {
+    const image = document.createElement('img');
+    image.className = detail ? 'card-art detail-card-art' : 'card-art';
+    if (card.orientation === 'reversed') image.classList.add('is-reversed');
+    image.src = imageUrl;
+    image.alt = '';
+    image.loading = detail ? 'eager' : 'lazy';
+    image.decoding = 'async';
+    image.referrerPolicy = 'no-referrer';
+    image.addEventListener('error', () => {
+      visual.classList.add('art-failed');
+      image.remove();
+      if (detail) {
+        const fallback = document.createElement('span');
+        fallback.className = 'detail-art-fallback';
+        fallback.textContent = '画像を表示できません';
+        visual.append(fallback);
+      }
+    }, { once: true });
+    visual.append(image);
+    return visual;
+  }
+
+  const face = document.createElement('div');
+  face.className = detail ? 'custom-card-face detail-custom-card-face' : 'custom-card-face';
+  if (card.orientation === 'reversed') face.classList.add('is-reversed');
+
+  const eyebrow = document.createElement('span');
+  eyebrow.textContent = 'CUSTOM';
+
+  const title = document.createElement('strong');
+  title.textContent = card.card_id === 'meta.guarantee' ? 'GUARANTEE' : 'TITLE';
+
+  face.append(eyebrow, title);
+  visual.append(face);
+  return visual;
+}
+
+function closeCardDetail() {
+  if (page.cardDetailDialog.open) page.cardDetailDialog.close();
+}
+
+function openCardDetail(card, trigger) {
+  const parts = cardDisplayParts(card);
+  const detail = cardDetail(card.card_id);
+  lastCardTrigger = trigger;
+
+  page.cardDetailTitle.textContent = parts.title;
+  page.cardDetailOrientation.textContent = parts.orientation;
+  page.cardDetailVisual.replaceChildren(createCardVisual(card, { detail: true }));
+
+  if (detail) {
+    page.cardDetailReference.classList.remove('hidden');
+    page.cardDetailCustom.classList.add('hidden');
+    page.cardDetailEssence.textContent = detail.essence;
+    page.cardDetailUpright.textContent = detail.upright;
+    page.cardDetailReversed.textContent = detail.reversed;
+    page.cardDetailUprightBlock.dataset.active = String(card.orientation === 'upright');
+    page.cardDetailReversedBlock.dataset.active = String(card.orientation === 'reversed');
+  } else {
+    page.cardDetailReference.classList.add('hidden');
+    page.cardDetailCustom.classList.remove('hidden');
+    page.cardDetailCustomText.textContent = CUSTOM_CARD_NOTES[card.card_id] ?? '独自カード';
+  }
+
+  page.cardDetailDialog.showModal();
+}
+
+page.cardDetailClose.addEventListener('click', closeCardDetail);
+page.cardDetailDialog.addEventListener('click', event => {
+  if (event.target === page.cardDetailDialog) closeCardDetail();
+});
+page.cardDetailDialog.addEventListener('cancel', () => {
+  // Native dialog closes on Escape; the close handler restores focus.
+});
+page.cardDetailDialog.addEventListener('close', () => {
+  const trigger = lastCardTrigger;
+  lastCardTrigger = null;
+  trigger?.focus({ preventScroll: true });
+});
 
 function setTextStatus(element, message, kind = 'info') {
   element.textContent = message;
@@ -339,47 +442,28 @@ function createReadingController(number) {
   }
 
   function createCardResult(card) {
-    const result = document.createElement('div');
-    result.className = 'card-result-block';
+    const result = document.createElement('button');
+    result.type = 'button';
+    result.className = 'card-result-block card-detail-trigger';
 
-    const visual = document.createElement('div');
-    visual.className = 'card-visual';
-
-    const imageUrl = rwsImageUrl(card);
-    if (imageUrl) {
-      const image = document.createElement('img');
-      image.className = 'card-art';
-      if (card.orientation === 'reversed') image.classList.add('is-reversed');
-      image.src = imageUrl;
-      image.alt = '';
-      image.loading = 'lazy';
-      image.decoding = 'async';
-      image.referrerPolicy = 'no-referrer';
-      image.addEventListener('error', () => {
-        visual.classList.add('art-failed');
-        image.remove();
-      }, { once: true });
-      visual.append(image);
-    } else {
-      const face = document.createElement('div');
-      face.className = 'custom-card-face';
-      if (card.orientation === 'reversed') face.classList.add('is-reversed');
-
-      const eyebrow = document.createElement('span');
-      eyebrow.textContent = 'CUSTOM';
-
-      const title = document.createElement('strong');
-      title.textContent = card.card_id === 'meta.guarantee' ? 'GUARANTEE' : 'TITLE';
-
-      face.append(eyebrow, title);
-      visual.append(face);
-    }
+    const visual = createCardVisual(card);
+    const parts = cardDisplayParts(card);
 
     const label = document.createElement('span');
     label.className = 'card-result-text';
-    label.textContent = cardDisplayText(card);
 
+    const title = document.createElement('span');
+    title.className = 'card-title';
+    title.textContent = parts.title;
+
+    const orientation = document.createElement('span');
+    orientation.className = 'card-orientation';
+    orientation.textContent = parts.orientation;
+
+    label.append(title, orientation);
     result.append(visual, label);
+    result.setAttribute('aria-label', `${parts.title} ${parts.orientation}の詳細を表示`);
+    result.addEventListener('click', () => openCardDetail(card, result));
     return result;
   }
 
