@@ -170,12 +170,12 @@ try {
 
     if (!one('#cardDetailDialog')) throw new Error('Card detail dialog is not deployed.');
 
-    for (let i = 0; i < 3; i += 1) click('.axis-add-header .axis-add-button');
+    for (let i = 0; i < 6; i += 1) click('.axis-add-header .axis-add-button');
     for (let i = 0; i < 2; i += 1) click('.axis-add-row-header .axis-add-button');
     await sleep(100);
 
     const setupColumns = all('.column-header');
-    if (setupColumns.length !== 6 || all('.row-header').length !== 3) throw new Error('3x6 setup failed.');
+    if (setupColumns.length !== 9 || all('.row-header').length !== 3) throw new Error('3x9 setup failed.');
 
     click('.shuffle-button');
     for (let i = 0; i < 120 && all('.pile-button').length < 3; i += 1) await sleep(100);
@@ -204,21 +204,18 @@ try {
     const orientationRect = firstOrientation.getBoundingClientRect();
     if (orientationRect.top < titleRect.bottom - 1) throw new Error('Title and orientation are not vertically separated.');
 
-    const standardTrigger = all('.primary-matrix .card-detail-trigger')
-      .find(trigger => trigger.querySelector('img.card-art'));
-    if (!standardTrigger) throw new Error('No standard-card trigger found.');
-
     const minorTrigger = all('.primary-matrix .card-detail-trigger')
       .find(trigger => trigger.querySelector('.card-title ruby'));
     const rubyCount = all('.primary-matrix .card-title ruby').length;
-    if (minorTrigger && rubyCount < 1) throw new Error('Minor Arcana ruby rendering failed.');
-    if (minorTrigger) {
-      const readings = all('.primary-matrix .card-title rt').map(rt => rt.textContent);
-      if (!readings.some(value => ['ワンド', 'カップ', 'ソード', 'ペンタクル'].includes(value))) {
-        throw new Error('Suit ruby reading is missing.');
-      }
+    if (!minorTrigger || rubyCount < 1) {
+      throw new Error('Minor Arcana ruby rendering failed in guaranteed 27-card draw.');
+    }
+    const readings = all('.primary-matrix .card-title rt').map(rt => rt.textContent);
+    if (!readings.some(value => ['ワンド', 'カップ', 'ソード', 'ペンタクル'].includes(value))) {
+      throw new Error('Suit ruby reading is missing.');
     }
 
+    const standardTrigger = minorTrigger;
     const gridImage = standardTrigger.querySelector('img.card-art');
     if (!gridImage.src.includes('/assets/cards/grid/') || !gridImage.src.endsWith('.webp')) {
       throw new Error('Grid image is not using self-hosted WebP.');
