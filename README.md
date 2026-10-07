@@ -46,3 +46,9 @@ The API treats position IDs as opaque strings. Semantic labels such as 過去 / 
 The static reading UI is published from `web/` through `.github/workflows/pages.yml`.
 
 The Pages build injects an external API configuration from the repository variable `TAROT_API_BASE_URL`. When that variable is empty, the live site intentionally disables shuffle/draw and reports that the API is not connected; it never falls back to client-side authoritative drawing. Local `npm start` continues to use the same-origin Node API.
+
+## Cloudflare API
+
+Production API deployment uses a dedicated Cloudflare Worker (`tarot-draw-api`) with one SQLite-backed Durable Object per reading session. The Durable Object persists the shuffled 80-card snapshot and independent branch cursors; sessions expire after 24 hours of inactivity. Browser CORS is restricted to the GitHub Pages origin. The Worker also uses a Cloudflare Rate Limiting binding.
+
+Deploy with `npm run deploy:cloudflare` after verification. The deployed Worker URL is then configured as the repository variable `TAROT_API_BASE_URL`, which causes the Pages workflow to inject it into `config.js`.

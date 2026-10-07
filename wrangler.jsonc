@@ -1,0 +1,37 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "tarot-draw-api",
+  "account_id": "fb59b3c4a3fb2cda44dad80638390309",
+  "main": "src/worker.js",
+  "workers_dev": true,
+  "preview_urls": false,
+  "compatibility_date": "2026-10-08",
+  "durable_objects": {
+    "bindings": [
+      {
+        "name": "TAROT_SESSIONS",
+        "class_name": "TarotSession"
+      }
+    ]
+  },
+  "migrations": [
+    {
+      "tag": "v1",
+      "new_sqlite_classes": ["TarotSession"]
+    }
+  ],
+  "ratelimits": [
+    {
+      "name": "TAROT_RATE_LIMITER",
+      "namespace_id": "26090812",
+      "simple": {
+        "limit": 120,
+        "period": 60
+      }
+    }
+  ],
+  "observability": {
+    "enabled": true,
+    "head_sampling_rate": 1
+  }
+}

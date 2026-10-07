@@ -1,4 +1,3 @@
-import { randomInt } from 'node:crypto';
 import { CARD_CATALOG } from './cards.js';
 
 export const ORIENTATIONS = Object.freeze(['upright', 'reversed']);
@@ -6,7 +5,19 @@ export const PILE_IDS = Object.freeze(['A', 'B', 'C']);
 export const PILE_SIZES = Object.freeze({ A: 27, B: 27, C: 26 });
 
 export function secureRandomIndex(maxExclusive) {
-  return randomInt(maxExclusive);
+  if (!Number.isSafeInteger(maxExclusive) || maxExclusive <= 0 || maxExclusive > 0x100000000) {
+    throw new RangeError('maxExclusive must be an integer between 1 and 2^32.');
+  }
+
+  const range = 0x100000000;
+  const limit = range - (range % maxExclusive);
+  const value = new Uint32Array(1);
+
+  do {
+    crypto.getRandomValues(value);
+  } while (value[0] >= limit);
+
+  return value[0] % maxExclusive;
 }
 
 export function shuffleAndOrient(catalog = CARD_CATALOG, randomIndex = secureRandomIndex) {
