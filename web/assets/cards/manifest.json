@@ -1,0 +1,1187 @@
+{
+  "summary": {
+    "cards": 78,
+    "grid": {
+      "max_bytes": 11228,
+      "average_bytes": 7648,
+      "target_bytes": 24576
+    },
+    "detail": {
+      "max_bytes": 41416,
+      "average_bytes": 25824,
+      "target_bytes": 57344
+    }
+  },
+  "cards": {
+    "major.fool": {
+      "source_url": "https://commons.wikimedia.org/wiki/Special:Redirect/file/The%20Fool%20(Rider-Waite%20Smith%20tarot%20deck).png?width=512",
+      "grid": {
+        "path": "./assets/cards/grid/major-fool.webp",
+        "bytes": 8168,
+        "quality": 68,
+        "width": 128
+      },
+      "detail": {
+        "path": "./assets/cards/detail/major-fool.webp",
+        "bytes": 26254,
+        "quality": 72,
+        "width": 256
+      }
+    },
+    "major.magician": {
+      "source_url": "https://commons.wikimedia.org/wiki/Special:Redirect/file/The%20Magician%20(Rider-Waite%20Smith%20tarot%20deck).png?width=512",
+      "grid": {
+        "path": "./assets/cards/grid/major-magician.webp",
+        "bytes": 8264,
+        "quality": 68,
+        "width": 128
+      },
+      "detail": {
+        "path": "./assets/cards/detail/major-magician.webp",
+        "bytes": 27532,
+        "quality": 72,
+        "width": 256
+      }
+    },
+    "major.high-priestess": {
+      "source_url": "https://commons.wikimedia.org/wiki/Special:Redirect/file/The%20High%20Priestess%20(Rider-Waite%20Smith%20tarot%20deck).png?width=512",
+      "grid": {
+        "path": "./assets/cards/grid/major-high-priestess.webp",
+        "bytes": 8942,
+        "quality": 68,
+        "width": 128
+      },
+      "detail": {
+        "path": "./assets/cards/detail/major-high-priestess.webp",
+        "bytes": 30734,
+        "quality": 72,
+        "width": 256
+      }
+    },
+    "major.empress": {
+      "source_url": "https://commons.wikimedia.org/wiki/Special:Redirect/file/The%20Empress%20(Rider-Waite%20Smith%20tarot%20deck).png?width=512",
+      "grid": {
+        "path": "./assets/cards/grid/major-empress.webp",
+        "bytes": 10106,
+        "quality": 68,
+        "width": 128
+      },
+      "detail": {
+        "path": "./assets/cards/detail/major-empress.webp",
+        "bytes": 37644,
+        "quality": 72,
+        "width": 256
+      }
+    },
+    "major.emperor": {
+      "source_url": "https://commons.wikimedia.org/wiki/Special:Redirect/file/The%20Emperor%20(Rider-Waite%20Smith%20tarot%20deck).png?width=512",
+      "grid": {
+        "path": "./assets/cards/grid/major-emperor.webp",
+        "bytes": 8946,
+        "quality": 68,
+        "width": 128
+      },
+      "detail": {
+        "path": "./assets/cards/detail/major-emperor.webp",
+        "bytes": 33434,
+        "quality": 72,
+        "width": 256
+      }
+    },
+    "major.hierophant": {
+      "source_url": "https://commons.wikimedia.org/wiki/Special:Redirect/file/The%20Hierophant%20(Rider-Waite%20Smith%20tarot%20deck).png?width=512",
+      "grid": {
+        "path": "./assets/cards/grid/major-hierophant.webp",
+        "bytes": 9862,
+        "quality": 68,
+        "width": 128
+      },
+      "detail": {
+        "path": "./assets/cards/detail/major-hierophant.webp",
+        "bytes": 34564,
+        "quality": 72,
+        "width": 256
+      }
+    },
+    "major.lovers": {
+      "source_url": "https://commons.wikimedia.org/wiki/Special:Redirect/file/The%20Lovers%20(Rider-Waite%20Smith%20tarot%20deck).png?width=512",
+      "grid": {
+        "path": "./assets/cards/grid/major-lovers.webp",
+        "bytes": 10230,
+        "quality": 68,
+        "width": 128
+      },
+      "detail": {
+        "path": "./assets/cards/detail/major-lovers.webp",
+        "bytes": 34908,
+        "quality": 72,
+        "width": 256
+      }
+    },
+    "major.chariot": {
+      "source_url": "https://commons.wikimedia.org/wiki/Special:Redirect/file/The%20Chariot%20(Rider-Waite%20Smith%20tarot%20deck).png?width=512",
+      "grid": {
+        "path": "./assets/cards/grid/major-chariot.webp",
+        "bytes": 9354,
+        "quality": 68,
+        "width": 128
+      },
+      "detail": {
+        "path": "./assets/cards/detail/major-chariot.webp",
+        "bytes": 31746,
+        "quality": 72,
+        "width": 256
+      }
+    },
+    "major.strength": {
+      "source_url": "https://commons.wikimedia.org/wiki/Special:Redirect/file/Strength%20(Rider-Waite%20Smith%20tarot%20deck).png?width=512",
+      "grid": {
+        "path": "./assets/cards/grid/major-strength.webp",
+        "bytes": 6826,
+        "quality": 68,
+        "width": 128
+      },
+      "detail": {
+        "path": "./assets/cards/detail/major-strength.webp",
+        "bytes": 23626,
+        "quality": 72,
+        "width": 256
+      }
+    },
+    "major.hermit": {
+      "source_url": "https://commons.wikimedia.org/wiki/Special:Redirect/file/The%20Hermit%20(Rider-Waite%20Smith%20tarot%20deck).png?width=512",
+      "grid": {
+        "path": "./assets/cards/grid/major-hermit.webp",
+        "bytes": 5098,
+        "quality": 68,
+        "width": 128
+      },
+      "detail": {
+        "path": "./assets/cards/detail/major-hermit.webp",
+        "bytes": 16878,
+        "quality": 72,
+        "width": 256
+      }
+    },
+    "major.wheel-of-fortune": {
+      "source_url": "https://commons.wikimedia.org/wiki/Special:Redirect/file/Wheel%20of%20Fortune%20(Rider-Waite%20Smith%20tarot%20deck).png?width=512",
+      "grid": {
+        "path": "./assets/cards/grid/major-wheel-of-fortune.webp",
+        "bytes": 9758,
+        "quality": 68,
+        "width": 128
+      },
+      "detail": {
+        "path": "./assets/cards/detail/major-wheel-of-fortune.webp",
+        "bytes": 29508,
+        "quality": 72,
+        "width": 256
+      }
+    },
+    "major.justice": {
+      "source_url": "https://commons.wikimedia.org/wiki/Special:Redirect/file/Justice%20(Rider-Waite%20Smith%20tarot%20deck).png?width=512",
+      "grid": {
+        "path": "./assets/cards/grid/major-justice.webp",
+        "bytes": 8882,
+        "quality": 68,
+        "width": 128
+      },
+      "detail": {
+        "path": "./assets/cards/detail/major-justice.webp",
+        "bytes": 33782,
+        "quality": 72,
+        "width": 256
+      }
+    },
+    "major.hanged-man": {
+      "source_url": "https://commons.wikimedia.org/wiki/Special:Redirect/file/The%20Hanged%20Man%20(Rider-Waite%20Smith%20tarot%20deck).png?width=512",
+      "grid": {
+        "path": "./assets/cards/grid/major-hanged-man.webp",
+        "bytes": 5934,
+        "quality": 68,
+        "width": 128
+      },
+      "detail": {
+        "path": "./assets/cards/detail/major-hanged-man.webp",
+        "bytes": 19636,
+        "quality": 72,
+        "width": 256
+      }
+    },
+    "major.death": {
+      "source_url": "https://commons.wikimedia.org/wiki/Special:Redirect/file/Death%20(Rider-Waite%20Smith%20tarot%20deck).png?width=512",
+      "grid": {
+        "path": "./assets/cards/grid/major-death.webp",
+        "bytes": 9054,
+        "quality": 68,
+        "width": 128
+      },
+      "detail": {
+        "path": "./assets/cards/detail/major-death.webp",
+        "bytes": 32608,
+        "quality": 72,
+        "width": 256
+      }
+    },
+    "major.temperance": {
+      "source_url": "https://commons.wikimedia.org/wiki/Special:Redirect/file/Temperance%20(Rider-Waite%20Smith%20tarot%20deck).png?width=512",
+      "grid": {
+        "path": "./assets/cards/grid/major-temperance.webp",
+        "bytes": 9258,
+        "quality": 68,
+        "width": 128
+      },
+      "detail": {
+        "path": "./assets/cards/detail/major-temperance.webp",
+        "bytes": 34426,
+        "quality": 72,
+        "width": 256
+      }
+    },
+    "major.devil": {
+      "source_url": "https://commons.wikimedia.org/wiki/Special:Redirect/file/The%20Devil%20(Rider-Waite%20Smith%20tarot%20deck).png?width=512",
+      "grid": {
+        "path": "./assets/cards/grid/major-devil.webp",
+        "bytes": 7552,
+        "quality": 68,
+        "width": 128
+      },
+      "detail": {
+        "path": "./assets/cards/detail/major-devil.webp",
+        "bytes": 25090,
+        "quality": 72,
+        "width": 256
+      }
+    },
+    "major.tower": {
+      "source_url": "https://commons.wikimedia.org/wiki/Special:Redirect/file/The%20Tower%20(Rider-Waite%20Smith%20tarot%20deck).png?width=512",
+      "grid": {
+        "path": "./assets/cards/grid/major-tower.webp",
+        "bytes": 8016,
+        "quality": 68,
+        "width": 128
+      },
+      "detail": {
+        "path": "./assets/cards/detail/major-tower.webp",
+        "bytes": 24990,
+        "quality": 72,
+        "width": 256
+      }
+    },
+    "major.star": {
+      "source_url": "https://commons.wikimedia.org/wiki/Special:Redirect/file/The%20Star%20(Rider-Waite%20Smith%20tarot%20deck).png?width=512",
+      "grid": {
+        "path": "./assets/cards/grid/major-star.webp",
+        "bytes": 8410,
+        "quality": 68,
+        "width": 128
+      },
+      "detail": {
+        "path": "./assets/cards/detail/major-star.webp",
+        "bytes": 26906,
+        "quality": 72,
+        "width": 256
+      }
+    },
+    "major.moon": {
+      "source_url": "https://commons.wikimedia.org/wiki/Special:Redirect/file/The%20Moon%20(Rider-Waite%20Smith%20tarot%20deck).png?width=512",
+      "grid": {
+        "path": "./assets/cards/grid/major-moon.webp",
+        "bytes": 8530,
+        "quality": 68,
+        "width": 128
+      },
+      "detail": {
+        "path": "./assets/cards/detail/major-moon.webp",
+        "bytes": 28208,
+        "quality": 72,
+        "width": 256
+      }
+    },
+    "major.sun": {
+      "source_url": "https://commons.wikimedia.org/wiki/Special:Redirect/file/The%20Sun%20(Rider-Waite%20Smith%20tarot%20deck).png?width=512",
+      "grid": {
+        "path": "./assets/cards/grid/major-sun.webp",
+        "bytes": 10522,
+        "quality": 68,
+        "width": 128
+      },
+      "detail": {
+        "path": "./assets/cards/detail/major-sun.webp",
+        "bytes": 35516,
+        "quality": 72,
+        "width": 256
+      }
+    },
+    "major.judgement": {
+      "source_url": "https://commons.wikimedia.org/wiki/Special:Redirect/file/Judgement%20(Rider-Waite%20Smith%20tarot%20deck).png?width=512",
+      "grid": {
+        "path": "./assets/cards/grid/major-judgement.webp",
+        "bytes": 9566,
+        "quality": 68,
+        "width": 128
+      },
+      "detail": {
+        "path": "./assets/cards/detail/major-judgement.webp",
+        "bytes": 32080,
+        "quality": 72,
+        "width": 256
+      }
+    },
+    "major.world": {
+      "source_url": "https://commons.wikimedia.org/wiki/Special:Redirect/file/The%20World%20(Rider-Waite%20Smith%20tarot%20deck).png?width=512",
+      "grid": {
+        "path": "./assets/cards/grid/major-world.webp",
+        "bytes": 9710,
+        "quality": 68,
+        "width": 128
+      },
+      "detail": {
+        "path": "./assets/cards/detail/major-world.webp",
+        "bytes": 31842,
+        "quality": 72,
+        "width": 256
+      }
+    },
+    "minor.wands.ace": {
+      "source_url": "https://commons.wikimedia.org/wiki/Special:Redirect/file/Ace%20of%20Wands%20(Rider-Waite%20Smith%20tarot%20deck).png?width=512",
+      "grid": {
+        "path": "./assets/cards/grid/minor-wands-ace.webp",
+        "bytes": 5678,
+        "quality": 68,
+        "width": 128
+      },
+      "detail": {
+        "path": "./assets/cards/detail/minor-wands-ace.webp",
+        "bytes": 17358,
+        "quality": 72,
+        "width": 256
+      }
+    },
+    "minor.wands.2": {
+      "source_url": "https://commons.wikimedia.org/wiki/Special:Redirect/file/Two%20of%20Wands%20(Rider-Waite%20Smith%20tarot%20deck).png?width=512",
+      "grid": {
+        "path": "./assets/cards/grid/minor-wands-2.webp",
+        "bytes": 6158,
+        "quality": 68,
+        "width": 128
+      },
+      "detail": {
+        "path": "./assets/cards/detail/minor-wands-2.webp",
+        "bytes": 21230,
+        "quality": 72,
+        "width": 256
+      }
+    },
+    "minor.wands.3": {
+      "source_url": "https://commons.wikimedia.org/wiki/Special:Redirect/file/Three%20of%20Wands%20(Rider-Waite%20Smith%20tarot%20deck).png?width=512",
+      "grid": {
+        "path": "./assets/cards/grid/minor-wands-3.webp",
+        "bytes": 6356,
+        "quality": 68,
+        "width": 128
+      },
+      "detail": {
+        "path": "./assets/cards/detail/minor-wands-3.webp",
+        "bytes": 22916,
+        "quality": 72,
+        "width": 256
+      }
+    },
+    "minor.wands.4": {
+      "source_url": "https://commons.wikimedia.org/wiki/Special:Redirect/file/Four%20of%20Wands%20(Rider-Waite%20Smith%20tarot%20deck).png?width=512",
+      "grid": {
+        "path": "./assets/cards/grid/minor-wands-4.webp",
+        "bytes": 6812,
+        "quality": 68,
+        "width": 128
+      },
+      "detail": {
+        "path": "./assets/cards/detail/minor-wands-4.webp",
+        "bytes": 23596,
+        "quality": 72,
+        "width": 256
+      }
+    },
+    "minor.wands.5": {
+      "source_url": "https://commons.wikimedia.org/wiki/Special:Redirect/file/Five%20of%20Wands%20(Rider-Waite%20Smith%20tarot%20deck).png?width=512",
+      "grid": {
+        "path": "./assets/cards/grid/minor-wands-5.webp",
+        "bytes": 7748,
+        "quality": 68,
+        "width": 128
+      },
+      "detail": {
+        "path": "./assets/cards/detail/minor-wands-5.webp",
+        "bytes": 24912,
+        "quality": 72,
+        "width": 256
+      }
+    },
+    "minor.wands.6": {
+      "source_url": "https://commons.wikimedia.org/wiki/Special:Redirect/file/Six%20of%20Wands%20(Rider-Waite%20Smith%20tarot%20deck).png?width=512",
+      "grid": {
+        "path": "./assets/cards/grid/minor-wands-6.webp",
+        "bytes": 7900,
+        "quality": 68,
+        "width": 128
+      },
+      "detail": {
+        "path": "./assets/cards/detail/minor-wands-6.webp",
+        "bytes": 25280,
+        "quality": 72,
+        "width": 256
+      }
+    },
+    "minor.wands.7": {
+      "source_url": "https://commons.wikimedia.org/wiki/Special:Redirect/file/Seven%20of%20Wands%20(Rider-Waite%20Smith%20tarot%20deck).png?width=512",
+      "grid": {
+        "path": "./assets/cards/grid/minor-wands-7.webp",
+        "bytes": 6442,
+        "quality": 68,
+        "width": 128
+      },
+      "detail": {
+        "path": "./assets/cards/detail/minor-wands-7.webp",
+        "bytes": 20108,
+        "quality": 72,
+        "width": 256
+      }
+    },
+    "minor.wands.8": {
+      "source_url": "https://commons.wikimedia.org/wiki/Special:Redirect/file/Eight%20of%20Wands%20(Rider-Waite%20Smith%20tarot%20deck).png?width=512",
+      "grid": {
+        "path": "./assets/cards/grid/minor-wands-8.webp",
+        "bytes": 6308,
+        "quality": 68,
+        "width": 128
+      },
+      "detail": {
+        "path": "./assets/cards/detail/minor-wands-8.webp",
+        "bytes": 20600,
+        "quality": 72,
+        "width": 256
+      }
+    },
+    "minor.wands.9": {
+      "source_url": "https://commons.wikimedia.org/wiki/Special:Redirect/file/Nine%20of%20Wands%20(Rider-Waite%20Smith%20tarot%20deck).png?width=512",
+      "grid": {
+        "path": "./assets/cards/grid/minor-wands-9.webp",
+        "bytes": 7306,
+        "quality": 68,
+        "width": 128
+      },
+      "detail": {
+        "path": "./assets/cards/detail/minor-wands-9.webp",
+        "bytes": 26052,
+        "quality": 72,
+        "width": 256
+      }
+    },
+    "minor.wands.10": {
+      "source_url": "https://commons.wikimedia.org/wiki/Special:Redirect/file/Ten%20of%20Wands%20(Rider-Waite%20Smith%20tarot%20deck).png?width=512",
+      "grid": {
+        "path": "./assets/cards/grid/minor-wands-10.webp",
+        "bytes": 6688,
+        "quality": 68,
+        "width": 128
+      },
+      "detail": {
+        "path": "./assets/cards/detail/minor-wands-10.webp",
+        "bytes": 22862,
+        "quality": 72,
+        "width": 256
+      }
+    },
+    "minor.wands.page": {
+      "source_url": "https://commons.wikimedia.org/wiki/Special:Redirect/file/Page%20of%20Wands%20(Rider-Waite%20Smith%20tarot%20deck).png?width=512",
+      "grid": {
+        "path": "./assets/cards/grid/minor-wands-page.webp",
+        "bytes": 6480,
+        "quality": 68,
+        "width": 128
+      },
+      "detail": {
+        "path": "./assets/cards/detail/minor-wands-page.webp",
+        "bytes": 22252,
+        "quality": 72,
+        "width": 256
+      }
+    },
+    "minor.wands.knight": {
+      "source_url": "https://commons.wikimedia.org/wiki/Special:Redirect/file/Knight%20of%20Wands%20(Rider-Waite%20Smith%20tarot%20deck).png?width=512",
+      "grid": {
+        "path": "./assets/cards/grid/minor-wands-knight.webp",
+        "bytes": 8170,
+        "quality": 68,
+        "width": 128
+      },
+      "detail": {
+        "path": "./assets/cards/detail/minor-wands-knight.webp",
+        "bytes": 26332,
+        "quality": 72,
+        "width": 256
+      }
+    },
+    "minor.wands.queen": {
+      "source_url": "https://commons.wikimedia.org/wiki/Special:Redirect/file/Queen%20of%20Wands%20(Rider-Waite%20Smith%20tarot%20deck).png?width=512",
+      "grid": {
+        "path": "./assets/cards/grid/minor-wands-queen.webp",
+        "bytes": 8630,
+        "quality": 68,
+        "width": 128
+      },
+      "detail": {
+        "path": "./assets/cards/detail/minor-wands-queen.webp",
+        "bytes": 31772,
+        "quality": 72,
+        "width": 256
+      }
+    },
+    "minor.wands.king": {
+      "source_url": "https://commons.wikimedia.org/wiki/Special:Redirect/file/King%20of%20Wands%20(Rider-Waite%20Smith%20tarot%20deck).png?width=512",
+      "grid": {
+        "path": "./assets/cards/grid/minor-wands-king.webp",
+        "bytes": 8450,
+        "quality": 68,
+        "width": 128
+      },
+      "detail": {
+        "path": "./assets/cards/detail/minor-wands-king.webp",
+        "bytes": 29952,
+        "quality": 72,
+        "width": 256
+      }
+    },
+    "minor.cups.ace": {
+      "source_url": "https://commons.wikimedia.org/wiki/Special:Redirect/file/Ace%20of%20Cups%20(Rider-Waite%20Smith%20tarot%20deck).png?width=512",
+      "grid": {
+        "path": "./assets/cards/grid/minor-cups-ace.webp",
+        "bytes": 6658,
+        "quality": 68,
+        "width": 128
+      },
+      "detail": {
+        "path": "./assets/cards/detail/minor-cups-ace.webp",
+        "bytes": 22836,
+        "quality": 72,
+        "width": 256
+      }
+    },
+    "minor.cups.2": {
+      "source_url": "https://commons.wikimedia.org/wiki/Special:Redirect/file/Two%20of%20Cups%20(Rider-Waite%20Smith%20tarot%20deck).png?width=512",
+      "grid": {
+        "path": "./assets/cards/grid/minor-cups-2.webp",
+        "bytes": 7106,
+        "quality": 68,
+        "width": 128
+      },
+      "detail": {
+        "path": "./assets/cards/detail/minor-cups-2.webp",
+        "bytes": 23378,
+        "quality": 72,
+        "width": 256
+      }
+    },
+    "minor.cups.3": {
+      "source_url": "https://commons.wikimedia.org/wiki/Special:Redirect/file/Three%20of%20Cups%20(Rider-Waite%20Smith%20tarot%20deck).png?width=512",
+      "grid": {
+        "path": "./assets/cards/grid/minor-cups-3.webp",
+        "bytes": 7960,
+        "quality": 68,
+        "width": 128
+      },
+      "detail": {
+        "path": "./assets/cards/detail/minor-cups-3.webp",
+        "bytes": 29660,
+        "quality": 72,
+        "width": 256
+      }
+    },
+    "minor.cups.4": {
+      "source_url": "https://commons.wikimedia.org/wiki/Special:Redirect/file/Four%20of%20Cups%20(Rider-Waite%20Smith%20tarot%20deck).png?width=512",
+      "grid": {
+        "path": "./assets/cards/grid/minor-cups-4.webp",
+        "bytes": 7644,
+        "quality": 68,
+        "width": 128
+      },
+      "detail": {
+        "path": "./assets/cards/detail/minor-cups-4.webp",
+        "bytes": 23432,
+        "quality": 72,
+        "width": 256
+      }
+    },
+    "minor.cups.5": {
+      "source_url": "https://commons.wikimedia.org/wiki/Special:Redirect/file/Five%20of%20Cups%20(Rider-Waite%20Smith%20tarot%20deck).png?width=512",
+      "grid": {
+        "path": "./assets/cards/grid/minor-cups-5.webp",
+        "bytes": 4398,
+        "quality": 68,
+        "width": 128
+      },
+      "detail": {
+        "path": "./assets/cards/detail/minor-cups-5.webp",
+        "bytes": 14410,
+        "quality": 72,
+        "width": 256
+      }
+    },
+    "minor.cups.6": {
+      "source_url": "https://commons.wikimedia.org/wiki/Special:Redirect/file/Six%20of%20Cups%20(Rider-Waite%20Smith%20tarot%20deck).png?width=512",
+      "grid": {
+        "path": "./assets/cards/grid/minor-cups-6.webp",
+        "bytes": 8928,
+        "quality": 68,
+        "width": 128
+      },
+      "detail": {
+        "path": "./assets/cards/detail/minor-cups-6.webp",
+        "bytes": 31838,
+        "quality": 72,
+        "width": 256
+      }
+    },
+    "minor.cups.7": {
+      "source_url": "https://commons.wikimedia.org/wiki/Special:Redirect/file/Seven%20of%20Cups%20(Rider-Waite%20Smith%20tarot%20deck).png?width=512",
+      "grid": {
+        "path": "./assets/cards/grid/minor-cups-7.webp",
+        "bytes": 8280,
+        "quality": 68,
+        "width": 128
+      },
+      "detail": {
+        "path": "./assets/cards/detail/minor-cups-7.webp",
+        "bytes": 28314,
+        "quality": 72,
+        "width": 256
+      }
+    },
+    "minor.cups.8": {
+      "source_url": "https://commons.wikimedia.org/wiki/Special:Redirect/file/Eight%20of%20Cups%20(Rider-Waite%20Smith%20tarot%20deck).png?width=512",
+      "grid": {
+        "path": "./assets/cards/grid/minor-cups-8.webp",
+        "bytes": 6490,
+        "quality": 68,
+        "width": 128
+      },
+      "detail": {
+        "path": "./assets/cards/detail/minor-cups-8.webp",
+        "bytes": 20970,
+        "quality": 72,
+        "width": 256
+      }
+    },
+    "minor.cups.9": {
+      "source_url": "https://commons.wikimedia.org/wiki/Special:Redirect/file/Nine%20of%20Cups%20(Rider-Waite%20Smith%20tarot%20deck).png?width=512",
+      "grid": {
+        "path": "./assets/cards/grid/minor-cups-9.webp",
+        "bytes": 8608,
+        "quality": 68,
+        "width": 128
+      },
+      "detail": {
+        "path": "./assets/cards/detail/minor-cups-9.webp",
+        "bytes": 29554,
+        "quality": 72,
+        "width": 256
+      }
+    },
+    "minor.cups.10": {
+      "source_url": "https://commons.wikimedia.org/wiki/Special:Redirect/file/Ten%20of%20Cups%20(Rider-Waite%20Smith%20tarot%20deck).png?width=512",
+      "grid": {
+        "path": "./assets/cards/grid/minor-cups-10.webp",
+        "bytes": 6870,
+        "quality": 68,
+        "width": 128
+      },
+      "detail": {
+        "path": "./assets/cards/detail/minor-cups-10.webp",
+        "bytes": 22740,
+        "quality": 72,
+        "width": 256
+      }
+    },
+    "minor.cups.page": {
+      "source_url": "https://commons.wikimedia.org/wiki/Special:Redirect/file/Page%20of%20Cups%20(Rider-Waite%20Smith%20tarot%20deck).png?width=512",
+      "grid": {
+        "path": "./assets/cards/grid/minor-cups-page.webp",
+        "bytes": 6104,
+        "quality": 68,
+        "width": 128
+      },
+      "detail": {
+        "path": "./assets/cards/detail/minor-cups-page.webp",
+        "bytes": 20076,
+        "quality": 72,
+        "width": 256
+      }
+    },
+    "minor.cups.knight": {
+      "source_url": "https://commons.wikimedia.org/wiki/Special:Redirect/file/Knight%20of%20Cups%20(Rider-Waite%20Smith%20tarot%20deck).png?width=512",
+      "grid": {
+        "path": "./assets/cards/grid/minor-cups-knight.webp",
+        "bytes": 7222,
+        "quality": 68,
+        "width": 128
+      },
+      "detail": {
+        "path": "./assets/cards/detail/minor-cups-knight.webp",
+        "bytes": 23172,
+        "quality": 72,
+        "width": 256
+      }
+    },
+    "minor.cups.queen": {
+      "source_url": "https://commons.wikimedia.org/wiki/Special:Redirect/file/Queen%20of%20Cups%20(Rider-Waite%20Smith%20tarot%20deck).png?width=512",
+      "grid": {
+        "path": "./assets/cards/grid/minor-cups-queen.webp",
+        "bytes": 8370,
+        "quality": 68,
+        "width": 128
+      },
+      "detail": {
+        "path": "./assets/cards/detail/minor-cups-queen.webp",
+        "bytes": 29480,
+        "quality": 72,
+        "width": 256
+      }
+    },
+    "minor.cups.king": {
+      "source_url": "https://commons.wikimedia.org/wiki/Special:Redirect/file/King%20of%20Cups%20(Rider-Waite%20Smith%20tarot%20deck).png?width=512",
+      "grid": {
+        "path": "./assets/cards/grid/minor-cups-king.webp",
+        "bytes": 7244,
+        "quality": 68,
+        "width": 128
+      },
+      "detail": {
+        "path": "./assets/cards/detail/minor-cups-king.webp",
+        "bytes": 25642,
+        "quality": 72,
+        "width": 256
+      }
+    },
+    "minor.swords.ace": {
+      "source_url": "https://commons.wikimedia.org/wiki/Special:Redirect/file/One%20of%20Swords%20(Rider-Waite%20Smith%20tarot%20deck).png?width=512",
+      "grid": {
+        "path": "./assets/cards/grid/minor-swords-ace.webp",
+        "bytes": 5856,
+        "quality": 68,
+        "width": 128
+      },
+      "detail": {
+        "path": "./assets/cards/detail/minor-swords-ace.webp",
+        "bytes": 18460,
+        "quality": 72,
+        "width": 256
+      }
+    },
+    "minor.swords.2": {
+      "source_url": "https://commons.wikimedia.org/wiki/Special:Redirect/file/Two%20of%20Swords%20(Rider-Waite%20Smith%20tarot%20deck).png?width=512",
+      "grid": {
+        "path": "./assets/cards/grid/minor-swords-2.webp",
+        "bytes": 5362,
+        "quality": 68,
+        "width": 128
+      },
+      "detail": {
+        "path": "./assets/cards/detail/minor-swords-2.webp",
+        "bytes": 17032,
+        "quality": 72,
+        "width": 256
+      }
+    },
+    "minor.swords.3": {
+      "source_url": "https://commons.wikimedia.org/wiki/Special:Redirect/file/Three%20of%20Swords%20(Rider-Waite%20Smith%20tarot%20deck).png?width=512",
+      "grid": {
+        "path": "./assets/cards/grid/minor-swords-3.webp",
+        "bytes": 5380,
+        "quality": 68,
+        "width": 128
+      },
+      "detail": {
+        "path": "./assets/cards/detail/minor-swords-3.webp",
+        "bytes": 15770,
+        "quality": 72,
+        "width": 256
+      }
+    },
+    "minor.swords.4": {
+      "source_url": "https://commons.wikimedia.org/wiki/Special:Redirect/file/Four%20of%20Swords%20(Rider-Waite%20Smith%20tarot%20deck).png?width=512",
+      "grid": {
+        "path": "./assets/cards/grid/minor-swords-4.webp",
+        "bytes": 6270,
+        "quality": 68,
+        "width": 128
+      },
+      "detail": {
+        "path": "./assets/cards/detail/minor-swords-4.webp",
+        "bytes": 21512,
+        "quality": 72,
+        "width": 256
+      }
+    },
+    "minor.swords.5": {
+      "source_url": "https://commons.wikimedia.org/wiki/Special:Redirect/file/Five%20of%20Swords%20(Rider-Waite%20Smith%20tarot%20deck).png?width=512",
+      "grid": {
+        "path": "./assets/cards/grid/minor-swords-5.webp",
+        "bytes": 7948,
+        "quality": 68,
+        "width": 128
+      },
+      "detail": {
+        "path": "./assets/cards/detail/minor-swords-5.webp",
+        "bytes": 24998,
+        "quality": 72,
+        "width": 256
+      }
+    },
+    "minor.swords.6": {
+      "source_url": "https://commons.wikimedia.org/wiki/Special:Redirect/file/Six%20of%20Swords%20(Rider-Waite%20Smith%20tarot%20deck).png?width=512",
+      "grid": {
+        "path": "./assets/cards/grid/minor-swords-6.webp",
+        "bytes": 6234,
+        "quality": 68,
+        "width": 128
+      },
+      "detail": {
+        "path": "./assets/cards/detail/minor-swords-6.webp",
+        "bytes": 22220,
+        "quality": 72,
+        "width": 256
+      }
+    },
+    "minor.swords.7": {
+      "source_url": "https://commons.wikimedia.org/wiki/Special:Redirect/file/Seven%20of%20Swords%20(Rider-Waite%20Smith%20tarot%20deck).png?width=512",
+      "grid": {
+        "path": "./assets/cards/grid/minor-swords-7.webp",
+        "bytes": 6390,
+        "quality": 68,
+        "width": 128
+      },
+      "detail": {
+        "path": "./assets/cards/detail/minor-swords-7.webp",
+        "bytes": 21214,
+        "quality": 72,
+        "width": 256
+      }
+    },
+    "minor.swords.8": {
+      "source_url": "https://commons.wikimedia.org/wiki/Special:Redirect/file/Eight%20of%20Swords%20(Rider-Waite%20Smith%20tarot%20deck).png?width=512",
+      "grid": {
+        "path": "./assets/cards/grid/minor-swords-8.webp",
+        "bytes": 6932,
+        "quality": 68,
+        "width": 128
+      },
+      "detail": {
+        "path": "./assets/cards/detail/minor-swords-8.webp",
+        "bytes": 23382,
+        "quality": 72,
+        "width": 256
+      }
+    },
+    "minor.swords.9": {
+      "source_url": "https://commons.wikimedia.org/wiki/Special:Redirect/file/Nine%20of%20Swords%20(Rider-Waite%20Smith%20tarot%20deck).png?width=512",
+      "grid": {
+        "path": "./assets/cards/grid/minor-swords-9.webp",
+        "bytes": 6834,
+        "quality": 68,
+        "width": 128
+      },
+      "detail": {
+        "path": "./assets/cards/detail/minor-swords-9.webp",
+        "bytes": 24270,
+        "quality": 72,
+        "width": 256
+      }
+    },
+    "minor.swords.10": {
+      "source_url": "https://commons.wikimedia.org/wiki/Special:Redirect/file/Ten%20of%20Swords%20(Rider-Waite%20Smith%20tarot%20deck).png?width=512",
+      "grid": {
+        "path": "./assets/cards/grid/minor-swords-10.webp",
+        "bytes": 6824,
+        "quality": 68,
+        "width": 128
+      },
+      "detail": {
+        "path": "./assets/cards/detail/minor-swords-10.webp",
+        "bytes": 23244,
+        "quality": 72,
+        "width": 256
+      }
+    },
+    "minor.swords.page": {
+      "source_url": "https://commons.wikimedia.org/wiki/Special:Redirect/file/Page%20of%20Swords%20(Rider-Waite%20Smith%20tarot%20deck).png?width=512",
+      "grid": {
+        "path": "./assets/cards/grid/minor-swords-page.webp",
+        "bytes": 7388,
+        "quality": 68,
+        "width": 128
+      },
+      "detail": {
+        "path": "./assets/cards/detail/minor-swords-page.webp",
+        "bytes": 23114,
+        "quality": 72,
+        "width": 256
+      }
+    },
+    "minor.swords.knight": {
+      "source_url": "https://commons.wikimedia.org/wiki/Special:Redirect/file/Knight%20of%20Swords%20(Rider-Waite%20Smith%20tarot%20deck).png?width=512",
+      "grid": {
+        "path": "./assets/cards/grid/minor-swords-knight.webp",
+        "bytes": 8844,
+        "quality": 68,
+        "width": 128
+      },
+      "detail": {
+        "path": "./assets/cards/detail/minor-swords-knight.webp",
+        "bytes": 27460,
+        "quality": 72,
+        "width": 256
+      }
+    },
+    "minor.swords.queen": {
+      "source_url": "https://commons.wikimedia.org/wiki/Special:Redirect/file/Queen%20of%20Swords%20(Rider-Waite%20Smith%20tarot%20deck).png?width=512",
+      "grid": {
+        "path": "./assets/cards/grid/minor-swords-queen.webp",
+        "bytes": 7350,
+        "quality": 68,
+        "width": 128
+      },
+      "detail": {
+        "path": "./assets/cards/detail/minor-swords-queen.webp",
+        "bytes": 23452,
+        "quality": 72,
+        "width": 256
+      }
+    },
+    "minor.swords.king": {
+      "source_url": "https://commons.wikimedia.org/wiki/Special:Redirect/file/King%20of%20Swords%20(Rider-Waite%20Smith%20tarot%20deck).png?width=512",
+      "grid": {
+        "path": "./assets/cards/grid/minor-swords-king.webp",
+        "bytes": 7876,
+        "quality": 68,
+        "width": 128
+      },
+      "detail": {
+        "path": "./assets/cards/detail/minor-swords-king.webp",
+        "bytes": 25022,
+        "quality": 72,
+        "width": 256
+      }
+    },
+    "minor.pentacles.ace": {
+      "source_url": "https://commons.wikimedia.org/wiki/Special:Redirect/file/One%20of%20Pentacles%20(Rider-Waite%20Smith%20tarot%20deck).png?width=512",
+      "grid": {
+        "path": "./assets/cards/grid/minor-pentacles-ace.webp",
+        "bytes": 6342,
+        "quality": 68,
+        "width": 128
+      },
+      "detail": {
+        "path": "./assets/cards/detail/minor-pentacles-ace.webp",
+        "bytes": 20714,
+        "quality": 72,
+        "width": 256
+      }
+    },
+    "minor.pentacles.2": {
+      "source_url": "https://commons.wikimedia.org/wiki/Special:Redirect/file/Two%20of%20Pentacles%20(Rider-Waite%20Smith%20tarot%20deck).png?width=512",
+      "grid": {
+        "path": "./assets/cards/grid/minor-pentacles-2.webp",
+        "bytes": 5352,
+        "quality": 68,
+        "width": 128
+      },
+      "detail": {
+        "path": "./assets/cards/detail/minor-pentacles-2.webp",
+        "bytes": 18214,
+        "quality": 72,
+        "width": 256
+      }
+    },
+    "minor.pentacles.3": {
+      "source_url": "https://commons.wikimedia.org/wiki/Special:Redirect/file/Three%20of%20Pentacles%20(Rider-Waite%20Smith%20tarot%20deck).png?width=512",
+      "grid": {
+        "path": "./assets/cards/grid/minor-pentacles-3.webp",
+        "bytes": 9462,
+        "quality": 68,
+        "width": 128
+      },
+      "detail": {
+        "path": "./assets/cards/detail/minor-pentacles-3.webp",
+        "bytes": 30866,
+        "quality": 72,
+        "width": 256
+      }
+    },
+    "minor.pentacles.4": {
+      "source_url": "https://commons.wikimedia.org/wiki/Special:Redirect/file/Four%20of%20Pentacles%20(Rider-Waite%20Smith%20tarot%20deck).png?width=512",
+      "grid": {
+        "path": "./assets/cards/grid/minor-pentacles-4.webp",
+        "bytes": 4624,
+        "quality": 68,
+        "width": 128
+      },
+      "detail": {
+        "path": "./assets/cards/detail/minor-pentacles-4.webp",
+        "bytes": 14810,
+        "quality": 72,
+        "width": 256
+      }
+    },
+    "minor.pentacles.5": {
+      "source_url": "https://commons.wikimedia.org/wiki/Special:Redirect/file/Five%20of%20Pentacles%20(Rider-Waite%20Smith%20tarot%20deck).png?width=512",
+      "grid": {
+        "path": "./assets/cards/grid/minor-pentacles-5.webp",
+        "bytes": 10156,
+        "quality": 68,
+        "width": 128
+      },
+      "detail": {
+        "path": "./assets/cards/detail/minor-pentacles-5.webp",
+        "bytes": 37566,
+        "quality": 72,
+        "width": 256
+      }
+    },
+    "minor.pentacles.6": {
+      "source_url": "https://commons.wikimedia.org/wiki/Special:Redirect/file/Six%20of%20Pentacles%20(Rider-Waite%20Smith%20tarot%20deck).png?width=512",
+      "grid": {
+        "path": "./assets/cards/grid/minor-pentacles-6.webp",
+        "bytes": 6806,
+        "quality": 68,
+        "width": 128
+      },
+      "detail": {
+        "path": "./assets/cards/detail/minor-pentacles-6.webp",
+        "bytes": 22364,
+        "quality": 72,
+        "width": 256
+      }
+    },
+    "minor.pentacles.7": {
+      "source_url": "https://commons.wikimedia.org/wiki/Special:Redirect/file/Seven%20of%20Pentacles%20(Rider-Waite%20Smith%20tarot%20deck).png?width=512",
+      "grid": {
+        "path": "./assets/cards/grid/minor-pentacles-7.webp",
+        "bytes": 7566,
+        "quality": 68,
+        "width": 128
+      },
+      "detail": {
+        "path": "./assets/cards/detail/minor-pentacles-7.webp",
+        "bytes": 23816,
+        "quality": 72,
+        "width": 256
+      }
+    },
+    "minor.pentacles.8": {
+      "source_url": "https://commons.wikimedia.org/wiki/Special:Redirect/file/Eight%20of%20Pentacles%20(Rider-Waite%20Smith%20tarot%20deck).png?width=512",
+      "grid": {
+        "path": "./assets/cards/grid/minor-pentacles-8.webp",
+        "bytes": 5904,
+        "quality": 68,
+        "width": 128
+      },
+      "detail": {
+        "path": "./assets/cards/detail/minor-pentacles-8.webp",
+        "bytes": 19818,
+        "quality": 72,
+        "width": 256
+      }
+    },
+    "minor.pentacles.9": {
+      "source_url": "https://commons.wikimedia.org/wiki/Special:Redirect/file/Nine%20of%20Pentacles%20(Rider-Waite%20Smith%20tarot%20deck).png?width=512",
+      "grid": {
+        "path": "./assets/cards/grid/minor-pentacles-9.webp",
+        "bytes": 9278,
+        "quality": 68,
+        "width": 128
+      },
+      "detail": {
+        "path": "./assets/cards/detail/minor-pentacles-9.webp",
+        "bytes": 30076,
+        "quality": 72,
+        "width": 256
+      }
+    },
+    "minor.pentacles.10": {
+      "source_url": "https://commons.wikimedia.org/wiki/Special:Redirect/file/Ten%20of%20Pentacles%20(Rider-Waite%20Smith%20tarot%20deck).png?width=512",
+      "grid": {
+        "path": "./assets/cards/grid/minor-pentacles-10.webp",
+        "bytes": 10282,
+        "quality": 68,
+        "width": 128
+      },
+      "detail": {
+        "path": "./assets/cards/detail/minor-pentacles-10.webp",
+        "bytes": 36726,
+        "quality": 72,
+        "width": 256
+      }
+    },
+    "minor.pentacles.page": {
+      "source_url": "https://commons.wikimedia.org/wiki/Special:Redirect/file/Page%20of%20Pentacles%20(Rider-Waite%20Smith%20tarot%20deck).png?width=512",
+      "grid": {
+        "path": "./assets/cards/grid/minor-pentacles-page.webp",
+        "bytes": 6436,
+        "quality": 68,
+        "width": 128
+      },
+      "detail": {
+        "path": "./assets/cards/detail/minor-pentacles-page.webp",
+        "bytes": 21160,
+        "quality": 72,
+        "width": 256
+      }
+    },
+    "minor.pentacles.knight": {
+      "source_url": "https://commons.wikimedia.org/wiki/Special:Redirect/file/Knight%20of%20Pentacles%20(Rider-Waite%20Smith%20tarot%20deck).png?width=512",
+      "grid": {
+        "path": "./assets/cards/grid/minor-pentacles-knight.webp",
+        "bytes": 6410,
+        "quality": 68,
+        "width": 128
+      },
+      "detail": {
+        "path": "./assets/cards/detail/minor-pentacles-knight.webp",
+        "bytes": 21128,
+        "quality": 72,
+        "width": 256
+      }
+    },
+    "minor.pentacles.queen": {
+      "source_url": "https://commons.wikimedia.org/wiki/Special:Redirect/file/Queen%20of%20Pentacles%20(Rider-Waite%20Smith%20tarot%20deck).png?width=512",
+      "grid": {
+        "path": "./assets/cards/grid/minor-pentacles-queen.webp",
+        "bytes": 11228,
+        "quality": 68,
+        "width": 128
+      },
+      "detail": {
+        "path": "./assets/cards/detail/minor-pentacles-queen.webp",
+        "bytes": 41416,
+        "quality": 72,
+        "width": 256
+      }
+    },
+    "minor.pentacles.king": {
+      "source_url": "https://commons.wikimedia.org/wiki/Special:Redirect/file/King%20of%20Pentacles%20(Rider-Waite%20Smith%20tarot%20deck).png?width=512",
+      "grid": {
+        "path": "./assets/cards/grid/minor-pentacles-king.webp",
+        "bytes": 9210,
+        "quality": 68,
+        "width": 128
+      },
+      "detail": {
+        "path": "./assets/cards/detail/minor-pentacles-king.webp",
+        "bytes": 31782,
+        "quality": 72,
+        "width": 256
+      }
+    }
+  }
+}

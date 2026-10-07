@@ -40,26 +40,26 @@ test('card display parts separate title and orientation for visual rendering', (
   );
 });
 
-test('RWS image URLs use lightweight Commons thumbnails and omit custom cards', () => {
+test('RWS image URLs use self-hosted WebP assets and omit custom cards', () => {
   assert.equal(
     rwsImageUrl({ card_id: 'meta.title', name_en: 'Title Card' }),
     null
   );
-  assert.match(
+  assert.equal(
     rwsImageUrl({ card_id: 'major.fool', name_en: 'The Fool' }),
-    /commons\.wikimedia\.org\/wiki\/Special:Redirect\/file\/The%20Fool%20\(Rider-Waite%20Smith%20tarot%20deck\)\.png\?width=128/
+    './assets/cards/grid/major-fool.webp'
   );
-  assert.match(
+  assert.equal(
     rwsImageUrl({ card_id: 'major.fool', name_en: 'The Fool' }, 224),
-    /\?width=224$/
+    './assets/cards/detail/major-fool.webp'
   );
-  assert.match(
+  assert.equal(
     rwsImageUrl({ card_id: 'minor.pentacles.ace', name_en: 'Ace of Pentacles' }),
-    /One%20of%20Pentacles/
+    './assets/cards/grid/minor-pentacles-ace.webp'
   );
-  assert.match(
+  assert.equal(
     rwsImageUrl({ card_id: 'minor.swords.ace', name_en: 'Ace of Swords' }),
-    /One%20of%20Swords/
+    './assets/cards/grid/minor-swords-ace.webp'
   );
 });
 
