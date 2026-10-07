@@ -66,4 +66,7 @@ Card catalog -> deck session -> shuffle (order + orientation fixed) -> three-way
 - The reference text source is the user-supplied `タロット78枚_意味と画像索引.md` dataset, normalized as `essence`, `upright`, and `reversed`.
 - Card detail reference data is presentation-only. It must not affect shuffle, orientation, pile selection, draw order, branch state, copy matrix semantics, or probability.
 - Title Card and GUARANTEE are outside that 78-card source and must not be assigned invented divinatory meanings.
-- Standard-card matrix thumbnails should request a substantially smaller RWS thumbnail than the prior 320px request; the detail view may lazily request a larger bounded thumbnail.
+- Rider-Waite-Smith source artwork remains the public-domain Wikimedia Commons set, but runtime card delivery uses generated self-hosted WebP assets.
+- Matrix card assets are 128px WebP with a generation target of 24 KiB; the accepted generated set records average 7,648 bytes and maximum 11,228 bytes.
+- Detail card assets are 256px WebP, loaded only when the detail view opens, with a generation target of 56 KiB; the accepted generated set records average 25,824 bytes and maximum 41,416 bytes.
+- Runtime image delivery must remain presentation-only and must not affect authoritative draw/session behavior.

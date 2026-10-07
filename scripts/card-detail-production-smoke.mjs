@@ -9,7 +9,8 @@ import { rwsImageUrl } from '../web/model.js';
 const CHROME_BIN = process.env.CHROME_BIN || resolveChrome();
 const DEBUG_PORT = 9233;
 const PROD_URL = `https://kinoko34077.github.io/tarot-draw/?card-detail-smoke=${Date.now()}`;
-const GRID_IMAGE_BUDGET = 64 * 1024;
+const GRID_IMAGE_BUDGET = 24 * 1024;
+const DETAIL_IMAGE_BUDGET = 56 * 1024;
 
 function resolveChrome() {
   for (const command of ['google-chrome', 'chromium', 'chromium-browser']) {
@@ -70,11 +71,10 @@ class Cdp {
 }
 
 async function fetchBytes(url) {
-  const response = await fetch(url, {
-    redirect: 'follow',
-    headers: { 'User-Agent': 'tarot-draw-image-budget/1.0' }
-  });
+  const response = await fetch(url, { redirect: 'follow' });
   if (!response.ok) throw new Error(`Image fetch failed ${response.status}: ${url}`);
+  const contentType = response.headers.get('content-type') ?? '';
+  if (!contentType.includes('image/webp')) throw new Error(`Expected WebP, got ${contentType}: ${url}`);
   return (await response.arrayBuffer()).byteLength;
 }
 
@@ -92,28 +92,36 @@ async function mapLimited(values, limit, task) {
   return output;
 }
 
-async function verifyAllGridImageBudgets() {
+async function verifyAllImageBudgets() {
   const standardCards = CARD_CATALOG.filter(card => !card.card_id.startsWith('meta.'));
-  const measurements = await mapLimited(standardCards, 6, async card => ({
+  const measurements = await mapLimited(standardCards, 8, async card => ({
     card_id: card.card_id,
-    bytes: await fetchBytes(rwsImageUrl(card, 128))
+    grid: await fetchBytes(new URL(rwsImageUrl(card, 128), PROD_URL).toString()),
+    detail: await fetchBytes(new URL(rwsImageUrl(card, 224), PROD_URL).toString())
   }));
 
-  const largest = measurements.reduce((a, b) => b.bytes > a.bytes ? b : a);
-  const total = measurements.reduce((sum, item) => sum + item.bytes, 0);
-  const overBudget = measurements.filter(item => item.bytes > GRID_IMAGE_BUDGET);
+  const summarize = (key, budget) => {
+    const largest = measurements.reduce((a, b) => b[key] > a[key] ? b : a);
+    const total = measurements.reduce((sum, item) => sum + item[key], 0);
+    const overBudget = measurements.filter(item => item[key] > budget);
+    return {
+      cards: measurements.length,
+      maxBytes: largest[key],
+      maxCard: largest.card_id,
+      averageBytes: Math.round(total / measurements.length),
+      budgetBytes: budget,
+      overBudget: overBudget.length
+    };
+  };
 
   const summary = {
-    cards: measurements.length,
-    maxBytes: largest.bytes,
-    maxCard: largest.card_id,
-    averageBytes: Math.round(total / measurements.length),
-    overBudget: overBudget.length
+    grid: summarize('grid', GRID_IMAGE_BUDGET),
+    detail: summarize('detail', DETAIL_IMAGE_BUDGET)
   };
-  console.log('GRID_IMAGE_BUDGET=' + JSON.stringify(summary));
+  console.log('WEBP_IMAGE_BUDGET=' + JSON.stringify(summary));
 
-  if (overBudget.length > 0) {
-    throw new Error('128px Commons PNG exceeds 64 KiB budget: ' + JSON.stringify(overBudget.slice(0, 10)));
+  if (summary.grid.overBudget > 0 || summary.detail.overBudget > 0) {
+    throw new Error('Self-hosted WebP image budget exceeded: ' + JSON.stringify(summary));
   }
   return summary;
 }
@@ -191,7 +199,9 @@ try {
     if (!standardTrigger) throw new Error('No standard-card trigger found.');
 
     const gridImage = standardTrigger.querySelector('img.card-art');
-    if (!gridImage.src.includes('width=128')) throw new Error('Grid image is not using 128px thumbnail.');
+    if (!gridImage.src.includes('/assets/cards/grid/') || !gridImage.src.endsWith('.webp')) {
+      throw new Error('Grid image is not using self-hosted WebP.');
+    }
 
     const triggerTitle = standardTrigger.querySelector('.card-title').textContent;
     const triggerOrientation = standardTrigger.querySelector('.card-orientation').textContent;
@@ -210,7 +220,9 @@ try {
     if (active?.id !== expectedActiveId) throw new Error('Actual orientation meaning is not emphasized.');
 
     const detailImage = one('#cardDetailVisual img.card-art');
-    if (!detailImage || !detailImage.src.includes('width=224')) throw new Error('Detail image is not lazy 224px thumbnail.');
+    if (!detailImage || !detailImage.src.includes('/assets/cards/detail/') || !detailImage.src.endsWith('.webp')) {
+      throw new Error('Detail image is not using lazy self-hosted WebP.');
+    }
     for (let i = 0; i < 80 && !detailImage.complete; i += 1) await sleep(50);
     if (detailImage.naturalWidth <= 0) throw new Error('Detail image failed to load.');
     if ((triggerOrientation === '逆位置') !== detailImage.classList.contains('is-reversed')) {
@@ -240,7 +252,7 @@ try {
     if (!buttonClosed || !buttonFocusRestored) throw new Error('Close button/focus restore failed.');
 
     const resourceSizes = performance.getEntriesByType('resource')
-      .filter(entry => entry.initiatorType === 'img' && entry.name.includes('width=128'))
+      .filter(entry => entry.initiatorType === 'img' && entry.name.includes('/assets/cards/grid/'))
       .map(entry => ({
         name: entry.name,
         transferSize: entry.transferSize,
@@ -249,7 +261,8 @@ try {
     const measurable = resourceSizes
       .map(item => item.transferSize || item.encodedBodySize || 0)
       .filter(size => size > 0);
-    if (measurable.some(size => size > 65536)) throw new Error('Browser resource timing exceeded 64 KiB.');
+    if (measurable.length === 0) throw new Error('Same-origin WebP resource timing is not measurable.');
+    if (measurable.some(size => size > 24576)) throw new Error('Browser grid WebP exceeded 24 KiB.');
 
     return {
       maxCellWidth,
@@ -259,12 +272,12 @@ try {
       escapeClosed,
       buttonClosed,
       focusRestored: backdropFocusRestored && escapeFocusRestored && buttonFocusRestored,
-      gridImageWidthPolicy: gridImage.src.match(/width=(\\d+)/)?.[1] ?? null,
-      detailImageWidthPolicy: detailImage.src.match(/width=(\\d+)/)?.[1] ?? null,
+      gridAssetWebp: gridImage.src.endsWith('.webp'),
+      detailAssetWebp: detailImage.src.endsWith('.webp'),
       detailTitle: triggerTitle,
       detailOrientation: triggerOrientation,
       browserMeasuredImages: measurable.length,
-      browserMaxImageBytes: measurable.length ? Math.max(...measurable) : null
+      browserMaxImageBytes: Math.max(...measurable)
     };
   })()`;
 
@@ -286,7 +299,7 @@ try {
   });
   await writeFile('card-detail-smoke.png', Buffer.from(screenshot.data, 'base64'));
 
-  const budgetResult = await verifyAllGridImageBudgets();
+  const budgetResult = await verifyAllImageBudgets();
   console.log('CARD_DETAIL_SMOKE=' + JSON.stringify({ browser: browserResult, imageBudget: budgetResult }));
   cdp.close();
 } catch (error) {
