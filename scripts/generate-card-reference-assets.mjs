@@ -47,6 +47,7 @@ async function fetchWithRetry(url, asText = false) {
   throw new Error(`Failed to fetch ${url}: ${lastError}`);
 }
 
+// Prefer original source resolution when WordPress exposes only a sized thumbnail URL.
 async function resolveSource(cardId, entry) {
   if (entry.kind === 'direct') {
     return { imageUrl: entry.image_url, pageUrl: entry.page_url };
