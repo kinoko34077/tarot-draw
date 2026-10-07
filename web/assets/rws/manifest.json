@@ -1,0 +1,482 @@
+{
+  "schema": "tarot-rws-webp-manifest.v1",
+  "source": "Wikimedia Commons Rider-Waite-Smith tarot deck (Geldard), public domain",
+  "source_width": 320,
+  "output_width": 288,
+  "target_bytes": 49152,
+  "hard_limit_bytes": 65536,
+  "cards": 78,
+  "average_bytes": 19544,
+  "max_bytes": 31506,
+  "max_card": "minor.pentacles.queen",
+  "entries": [
+    {
+      "card_id": "major.fool",
+      "file": "major.fool.webp",
+      "bytes": 20288,
+      "quality": 55
+    },
+    {
+      "card_id": "major.magician",
+      "file": "major.magician.webp",
+      "bytes": 21294,
+      "quality": 55
+    },
+    {
+      "card_id": "major.high-priestess",
+      "file": "major.high-priestess.webp",
+      "bytes": 23440,
+      "quality": 55
+    },
+    {
+      "card_id": "major.empress",
+      "file": "major.empress.webp",
+      "bytes": 29124,
+      "quality": 55
+    },
+    {
+      "card_id": "major.emperor",
+      "file": "major.emperor.webp",
+      "bytes": 25250,
+      "quality": 55
+    },
+    {
+      "card_id": "major.hierophant",
+      "file": "major.hierophant.webp",
+      "bytes": 26846,
+      "quality": 55
+    },
+    {
+      "card_id": "major.lovers",
+      "file": "major.lovers.webp",
+      "bytes": 26562,
+      "quality": 55
+    },
+    {
+      "card_id": "major.chariot",
+      "file": "major.chariot.webp",
+      "bytes": 24834,
+      "quality": 55
+    },
+    {
+      "card_id": "major.strength",
+      "file": "major.strength.webp",
+      "bytes": 17662,
+      "quality": 55
+    },
+    {
+      "card_id": "major.hermit",
+      "file": "major.hermit.webp",
+      "bytes": 12666,
+      "quality": 55
+    },
+    {
+      "card_id": "major.wheel-of-fortune",
+      "file": "major.wheel-of-fortune.webp",
+      "bytes": 22626,
+      "quality": 55
+    },
+    {
+      "card_id": "major.justice",
+      "file": "major.justice.webp",
+      "bytes": 24984,
+      "quality": 55
+    },
+    {
+      "card_id": "major.hanged-man",
+      "file": "major.hanged-man.webp",
+      "bytes": 14330,
+      "quality": 55
+    },
+    {
+      "card_id": "major.death",
+      "file": "major.death.webp",
+      "bytes": 25490,
+      "quality": 55
+    },
+    {
+      "card_id": "major.temperance",
+      "file": "major.temperance.webp",
+      "bytes": 25878,
+      "quality": 55
+    },
+    {
+      "card_id": "major.devil",
+      "file": "major.devil.webp",
+      "bytes": 18878,
+      "quality": 55
+    },
+    {
+      "card_id": "major.tower",
+      "file": "major.tower.webp",
+      "bytes": 18802,
+      "quality": 55
+    },
+    {
+      "card_id": "major.star",
+      "file": "major.star.webp",
+      "bytes": 20856,
+      "quality": 55
+    },
+    {
+      "card_id": "major.moon",
+      "file": "major.moon.webp",
+      "bytes": 21548,
+      "quality": 55
+    },
+    {
+      "card_id": "major.sun",
+      "file": "major.sun.webp",
+      "bytes": 26922,
+      "quality": 55
+    },
+    {
+      "card_id": "major.judgement",
+      "file": "major.judgement.webp",
+      "bytes": 24552,
+      "quality": 55
+    },
+    {
+      "card_id": "major.world",
+      "file": "major.world.webp",
+      "bytes": 24898,
+      "quality": 55
+    },
+    {
+      "card_id": "minor.wands.ace",
+      "file": "minor.wands.ace.webp",
+      "bytes": 12812,
+      "quality": 55
+    },
+    {
+      "card_id": "minor.wands.2",
+      "file": "minor.wands.2.webp",
+      "bytes": 15356,
+      "quality": 55
+    },
+    {
+      "card_id": "minor.wands.3",
+      "file": "minor.wands.3.webp",
+      "bytes": 16564,
+      "quality": 55
+    },
+    {
+      "card_id": "minor.wands.4",
+      "file": "minor.wands.4.webp",
+      "bytes": 17772,
+      "quality": 55
+    },
+    {
+      "card_id": "minor.wands.5",
+      "file": "minor.wands.5.webp",
+      "bytes": 18576,
+      "quality": 55
+    },
+    {
+      "card_id": "minor.wands.6",
+      "file": "minor.wands.6.webp",
+      "bytes": 18868,
+      "quality": 55
+    },
+    {
+      "card_id": "minor.wands.7",
+      "file": "minor.wands.7.webp",
+      "bytes": 14926,
+      "quality": 55
+    },
+    {
+      "card_id": "minor.wands.8",
+      "file": "minor.wands.8.webp",
+      "bytes": 15242,
+      "quality": 55
+    },
+    {
+      "card_id": "minor.wands.9",
+      "file": "minor.wands.9.webp",
+      "bytes": 19456,
+      "quality": 55
+    },
+    {
+      "card_id": "minor.wands.10",
+      "file": "minor.wands.10.webp",
+      "bytes": 16888,
+      "quality": 55
+    },
+    {
+      "card_id": "minor.wands.page",
+      "file": "minor.wands.page.webp",
+      "bytes": 16108,
+      "quality": 55
+    },
+    {
+      "card_id": "minor.wands.knight",
+      "file": "minor.wands.knight.webp",
+      "bytes": 19908,
+      "quality": 55
+    },
+    {
+      "card_id": "minor.wands.queen",
+      "file": "minor.wands.queen.webp",
+      "bytes": 24894,
+      "quality": 55
+    },
+    {
+      "card_id": "minor.wands.king",
+      "file": "minor.wands.king.webp",
+      "bytes": 22766,
+      "quality": 55
+    },
+    {
+      "card_id": "minor.cups.ace",
+      "file": "minor.cups.ace.webp",
+      "bytes": 17366,
+      "quality": 55
+    },
+    {
+      "card_id": "minor.cups.2",
+      "file": "minor.cups.2.webp",
+      "bytes": 17828,
+      "quality": 55
+    },
+    {
+      "card_id": "minor.cups.3",
+      "file": "minor.cups.3.webp",
+      "bytes": 21390,
+      "quality": 55
+    },
+    {
+      "card_id": "minor.cups.4",
+      "file": "minor.cups.4.webp",
+      "bytes": 17616,
+      "quality": 55
+    },
+    {
+      "card_id": "minor.cups.5",
+      "file": "minor.cups.5.webp",
+      "bytes": 10842,
+      "quality": 55
+    },
+    {
+      "card_id": "minor.cups.6",
+      "file": "minor.cups.6.webp",
+      "bytes": 24970,
+      "quality": 55
+    },
+    {
+      "card_id": "minor.cups.7",
+      "file": "minor.cups.7.webp",
+      "bytes": 22108,
+      "quality": 55
+    },
+    {
+      "card_id": "minor.cups.8",
+      "file": "minor.cups.8.webp",
+      "bytes": 15232,
+      "quality": 55
+    },
+    {
+      "card_id": "minor.cups.9",
+      "file": "minor.cups.9.webp",
+      "bytes": 22832,
+      "quality": 55
+    },
+    {
+      "card_id": "minor.cups.10",
+      "file": "minor.cups.10.webp",
+      "bytes": 16790,
+      "quality": 55
+    },
+    {
+      "card_id": "minor.cups.page",
+      "file": "minor.cups.page.webp",
+      "bytes": 15108,
+      "quality": 55
+    },
+    {
+      "card_id": "minor.cups.knight",
+      "file": "minor.cups.knight.webp",
+      "bytes": 17754,
+      "quality": 55
+    },
+    {
+      "card_id": "minor.cups.queen",
+      "file": "minor.cups.queen.webp",
+      "bytes": 22326,
+      "quality": 55
+    },
+    {
+      "card_id": "minor.cups.king",
+      "file": "minor.cups.king.webp",
+      "bytes": 19740,
+      "quality": 55
+    },
+    {
+      "card_id": "minor.swords.ace",
+      "file": "minor.swords.ace.webp",
+      "bytes": 13654,
+      "quality": 55
+    },
+    {
+      "card_id": "minor.swords.2",
+      "file": "minor.swords.2.webp",
+      "bytes": 12834,
+      "quality": 55
+    },
+    {
+      "card_id": "minor.swords.3",
+      "file": "minor.swords.3.webp",
+      "bytes": 11762,
+      "quality": 55
+    },
+    {
+      "card_id": "minor.swords.4",
+      "file": "minor.swords.4.webp",
+      "bytes": 15664,
+      "quality": 55
+    },
+    {
+      "card_id": "minor.swords.5",
+      "file": "minor.swords.5.webp",
+      "bytes": 19366,
+      "quality": 55
+    },
+    {
+      "card_id": "minor.swords.6",
+      "file": "minor.swords.6.webp",
+      "bytes": 15570,
+      "quality": 55
+    },
+    {
+      "card_id": "minor.swords.7",
+      "file": "minor.swords.7.webp",
+      "bytes": 16346,
+      "quality": 55
+    },
+    {
+      "card_id": "minor.swords.8",
+      "file": "minor.swords.8.webp",
+      "bytes": 17806,
+      "quality": 55
+    },
+    {
+      "card_id": "minor.swords.9",
+      "file": "minor.swords.9.webp",
+      "bytes": 18070,
+      "quality": 55
+    },
+    {
+      "card_id": "minor.swords.10",
+      "file": "minor.swords.10.webp",
+      "bytes": 17770,
+      "quality": 55
+    },
+    {
+      "card_id": "minor.swords.page",
+      "file": "minor.swords.page.webp",
+      "bytes": 17586,
+      "quality": 55
+    },
+    {
+      "card_id": "minor.swords.knight",
+      "file": "minor.swords.knight.webp",
+      "bytes": 21052,
+      "quality": 55
+    },
+    {
+      "card_id": "minor.swords.queen",
+      "file": "minor.swords.queen.webp",
+      "bytes": 18392,
+      "quality": 55
+    },
+    {
+      "card_id": "minor.swords.king",
+      "file": "minor.swords.king.webp",
+      "bytes": 19074,
+      "quality": 55
+    },
+    {
+      "card_id": "minor.pentacles.ace",
+      "file": "minor.pentacles.ace.webp",
+      "bytes": 15594,
+      "quality": 55
+    },
+    {
+      "card_id": "minor.pentacles.2",
+      "file": "minor.pentacles.2.webp",
+      "bytes": 12836,
+      "quality": 55
+    },
+    {
+      "card_id": "minor.pentacles.3",
+      "file": "minor.pentacles.3.webp",
+      "bytes": 23712,
+      "quality": 55
+    },
+    {
+      "card_id": "minor.pentacles.4",
+      "file": "minor.pentacles.4.webp",
+      "bytes": 10928,
+      "quality": 55
+    },
+    {
+      "card_id": "minor.pentacles.5",
+      "file": "minor.pentacles.5.webp",
+      "bytes": 29508,
+      "quality": 55
+    },
+    {
+      "card_id": "minor.pentacles.6",
+      "file": "minor.pentacles.6.webp",
+      "bytes": 16618,
+      "quality": 55
+    },
+    {
+      "card_id": "minor.pentacles.7",
+      "file": "minor.pentacles.7.webp",
+      "bytes": 17812,
+      "quality": 55
+    },
+    {
+      "card_id": "minor.pentacles.8",
+      "file": "minor.pentacles.8.webp",
+      "bytes": 14180,
+      "quality": 55
+    },
+    {
+      "card_id": "minor.pentacles.9",
+      "file": "minor.pentacles.9.webp",
+      "bytes": 22640,
+      "quality": 55
+    },
+    {
+      "card_id": "minor.pentacles.10",
+      "file": "minor.pentacles.10.webp",
+      "bytes": 28068,
+      "quality": 55
+    },
+    {
+      "card_id": "minor.pentacles.page",
+      "file": "minor.pentacles.page.webp",
+      "bytes": 16128,
+      "quality": 55
+    },
+    {
+      "card_id": "minor.pentacles.knight",
+      "file": "minor.pentacles.knight.webp",
+      "bytes": 15830,
+      "quality": 55
+    },
+    {
+      "card_id": "minor.pentacles.queen",
+      "file": "minor.pentacles.queen.webp",
+      "bytes": 31506,
+      "quality": 55
+    },
+    {
+      "card_id": "minor.pentacles.king",
+      "file": "minor.pentacles.king.webp",
+      "bytes": 24358,
+      "quality": 55
+    }
+  ]
+}
