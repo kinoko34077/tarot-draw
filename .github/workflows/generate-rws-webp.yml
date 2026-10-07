@@ -1,0 +1,50 @@
+name: Generate RWS WebP Assets
+
+on:
+  push:
+    branches: [ui/card-detail-webp]
+    paths:
+      - 'scripts/generate-rws-webp.mjs'
+      - '.github/workflows/generate-rws-webp.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  generate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout generation branch
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          ref: ui/card-detail-webp
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install WebP encoder
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y webp
+          cwebp -version
+      - name: Generate 78 compressed RWS assets
+        run: node scripts/generate-rws-webp.mjs
+      - name: Verify generated set
+        shell: bash
+        run: |
+          test "$(find web/assets/rws -maxdepth 1 -type f -name '*.webp' | wc -l)" -eq 78
+          node -e "const m=require('./web/assets/rws/manifest.json'); if(m.cards!==78||m.max_bytes>65536) process.exit(1); console.log(m)"
+      - name: Commit generated assets
+        shell: bash
+        run: |
+          if git diff --quiet -- web/assets/rws && [ -z "$(git status --porcelain -- web/assets/rws)" ]; then
+            echo "No asset changes."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add web/assets/rws
+          git commit -m "assets: generate compressed RWS WebP"
+          git push origin HEAD:ui/card-detail-webp
