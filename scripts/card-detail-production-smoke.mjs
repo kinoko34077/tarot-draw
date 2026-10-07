@@ -216,6 +216,10 @@ try {
     }
 
     const standardTrigger = minorTrigger;
+    const triggerAria = standardTrigger.getAttribute('aria-label') ?? '';
+    if (!/（(?:ワンド|カップ|ソード|ペンタクル)）/.test(triggerAria)) {
+      throw new Error('Minor Arcana accessible/plain title is missing the suit reading.');
+    }
     const gridImage = standardTrigger.querySelector('img.card-art');
     if (!gridImage.src.includes('/assets/cards/grid/') || !gridImage.src.endsWith('.webp')) {
       throw new Error('Grid image is not using self-hosted WebP.');
@@ -242,7 +246,7 @@ try {
       throw new Error('Detail image is not using attachment-derived reference WebP.');
     }
     for (let i = 0; i < 80 && !detailImage.complete; i += 1) await sleep(50);
-    if (detailImage.naturalWidth <= 0) throw new Error('Reference detail image failed to load.');
+    if (detailImage.naturalWidth < 600) throw new Error('Reference detail image is too narrow for readable concept labels.');
     if (detailImage.classList.contains('is-reversed')) {
       throw new Error('Reference concept image must remain upright for readability.');
     }
@@ -296,7 +300,9 @@ try {
       gridAssetWebp: gridImage.src.endsWith('.webp'),
       referenceAssetWebp: detailImage.src.endsWith('.webp'),
       referenceImageUpright: !detailImage.classList.contains('is-reversed'),
+      referenceNaturalWidth: detailImage.naturalWidth,
       rubyRendered: rubyCount > 0,
+      plainTitleIncludesReading: /（(?:ワンド|カップ|ソード|ペンタクル)）/.test(triggerAria),
       detailTitle: triggerTitle,
       detailOrientation: triggerOrientation,
       browserMeasuredImages: measurable.length,
