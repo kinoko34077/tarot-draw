@@ -5,7 +5,7 @@
   "target_bytes": 65536,
   "hard_limit_bytes": 98304,
   "cards": 78,
-  "average_bytes": 25556,
+  "average_bytes": 25989,
   "max_bytes": 38680,
   "max_card": "minor.pentacles.queen",
   "entries": [
@@ -494,14 +494,14 @@
       "card_id": "minor.cups.2",
       "file": "minor-cups-2.webp",
       "source_page_url": "https://sup.andyou.jp/tarot/arcana-cups2/",
-      "source_image_url": "https://sup.andyou.jp/tarot/wp-content/uploads/sites/4/2022/02/4f8666c66ead97d5aacb03bd1160eb5b-320x180.png",
+      "source_image_url": "https://sup.andyou.jp/tarot/wp-content/uploads/sites/4/2022/02/4f8666c66ead97d5aacb03bd1160eb5b.png",
       "source_kind": "attachment-page-keyword-image",
-      "source_width": 320,
-      "source_height": 180,
-      "output_width": 320,
-      "output_height": 180,
+      "source_width": 760,
+      "source_height": 428,
+      "output_width": 640,
+      "output_height": 360,
       "quality": 74,
-      "bytes": 10288
+      "bytes": 26960
     },
     {
       "card_id": "minor.cups.3",
@@ -793,14 +793,14 @@
       "card_id": "minor.swords.page",
       "file": "minor-swords-page.webp",
       "source_page_url": "https://sup.andyou.jp/tarot/arcana-swordspage/",
-      "source_image_url": "https://sup.andyou.jp/tarot/wp-content/uploads/sites/4/2022/01/98002da4afec79d9fcc04de07fb04209-320x180.png",
+      "source_image_url": "https://sup.andyou.jp/tarot/wp-content/uploads/sites/4/2022/01/98002da4afec79d9fcc04de07fb04209.png",
       "source_kind": "attachment-page-keyword-image",
-      "source_width": 320,
-      "source_height": 180,
-      "output_width": 320,
-      "output_height": 180,
+      "source_width": 760,
+      "source_height": 428,
+      "output_width": 640,
+      "output_height": 360,
       "quality": 74,
-      "bytes": 10318
+      "bytes": 27368
     },
     {
       "card_id": "minor.swords.knight",
