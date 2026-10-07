@@ -70,3 +70,18 @@ Card catalog -> deck session -> shuffle (order + orientation fixed) -> three-way
 - Matrix card assets are 128px WebP with a generation target of 24 KiB; the accepted generated set records average 7,648 bytes and maximum 11,228 bytes.
 - Detail card assets are 256px WebP, loaded only when the detail view opens, with a generation target of 56 KiB; the accepted generated set records average 25,824 bytes and maximum 41,416 bytes.
 - Runtime image delivery must remain presentation-only and must not affect authoritative draw/session behavior.
+
+
+## Compact Minor Arcana ruby names and reference imagery
+
+- Minor Arcana suit display names use Japanese base terms with conventional katakana readings:
+  - `杖《ワンド》`, `盃《カップ》`, `剣《ソード》`, `金貨《ペンタクル》`.
+- Court/Ace display names use `一《エース》`, `小姓《ペイジ》`, `騎士《ナイト》`, `女王《クイーン》`, `王《キング》`; numeric ranks 2–10 remain numeric.
+- Ruby markup is generated from Aozora notation by pinned `aozora-wasm`; runtime display consumes the deterministic generated mapping rather than hand-authored ruby markup or a page-load WASM parser.
+- Plain-text copy includes both the compact Japanese base term and its katakana reading in parentheses.
+- Matrix RWS artwork remains unchanged and still follows actual upright/reversed orientation.
+- The standard 78-card detail dialog uses the attachment-derived brain-map / keyword concept image rather than enlarged RWS artwork.
+- Attachment-derived concept images remain upright even for reversed draws because their embedded labels must stay readable.
+- Major Arcana reference sources are the 22 direct brain-map image URLs in `タロット78枚_意味と画像索引.md`.
+- Minor Arcana reference sources are resolved at generation time from the 56 attachment-linked keyword-image pages by selecting their keyword-explanation image.
+- All 78 reference images are converted to self-hosted WebP with source URL, dimensions, quality, and byte size recorded in a generated manifest. Runtime has no third-party image dependency.
