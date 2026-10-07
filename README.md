@@ -52,3 +52,10 @@ The Pages build injects an external API configuration from the repository variab
 Production API deployment uses a dedicated Cloudflare Worker (`tarot-draw-api`) with one SQLite-backed Durable Object per reading session. The Durable Object persists the shuffled 80-card snapshot and independent branch cursors; sessions expire after 24 hours of inactivity. Browser CORS is restricted to the GitHub Pages origin. The Worker also uses a Cloudflare Rate Limiting binding.
 
 Deploy with `npm run deploy:cloudflare` after verification. The deployed Worker URL is then configured as the repository variable `TAROT_API_BASE_URL`, which causes the Pages workflow to inject it into `config.js`.
+
+
+## Reading workspace
+
+The browser UI uses direct table manipulation: rows and columns are added from the matrix itself and can be removed from contextual axis controls before shuffle. Each completed reading keeps its question, matrix, optional Parallel branch and copy action in an append-only in-page history.
+
+Standard 78-card results use the public-domain Pamela Colman Smith Rider-Waite-Smith image set from Wikimedia Commons, loaded as thumbnails at display time. Reversed cards rotate the artwork 180 degrees while keeping the textual card identity/orientation upright. Title Card and GUARANTEE intentionally use separate non-RWS faces.
