@@ -29,7 +29,8 @@ test('attachment-derived reference WebP set contains all 78 readable bounded ass
     assert.match(entry.file, /\.webp$/);
     assert.ok(entry.source_page_url.startsWith('https://sup.andyou.jp/tarot/'));
     assert.ok(entry.source_image_url.startsWith('https://sup.andyou.jp/tarot/'));
-    assert.ok(entry.output_width >= 600, `${entry.card_id} reference image is too narrow for embedded words`);
+    assert.equal(entry.output_width, Math.min(entry.source_width, 640), `${entry.card_id} must preserve source width up to the 640px cap`);
+    assert.ok(entry.output_height > 0, `${entry.card_id} reference image height must remain valid`);
     assert.ok(entry.bytes <= 96 * 1024, `${entry.card_id} exceeds hard budget`);
     const path = resolve(ROOT, entry.file);
     const info = await stat(path);
