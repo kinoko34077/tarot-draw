@@ -54,12 +54,27 @@ async function resolveSource(cardId, entry) {
 
   const html = await fetchWithRetry(entry.page_url, true);
   const imageTags = html.match(/<img\b[^>]*>/gi) ?? [];
-  const candidates = imageTags.filter(tag => {
+  let candidates = imageTags.filter(tag => {
     const alt = attribute(tag, 'alt') ?? '';
     return alt.includes('キーワード解説画像');
   });
+
   if (candidates.length === 0) {
-    throw new Error(`No キーワード解説画像 found for ${cardId} at ${entry.page_url}`);
+    const suitJa = cardId.includes('.wands.') ? 'ワンド'
+      : cardId.includes('.cups.') ? 'カップ'
+      : cardId.includes('.swords.') ? 'ソード'
+      : 'ペンタクル';
+    candidates = imageTags.filter(tag => {
+      const alt = attribute(tag, 'alt') ?? '';
+      return alt.includes(suitJa)
+        && (alt.includes('意味') || alt.includes('小アルカナ'))
+        && !alt.includes('アイキャッチ')
+        && !alt.includes('カード絵柄解説画');
+    });
+  }
+
+  if (candidates.length === 0) {
+    throw new Error(`No attachment-target keyword/concept image found for ${cardId} at ${entry.page_url}`);
   }
 
   const tag = candidates[0];
