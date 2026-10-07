@@ -2,12 +2,21 @@ name: Production UI Smoke
 
 on:
   workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - 'scripts/production-ui-smoke.mjs'
+      - '.github/workflows/production-ui-smoke.yml'
+  workflow_run:
+    workflows: ['Deploy Pages']
+    types: [completed]
 
 permissions:
   contents: read
 
 jobs:
   smoke:
+    if: ${{ github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success' }}
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
