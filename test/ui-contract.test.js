@@ -127,6 +127,8 @@ test('card detail uses an accessible native dialog with attachment-backed text a
   assert.ok(app.includes("import { cardDetail } from './card-details.js'"));
   assert.ok(app.includes('page.cardDetailDialog.showModal()'));
   assert.ok(app.includes("event.target === page.cardDetailDialog"));
+  assert.ok(app.includes("addEventListener('keydown'"));
+  assert.ok(app.includes("event.key === 'Escape'"));
   assert.ok(app.includes("addEventListener('cancel'"));
   assert.ok(app.includes("addEventListener('close'"));
   assert.ok(app.includes('focus({ preventScroll: true })'));

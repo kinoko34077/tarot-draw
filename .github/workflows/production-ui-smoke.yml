@@ -6,6 +6,7 @@ on:
     branches: [main]
     paths:
       - 'scripts/production-ui-smoke.mjs'
+      - 'scripts/card-detail-production-smoke.mjs'
       - '.github/workflows/production-ui-smoke.yml'
   workflow_run:
     workflows: ['Deploy Pages']
@@ -34,10 +35,14 @@ jobs:
           echo "CHROME_BIN=$CHROME_BIN" >> "$GITHUB_ENV"
       - name: Run production browser smoke
         run: node scripts/production-ui-smoke.mjs
+      - name: Run card detail and image budget smoke
+        run: node scripts/card-detail-production-smoke.mjs
       - name: Upload screenshot
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: production-ui-smoke
-          path: production-smoke.png
+          path: |
+            production-smoke.png
+            card-detail-smoke.png
           if-no-files-found: ignore

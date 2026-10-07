@@ -117,8 +117,14 @@ page.cardDetailClose.addEventListener('click', closeCardDetail);
 page.cardDetailDialog.addEventListener('click', event => {
   if (event.target === page.cardDetailDialog) closeCardDetail();
 });
+page.cardDetailDialog.addEventListener('keydown', event => {
+  if (event.key === 'Escape') {
+    event.preventDefault();
+    closeCardDetail();
+  }
+});
 page.cardDetailDialog.addEventListener('cancel', () => {
-  // Native dialog closes on Escape; the close handler restores focus.
+  // Native cancel remains as a browser-level fallback.
 });
 page.cardDetailDialog.addEventListener('close', () => {
   const trigger = lastCardTrigger;
