@@ -10,6 +10,7 @@ const STATIC_FILES = new Map([
   ['/styles.css', ['styles.css', 'text/css; charset=utf-8']],
   ['/app.js', ['app.js', 'text/javascript; charset=utf-8']],
   ['/model.js', ['model.js', 'text/javascript; charset=utf-8']],
+  ['/card-details.js', ['card-details.js', 'text/javascript; charset=utf-8']],
   ['/runtime-config.js', ['runtime-config.js', 'text/javascript; charset=utf-8']],
   ['/config.js', ['config.js', 'text/javascript; charset=utf-8']]
 ]);
