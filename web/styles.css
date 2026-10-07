@@ -409,6 +409,23 @@ input:focus-visible {
 .card-title {
   display: block;
   font-weight: 650;
+  line-height: 1.15;
+}
+.card-title ruby,
+.card-detail-header ruby {
+  ruby-align: center;
+}
+.card-title rt {
+  font-size: .48em;
+  line-height: 1;
+  font-weight: 500;
+  color: var(--muted);
+}
+.card-detail-header rt {
+  font-size: .5em;
+  line-height: 1;
+  font-weight: 500;
+  color: var(--muted);
 }
 .card-orientation {
   display: block;

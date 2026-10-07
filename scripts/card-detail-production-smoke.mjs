@@ -160,12 +160,13 @@ try {
 
     if (!one('#cardDetailDialog')) throw new Error('Card detail dialog is not deployed.');
 
-    for (let i = 0; i < 3; i += 1) click('.axis-add-header .axis-add-button');
+    // A 27-card 3x9 reading must include Minor Arcana (only 24 non-minors exist).
+    for (let i = 0; i < 6; i += 1) click('.axis-add-header .axis-add-button');
     for (let i = 0; i < 2; i += 1) click('.axis-add-row-header .axis-add-button');
     await sleep(100);
 
     const setupColumns = all('.column-header');
-    if (setupColumns.length !== 6 || all('.row-header').length !== 3) throw new Error('3x6 setup failed.');
+    if (setupColumns.length !== 9 || all('.row-header').length !== 3) throw new Error('3x9 setup failed.');
 
     click('.shuffle-button');
     for (let i = 0; i < 120 && all('.pile-button').length < 3; i += 1) await sleep(100);
@@ -193,6 +194,13 @@ try {
     const titleRect = firstTitle.getBoundingClientRect();
     const orientationRect = firstOrientation.getBoundingClientRect();
     if (orientationRect.top < titleRect.bottom - 1) throw new Error('Title and orientation are not vertically separated.');
+
+    const rubyNames = all('.primary-matrix .card-title ruby');
+    if (rubyNames.length === 0) throw new Error('Minor Arcana ruby titles were not rendered.');
+    const readings = all('.primary-matrix .card-title rt').map(rt => rt.textContent);
+    if (!readings.some(value => ['ワンド', 'カップ', 'ソード', 'ペンタクル'].includes(value))) {
+      throw new Error('Expected Minor Arcana suit reading ruby.');
+    }
 
     const standardTrigger = all('.primary-matrix .card-detail-trigger')
       .find(trigger => trigger.querySelector('img.card-art'));
@@ -268,6 +276,8 @@ try {
       maxCellWidth,
       columns: setupColumns.length,
       titleOrientationSplit: true,
+      rubyRendered: rubyNames.length,
+      rubyReadings: readings.length,
       backdropClosed,
       escapeClosed,
       buttonClosed,

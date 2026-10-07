@@ -36,7 +36,7 @@ test('card display text is compact and uses major roman numerals where available
 test('card display parts separate title and orientation for visual rendering', () => {
   assert.deepEqual(
     cardDisplayParts({ card_id: 'major.hanged-man', name_ja: '吊るされた男', orientation: 'reversed' }),
-    { title: 'XII 吊るされた男', orientation: '逆位置' }
+    { title: 'XII 吊るされた男', titleHtml: null, plainTitle: 'XII 吊るされた男', orientation: '逆位置' }
   );
 });
 
@@ -127,4 +127,20 @@ test('bulk copy supports the user-facing 3x6 table shape without flattening', ()
   assert.equal(lines[3].split('\t').length, 7);
   assert.equal(lines[4].split('\t').length, 7);
   assert.equal(lines[6].split('\t').length, 7);
+});
+
+test('Minor Arcana ruby display retains compact Japanese base and katakana reading in plain copy', () => {
+  const knight = { card_id: 'minor.wands.knight', name_ja: 'ワンドのナイト', orientation: 'reversed' };
+  const parts = cardDisplayParts(knight);
+  assert.equal(parts.title, '杖の騎士');
+  assert.equal(parts.plainTitle, '杖（ワンド）の騎士（ナイト）');
+  assert.match(parts.titleHtml, /<ruby>杖/);
+  assert.match(parts.titleHtml, /<rt>ワンド<\/rt>/);
+  assert.match(parts.titleHtml, /<rt>ナイト<\/rt>/);
+  assert.equal(cardDisplayText(knight), '杖（ワンド）の騎士（ナイト） 逆位置');
+
+  assert.equal(
+    cardDisplayText({ card_id: 'minor.pentacles.queen', name_ja: 'ペンタクルのクイーン', orientation: 'upright' }),
+    '金貨（ペンタクル）の女王（クイーン） 正位置'
+  );
 });
