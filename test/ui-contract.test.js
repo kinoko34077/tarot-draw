@@ -53,7 +53,7 @@ test('matrix remains semantic and narrow layouts preserve geometry', async () =>
   assert.ok(css.includes('max-width: 100%'));
   assert.ok(css.includes('.row-header {'));
   assert.ok(css.includes('position: sticky'));
-  assert.ok(!css.includes('grid-template-columns: 1fr'));
+  assert.ok(!/\.reading-table\s*\{[^}]*grid-template-columns/s.test(css));
 });
 
 test('result cells use compact title/orientation lines and tap/click detail triggers', async () => {
@@ -69,7 +69,7 @@ test('result cells use compact title/orientation lines and tap/click detail trig
 
 test('standard cards render lightweight Commons RWS art and reversed art rotates without rotating label text', async () => {
   const [app, css] = await Promise.all([read('../web/app.js'), read('../web/styles.css')]);
-  assert.ok(app.includes('rwsImageUrl(card)'));
+  assert.ok(app.includes('rwsImageUrl(card, detail ? 224 : 128)'));
   assert.ok(app.includes("image.classList.add('is-reversed')"));
   assert.ok(app.includes("image.addEventListener('error'"));
   assert.ok(app.includes("face.classList.add('is-reversed')"));
