@@ -51,6 +51,7 @@ test('matrix remains semantic and narrow layouts preserve geometry', async () =>
   assert.ok(css.includes('overflow-x: auto'));
   assert.ok(css.includes('.matrix-section { min-width: 0; }'));
   assert.ok(css.includes('max-width: 100%'));
+  assert.ok(css.includes('.reading-table {\n  width: max-content;\n  min-width: 0;'));
   assert.ok(css.includes('.row-header {'));
   assert.ok(css.includes('position: sticky'));
   assert.ok(!/\.reading-table\s*\{[^}]*grid-template-columns/s.test(css));

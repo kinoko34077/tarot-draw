@@ -205,7 +205,7 @@ input:focus-visible {
 }
 .reading-table {
   width: max-content;
-  min-width: 100%;
+  min-width: 0;
   border-collapse: separate;
   border-spacing: 0;
   table-layout: auto;
