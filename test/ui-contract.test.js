@@ -37,3 +37,19 @@ test('result UI is result-only and does not render interpretation fields', async
   assert.match(app, /orientationLabel\(card\.orientation\)/);
   assert.doesNotMatch(app, /card\.meaning|card\.interpretation|meaning_up|meaning_rev/);
 });
+
+
+test('Pages assets are relative and runtime config loads before app module', async () => {
+  const html = await read('../web/index.html');
+  assert.match(html, /href="\.\/styles\.css"/);
+  assert.match(html, /src="\.\/config\.js"/);
+  assert.match(html, /type="module" src="\.\/app\.js"/);
+  assert.ok(html.indexOf('src="./config.js"') < html.indexOf('src="./app.js"'));
+});
+
+test('Pages-safe UI disables authoritative drawing when external API is unconfigured', async () => {
+  const app = await read('../web/app.js');
+  assert.match(app, /!runtime\.apiAvailable/);
+  assert.match(app, /API未接続/);
+  assert.doesNotMatch(app, /Math\.random|crypto\.getRandomValues/);
+});

@@ -1,4 +1,7 @@
 import { buildPositionIds, formatReadingText, labelOrFallback, orientationLabel, resizeLabels } from './model.js';
+import { buildApiUrl, resolveRuntimeConfig } from './runtime-config.js';
+
+const runtime = resolveRuntimeConfig(globalThis.__TAROT_DRAW_CONFIG__ ?? {});
 
 const els = {
   rowCount: document.querySelector('#rowCount'),
@@ -95,13 +98,13 @@ function renderLayoutStatus() {
     els.shuffleButton.disabled = true;
   } else {
     setHelper(els.layoutMessage, count === 27 ? '27枚配置では26枚のC山は選べません。' : '');
-    els.shuffleButton.disabled = Boolean(state.sessionId);
+    els.shuffleButton.disabled = !runtime.apiAvailable || Boolean(state.sessionId);
   }
   renderPiles();
 }
 
 async function api(path, options = {}) {
-  const response = await fetch(path, {
+  const response = await fetch(buildApiUrl(path, runtime), {
     ...options,
     headers: { 'Content-Type': 'application/json', ...(options.headers ?? {}) }
   });
@@ -349,4 +352,10 @@ els.resetButton.addEventListener('click', resetReading);
 
 renderLabelInputs();
 renderLayoutStatus();
-setHelper(els.selectionMessage, '配置を決めてシャッフルしてください。');
+if (runtime.apiAvailable) {
+  setHelper(els.selectionMessage, '配置を決めてシャッフルしてください。');
+} else {
+  els.shuffleButton.disabled = true;
+  setHelper(els.selectionMessage, 'API未接続のため、現在は抽選できません。', 'error');
+  setStatus('GitHub Pagesは公開されていますが、抽選APIはまだ接続されていません。', 'error');
+}

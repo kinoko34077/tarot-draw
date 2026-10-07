@@ -84,3 +84,17 @@ test('same server serves the single-page reading workspace', async () => {
     assert.match(html, /id="piles"/);
   });
 });
+
+
+test('local server exposes runtime configuration modules', async () => {
+  await withServer(async base => {
+    const [configResponse, runtimeResponse] = await Promise.all([
+      fetch(`${base}/config.js`),
+      fetch(`${base}/runtime-config.js`)
+    ]);
+    assert.equal(configResponse.status, 200);
+    assert.equal(runtimeResponse.status, 200);
+    assert.match(await configResponse.text(), /same-origin/);
+    assert.match(await runtimeResponse.text(), /resolveRuntimeConfig/);
+  });
+});
