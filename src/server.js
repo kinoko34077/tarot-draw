@@ -9,7 +9,9 @@ const STATIC_FILES = new Map([
   ['/', ['index.html', 'text/html; charset=utf-8']],
   ['/styles.css', ['styles.css', 'text/css; charset=utf-8']],
   ['/app.js', ['app.js', 'text/javascript; charset=utf-8']],
-  ['/model.js', ['model.js', 'text/javascript; charset=utf-8']]
+  ['/model.js', ['model.js', 'text/javascript; charset=utf-8']],
+  ['/runtime-config.js', ['runtime-config.js', 'text/javascript; charset=utf-8']],
+  ['/config.js', ['config.js', 'text/javascript; charset=utf-8']]
 ]);
 
 function setCommonHeaders(res) {
@@ -18,7 +20,7 @@ function setCommonHeaders(res) {
   res.setHeader('Cross-Origin-Opener-Policy', 'same-origin');
   res.setHeader(
     'Content-Security-Policy',
-    "default-src 'self'; script-src 'self'; style-src 'self'; connect-src 'self'; img-src 'self' data:; base-uri 'none'; frame-ancestors 'none'"
+    "default-src 'self'; script-src 'self'; style-src 'self'; connect-src 'self' https:; img-src 'self' data:; base-uri 'none'; frame-ancestors 'none'"
   );
 }
 

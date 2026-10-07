@@ -40,3 +40,9 @@ The API treats position IDs as opaque strings. Semantic labels such as 過去 / 
 - `docs/SPECIFICATION.md`
 - GitHub Issue #2: v1 draw/session behavioral contract
 - GitHub Issue #3: v1 single-page reading UI and bulk copy
+
+## GitHub Pages
+
+The static reading UI is published from `web/` through `.github/workflows/pages.yml`.
+
+The Pages build injects an external API configuration from the repository variable `TAROT_API_BASE_URL`. When that variable is empty, the live site intentionally disables shuffle/draw and reports that the API is not connected; it never falls back to client-side authoritative drawing. Local `npm start` continues to use the same-origin Node API.

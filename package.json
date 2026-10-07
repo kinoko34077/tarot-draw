@@ -9,6 +9,7 @@
   "scripts": {
     "start": "node src/server.js",
     "test": "node --test",
-    "check": "node --check src/cards.js && node --check src/engine.js && node --check src/store.js && node --check src/server.js && node --check web/model.js && node --check web/app.js"
+    "check": "node --check src/cards.js && node --check src/engine.js && node --check src/store.js && node --check src/server.js && node --check web/model.js && node --check web/app.js",
+    "build:pages": "node scripts/build-pages.mjs"
   }
 }
