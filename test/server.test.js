@@ -88,17 +88,25 @@ test('same server serves the append-only workspace and self-hosted WebP assets',
     assert.match(csp, /img-src 'self' data:;/);
     assert.doesNotMatch(csp, /commons\.wikimedia\.org|thumb\.wikimedia\.org|upload\.wikimedia\.org/);
 
-    const [grid, detail] = await Promise.all([
+    const [grid, detail, reference, rubyModule] = await Promise.all([
       fetch(`${base}/assets/cards/grid/major-fool.webp`),
-      fetch(`${base}/assets/cards/detail/major-fool.webp`)
+      fetch(`${base}/assets/cards/detail/major-fool.webp`),
+      fetch(`${base}/assets/cards/reference/major-fool.webp`),
+      fetch(`${base}/card-name-ruby.js`)
     ]);
     assert.equal(grid.status, 200);
     assert.equal(detail.status, 200);
+    assert.equal(reference.status, 200);
+    assert.equal(rubyModule.status, 200);
     assert.match(grid.headers.get('content-type') ?? '', /image\/webp/);
     assert.match(detail.headers.get('content-type') ?? '', /image\/webp/);
+    assert.match(reference.headers.get('content-type') ?? '', /image\/webp/);
+    assert.match(rubyModule.headers.get('content-type') ?? '', /text\/javascript/);
     assert.match(grid.headers.get('cache-control') ?? '', /immutable/);
     assert.ok((await grid.arrayBuffer()).byteLength <= 24 * 1024);
     assert.ok((await detail.arrayBuffer()).byteLength <= 56 * 1024);
+    assert.ok((await reference.arrayBuffer()).byteLength <= 96 * 1024);
+    assert.match(await rubyModule.text(), /MINOR_CARD_DISPLAY/);
   });
 });
 

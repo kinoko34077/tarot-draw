@@ -10,6 +10,7 @@ const STATIC_FILES = new Map([
   ['/styles.css', ['styles.css', 'text/css; charset=utf-8']],
   ['/app.js', ['app.js', 'text/javascript; charset=utf-8']],
   ['/model.js', ['model.js', 'text/javascript; charset=utf-8']],
+  ['/card-name-ruby.js', ['card-name-ruby.js', 'text/javascript; charset=utf-8']],
   ['/card-details.js', ['card-details.js', 'text/javascript; charset=utf-8']],
   ['/runtime-config.js', ['runtime-config.js', 'text/javascript; charset=utf-8']],
   ['/config.js', ['config.js', 'text/javascript; charset=utf-8']]
@@ -62,7 +63,7 @@ function errorPayload(error) {
 }
 
 async function serveStatic(pathname, res) {
-  const cardAsset = pathname.match(/^\/assets\/cards\/(grid|detail)\/([a-z0-9-]+\.webp)$/);
+  const cardAsset = pathname.match(/^\/assets\/cards\/(grid|detail|reference)\/([a-z0-9-]+\.webp)$/);
   if (cardAsset) {
     const [, variant, filename] = cardAsset;
     const data = await readFile(resolve(WEB_ROOT, 'assets', 'cards', variant, filename));

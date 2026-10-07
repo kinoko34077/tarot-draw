@@ -8,6 +8,7 @@ import {
   customCardNotesForResults,
   formatReadingText,
   removeAxisLabel,
+  referenceImageUrl,
   rwsImageUrl
 } from '../web/model.js';
 
@@ -33,10 +34,28 @@ test('card display text is compact and uses major roman numerals where available
   );
 });
 
-test('card display parts separate title and orientation for visual rendering', () => {
+test('card display parts separate title, ruby HTML, plain copy title, and orientation', () => {
   assert.deepEqual(
     cardDisplayParts({ card_id: 'major.hanged-man', name_ja: '吊るされた男', orientation: 'reversed' }),
-    { title: 'XII 吊るされた男', orientation: '逆位置' }
+    { title: 'XII 吊るされた男', titleHtml: null, plainTitle: 'XII 吊るされた男', orientation: '逆位置' }
+  );
+
+  const minor = cardDisplayParts({ card_id: 'minor.wands.knight', name_ja: 'ワンドのナイト', orientation: 'upright' });
+  assert.equal(minor.title, '杖の騎士');
+  assert.equal(minor.plainTitle, '杖（ワンド）の騎士（ナイト）');
+  assert.match(minor.titleHtml, /<ruby>杖<rp>\(<\/rp><rt>ワンド<\/rt>/);
+  assert.match(minor.titleHtml, /<ruby>騎士<rp>\(<\/rp><rt>ナイト<\/rt>/);
+  assert.equal(minor.orientation, '正位置');
+});
+
+test('Minor Arcana copy uses compact Japanese base names with readable katakana readings', () => {
+  assert.equal(
+    cardDisplayText({ card_id: 'minor.pentacles.queen', name_ja: 'ペンタクルのクイーン', orientation: 'reversed' }),
+    '金貨（ペンタクル）の女王（クイーン） 逆位置'
+  );
+  assert.equal(
+    cardDisplayText({ card_id: 'minor.cups.ace', name_ja: 'カップのエース', orientation: 'upright' }),
+    '盃（カップ）の一（エース） 正位置'
   );
 });
 
@@ -61,6 +80,9 @@ test('RWS image URLs use self-hosted WebP assets and omit custom cards', () => {
     rwsImageUrl({ card_id: 'minor.swords.ace', name_en: 'Ace of Swords' }),
     './assets/cards/grid/minor-swords-ace.webp'
   );
+  assert.equal(referenceImageUrl({ card_id: 'major.fool' }), './assets/cards/reference/major-fool.webp');
+  assert.equal(referenceImageUrl({ card_id: 'minor.wands.knight' }), './assets/cards/reference/minor-wands-knight.webp');
+  assert.equal(referenceImageUrl({ card_id: 'meta.guarantee' }), null);
 });
 
 test('custom-card notes include only custom cards that occurred', () => {
