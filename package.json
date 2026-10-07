@@ -1,0 +1,14 @@
+{
+  "name": "tarot-draw",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "start": "node src/server.js",
+    "test": "node --test",
+    "check": "node --check src/cards.js && node --check src/engine.js && node --check src/store.js && node --check src/server.js && node --check web/model.js && node --check web/app.js"
+  }
+}
