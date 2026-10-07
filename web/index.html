@@ -1,0 +1,85 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="light dark">
+  <title>Tarot Draw</title>
+  <link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+  <header class="topbar">
+    <div>
+      <h1>Tarot Draw</h1>
+      <p>カード結果だけを引く、80枚版リーディング。</p>
+    </div>
+    <button id="resetButton" class="secondary" type="button">新しいリーディング</button>
+  </header>
+
+  <main class="workspace">
+    <section class="panel" aria-labelledby="setupTitle">
+      <div class="section-heading">
+        <div>
+          <h2 id="setupTitle">1. 配置</h2>
+          <p>行列数とラベルを決めます。ラベルはサイト側だけで扱います。</p>
+        </div>
+        <output id="cellCount" class="badge">3枚</output>
+      </div>
+
+      <div class="dimension-grid">
+        <label>行数
+          <input id="rowCount" type="number" min="1" max="27" value="1" inputmode="numeric">
+        </label>
+        <label>列数
+          <input id="columnCount" type="number" min="1" max="27" value="3" inputmode="numeric">
+        </label>
+      </div>
+
+      <div class="label-columns">
+        <fieldset>
+          <legend>行ラベル</legend>
+          <div id="rowLabels" class="label-list"></div>
+        </fieldset>
+        <fieldset>
+          <legend>列ラベル</legend>
+          <div id="columnLabels" class="label-list"></div>
+        </fieldset>
+      </div>
+      <p id="layoutMessage" class="helper" role="status"></p>
+    </section>
+
+    <section class="panel" aria-labelledby="drawTitle">
+      <div class="section-heading">
+        <div>
+          <h2 id="drawTitle">2. シャッフル・山選択</h2>
+          <p>最初の山がPrimary、必要なら別の山をParallelとして選びます。</p>
+        </div>
+      </div>
+
+      <div class="action-row">
+        <button id="shuffleButton" class="primary" type="button">シャッフル</button>
+        <button id="drawButton" class="primary hidden" type="button">引く</button>
+      </div>
+
+      <div id="piles" class="pile-grid" aria-label="3分割した山"></div>
+      <p id="selectionMessage" class="helper" role="status"></p>
+    </section>
+
+    <section id="resultSection" class="panel hidden" aria-labelledby="resultTitle">
+      <div class="section-heading">
+        <div>
+          <h2 id="resultTitle">3. 結果</h2>
+          <p>カード名・正逆・配置だけを表示します。</p>
+        </div>
+        <button id="copyButton" class="primary" type="button">コピー</button>
+      </div>
+
+      <div id="results" class="results"></div>
+    </section>
+
+    <p id="globalStatus" class="status" role="status" aria-live="polite"></p>
+  </main>
+
+  <script type="module" src="/app.js"></script>
+</body>
+</html>
