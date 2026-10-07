@@ -181,7 +181,8 @@ input:focus-visible {
 .pile-role { color: var(--accent); font-weight: 700; font-size: .74rem; }
 .pile-status { margin-left: auto; min-width: 0; text-align: right; }
 
-.matrix-stack { display: grid; gap: 0; }
+.matrix-stack { display: grid; gap: 0; min-width: 0; }
+.matrix-section { min-width: 0; }
 .matrix-section + .matrix-section { border-top: 8px solid #f0f1f3; }
 .matrix-heading {
   min-height: 34px;
@@ -197,6 +198,7 @@ input:focus-visible {
 
 .table-scroll {
   width: 100%;
+  max-width: 100%;
   overflow-x: auto;
   overscroll-behavior-inline: contain;
   scrollbar-gutter: stable;

@@ -49,6 +49,8 @@ test('matrix remains semantic and narrow layouts preserve geometry', async () =>
   assert.ok(app.includes("th.scope = 'col'"));
   assert.ok(app.includes("rowHeader.scope = 'row'"));
   assert.ok(css.includes('overflow-x: auto'));
+  assert.ok(css.includes('.matrix-section { min-width: 0; }'));
+  assert.ok(css.includes('max-width: 100%'));
   assert.ok(css.includes('.row-header {'));
   assert.ok(css.includes('position: sticky'));
   assert.ok(!css.includes('grid-template-columns: 1fr'));
