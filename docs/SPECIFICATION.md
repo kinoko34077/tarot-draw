@@ -66,4 +66,4 @@ Card catalog -> deck session -> shuffle (order + orientation fixed) -> three-way
 - The reference text source is the user-supplied `タロット78枚_意味と画像索引.md` dataset, normalized as `essence`, `upright`, and `reversed`.
 - Card detail reference data is presentation-only. It must not affect shuffle, orientation, pile selection, draw order, branch state, copy matrix semantics, or probability.
 - Title Card and GUARANTEE are outside that 78-card source and must not be assigned invented divinatory meanings.
-- Standard-card matrix thumbnails should request a substantially smaller RWS thumbnail than the prior 320px request; the detail view may lazily request a larger bounded thumbnail.
+- The standard 78 RWS images are served as self-hosted compressed WebP assets generated from the public-domain Wikimedia Commons source. One bounded medium-resolution asset per card is reused by both matrix and detail views so opening detail does not require a second card-image download. Generated assets must remain <=64 KiB each.

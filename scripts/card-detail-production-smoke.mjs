@@ -3,12 +3,11 @@ import { writeFile } from 'node:fs/promises';
 import { mkdtemp } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { CARD_CATALOG } from '../src/cards.js';
-import { rwsImageUrl } from '../web/model.js';
 
 const CHROME_BIN = process.env.CHROME_BIN || resolveChrome();
 const DEBUG_PORT = 9233;
-const PROD_URL = `https://kinoko34077.github.io/tarot-draw/?card-detail-smoke=${Date.now()}`;
+const PROD_ROOT = 'https://kinoko34077.github.io/tarot-draw/';
+const PROD_URL = new URL(`?card-detail-smoke=${Date.now()}`, PROD_ROOT).toString();
 const GRID_IMAGE_BUDGET = 64 * 1024;
 
 function resolveChrome() {
@@ -69,15 +68,6 @@ class Cdp {
   }
 }
 
-async function fetchBytes(url) {
-  const response = await fetch(url, {
-    redirect: 'follow',
-    headers: { 'User-Agent': 'tarot-draw-image-budget/1.0' }
-  });
-  if (!response.ok) throw new Error(`Image fetch failed ${response.status}: ${url}`);
-  return (await response.arrayBuffer()).byteLength;
-}
-
 async function mapLimited(values, limit, task) {
   const output = new Array(values.length);
   let cursor = 0;
@@ -93,27 +83,49 @@ async function mapLimited(values, limit, task) {
 }
 
 async function verifyAllGridImageBudgets() {
-  const standardCards = CARD_CATALOG.filter(card => !card.card_id.startsWith('meta.'));
-  const measurements = await mapLimited(standardCards, 6, async card => ({
-    card_id: card.card_id,
-    bytes: await fetchBytes(rwsImageUrl(card, 128))
-  }));
+  const manifestResponse = await fetch(new URL('assets/rws/manifest.json', PROD_ROOT), { cache: 'no-store' });
+  if (!manifestResponse.ok) throw new Error(`Manifest fetch failed: ${manifestResponse.status}`);
+  const manifest = await manifestResponse.json();
+  if (manifest.cards !== 78 || manifest.entries?.length !== 78) {
+    throw new Error('Production WebP manifest does not contain 78 standard cards.');
+  }
+  if (manifest.max_bytes > GRID_IMAGE_BUDGET) {
+    throw new Error(`Manifest max exceeds 64 KiB: ${manifest.max_bytes}`);
+  }
+
+  const measurements = await mapLimited(manifest.entries, 8, async entry => {
+    const url = new URL(`assets/rws/${entry.file}`, PROD_ROOT);
+    const response = await fetch(url, { cache: 'no-store' });
+    if (!response.ok) throw new Error(`Asset fetch failed ${response.status}: ${url}`);
+    const contentType = response.headers.get('content-type') ?? '';
+    if (!contentType.startsWith('image/webp')) {
+      throw new Error(`Unexpected asset type ${contentType}: ${url}`);
+    }
+    const bytes = (await response.arrayBuffer()).byteLength;
+    return { card_id: entry.card_id, bytes, manifestBytes: entry.bytes };
+  });
+
+  for (const item of measurements) {
+    if (item.bytes !== item.manifestBytes) {
+      throw new Error(`Production asset size mismatch for ${item.card_id}: ${item.bytes} != ${item.manifestBytes}`);
+    }
+  }
 
   const largest = measurements.reduce((a, b) => b.bytes > a.bytes ? b : a);
   const total = measurements.reduce((sum, item) => sum + item.bytes, 0);
   const overBudget = measurements.filter(item => item.bytes > GRID_IMAGE_BUDGET);
-
   const summary = {
     cards: measurements.length,
     maxBytes: largest.bytes,
     maxCard: largest.card_id,
     averageBytes: Math.round(total / measurements.length),
-    overBudget: overBudget.length
+    overBudget: overBudget.length,
+    manifestAverageBytes: manifest.average_bytes,
+    manifestMaxBytes: manifest.max_bytes
   };
-  console.log('GRID_IMAGE_BUDGET=' + JSON.stringify(summary));
-
+  console.log('SELF_HOSTED_WEBP_BUDGET=' + JSON.stringify(summary));
   if (overBudget.length > 0) {
-    throw new Error('128px Commons PNG exceeds 64 KiB budget: ' + JSON.stringify(overBudget.slice(0, 10)));
+    throw new Error('Self-hosted WebP exceeds 64 KiB budget: ' + JSON.stringify(overBudget.slice(0, 10)));
   }
   return summary;
 }
@@ -191,7 +203,9 @@ try {
     if (!standardTrigger) throw new Error('No standard-card trigger found.');
 
     const gridImage = standardTrigger.querySelector('img.card-art');
-    if (!gridImage.src.includes('width=128')) throw new Error('Grid image is not using 128px thumbnail.');
+    if (!gridImage.src.includes('/assets/rws/') || !gridImage.src.endsWith('.webp')) {
+      throw new Error('Grid image is not using a self-hosted WebP asset.');
+    }
 
     const triggerTitle = standardTrigger.querySelector('.card-title').textContent;
     const triggerOrientation = standardTrigger.querySelector('.card-orientation').textContent;
@@ -210,7 +224,9 @@ try {
     if (active?.id !== expectedActiveId) throw new Error('Actual orientation meaning is not emphasized.');
 
     const detailImage = one('#cardDetailVisual img.card-art');
-    if (!detailImage || !detailImage.src.includes('width=224')) throw new Error('Detail image is not lazy 224px thumbnail.');
+    if (!detailImage || detailImage.src !== gridImage.src) {
+      throw new Error('Detail view did not reuse the same self-hosted WebP asset.');
+    }
     for (let i = 0; i < 80 && !detailImage.complete; i += 1) await sleep(50);
     if (detailImage.naturalWidth <= 0) throw new Error('Detail image failed to load.');
     if ((triggerOrientation === '逆位置') !== detailImage.classList.contains('is-reversed')) {
@@ -240,16 +256,10 @@ try {
     if (!buttonClosed || !buttonFocusRestored) throw new Error('Close button/focus restore failed.');
 
     const resourceSizes = performance.getEntriesByType('resource')
-      .filter(entry => entry.initiatorType === 'img' && entry.name.includes('width=128'))
-      .map(entry => ({
-        name: entry.name,
-        transferSize: entry.transferSize,
-        encodedBodySize: entry.encodedBodySize
-      }));
-    const measurable = resourceSizes
-      .map(item => item.transferSize || item.encodedBodySize || 0)
+      .filter(entry => entry.initiatorType === 'img' && entry.name.includes('/assets/rws/') && entry.name.endsWith('.webp'))
+      .map(entry => entry.transferSize || entry.encodedBodySize || 0)
       .filter(size => size > 0);
-    if (measurable.some(size => size > 65536)) throw new Error('Browser resource timing exceeded 64 KiB.');
+    if (resourceSizes.some(size => size > 65536)) throw new Error('Browser WebP resource timing exceeded 64 KiB.');
 
     return {
       maxCellWidth,
@@ -259,12 +269,12 @@ try {
       escapeClosed,
       buttonClosed,
       focusRestored: backdropFocusRestored && escapeFocusRestored && buttonFocusRestored,
-      gridImageWidthPolicy: gridImage.src.match(/width=(\\d+)/)?.[1] ?? null,
-      detailImageWidthPolicy: detailImage.src.match(/width=(\\d+)/)?.[1] ?? null,
+      assetFormat: 'webp',
+      sameAssetReused: detailImage.src === gridImage.src,
       detailTitle: triggerTitle,
       detailOrientation: triggerOrientation,
-      browserMeasuredImages: measurable.length,
-      browserMaxImageBytes: measurable.length ? Math.max(...measurable) : null
+      browserMeasuredImages: resourceSizes.length,
+      browserMaxImageBytes: resourceSizes.length ? Math.max(...resourceSizes) : null
     };
   })()`;
 
