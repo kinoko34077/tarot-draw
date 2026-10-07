@@ -46,3 +46,15 @@ Card catalog -> deck session -> shuffle (order + orientation fixed) -> three-way
 - Automated reading text.
 - Special draw probability for Title or GUARANTEE.
 - Fixed named spreads as API concepts.
+
+
+## Web interaction extensions
+
+- Matrix size is edited by direct row/column add controls on the table rather than numeric dimension fields.
+- A specific row or column can be removed through a contextual axis menu. Long-press is supported for touch/pointer use, with conventional desktop alternatives.
+- Each reading owns a visible question string rendered as `Q.` before the matrix and included in that reading's copied output.
+- Completed readings remain visible in page order. Creating a new reading appends another independent reading workspace below prior results.
+- Copy output remains tabular TSV and conditionally appends structural notes for Title Card and/or GUARANTEE when those cards actually occurred.
+- Standard 78-card results may display public-domain Rider-Waite-Smith artwork; orientation applies visually to the artwork while the card name/orientation text remains readable.
+- Title Card and GUARANTEE do not borrow Rider-Waite imagery and use distinct non-RWS faces.
+- Image loading is presentation-only and must not alter or block the authoritative API draw result.

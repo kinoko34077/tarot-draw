@@ -74,14 +74,17 @@ test('API returns explicit insufficient-card error without crossing piles', asyn
   });
 });
 
-test('same server serves the single-page reading workspace', async () => {
+test('same server serves the append-only reading workspace and Commons image policy', async () => {
   await withServer(async base => {
     const response = await fetch(`${base}/`);
     const html = await response.text();
     assert.equal(response.status, 200);
     assert.match(html, /Tarot Draw/);
-    assert.match(html, /id="copyButton"/);
-    assert.match(html, /id="piles"/);
+    assert.match(html, /id="readings"/);
+    assert.match(html, /id="newReadingButton"/);
+    assert.match(html, /id="axisMenu"/);
+    const csp = response.headers.get('content-security-policy') ?? '';
+    assert.match(csp, /img-src 'self' data: https:\/\/commons\.wikimedia\.org https:\/\/upload\.wikimedia\.org https:\/\/thumb\.wikimedia\.org/);
   });
 });
 

@@ -10,61 +10,24 @@
 <body>
   <header class="topbar">
     <h1>Tarot Draw</h1>
-    <button id="resetButton" class="secondary compact-button" type="button">新規</button>
   </header>
 
   <main class="workspace">
-    <section class="workbench" aria-labelledby="matrixTitle">
-      <div class="toolbar" aria-label="リーディング操作">
-        <div class="toolbar-group">
-          <label class="compact-field">
-            <span>行</span>
-            <input id="rowCount" type="number" min="1" max="27" value="1" inputmode="numeric">
-          </label>
-          <span class="dimension-separator" aria-hidden="true">×</span>
-          <label class="compact-field">
-            <span>列</span>
-            <input id="columnCount" type="number" min="1" max="27" value="3" inputmode="numeric">
-          </label>
-          <output id="cellCount" class="badge">3枚</output>
-        </div>
+    <div id="readings" class="readings" aria-label="リーディング履歴"></div>
 
-        <div class="toolbar-actions">
-          <button id="copyButton" class="secondary hidden" type="button">コピー</button>
-          <button id="shuffleButton" class="primary" type="button">シャッフル</button>
-          <button id="drawButton" class="primary hidden" type="button">引く</button>
-        </div>
-      </div>
+    <div class="history-actions">
+      <button id="newReadingButton" class="secondary new-reading-button hidden" type="button">＋ 新規</button>
+    </div>
 
-      <p id="layoutMessage" class="helper" role="status"></p>
-
-      <div id="pilePanel" class="pile-panel hidden" aria-labelledby="pileTitle">
-        <div class="pile-label" id="pileTitle">山</div>
-        <div id="piles" class="pile-options" aria-label="3分割した山"></div>
-        <p id="selectionMessage" class="helper pile-status" role="status"></p>
-      </div>
-
-      <div class="matrix-stack">
-        <section class="matrix-section" aria-labelledby="matrixTitle">
-          <div class="matrix-heading">
-            <h2 id="matrixTitle">配置</h2>
-            <span id="primaryPileLabel" class="branch-meta"></span>
-          </div>
-          <div id="primaryMatrix" class="table-scroll"></div>
-        </section>
-
-        <section id="parallelSection" class="matrix-section hidden" aria-labelledby="parallelTitle">
-          <div class="matrix-heading">
-            <h2 id="parallelTitle">Parallel</h2>
-            <span id="parallelPileLabel" class="branch-meta"></span>
-          </div>
-          <div id="parallelMatrix" class="table-scroll"></div>
-        </section>
-      </div>
-
-      <p id="globalStatus" class="status" role="status" aria-live="polite"></p>
-    </section>
+    <p class="art-credit">
+      カード画像: Rider–Waite–Smith / Pamela Colman Smith (1910) · Public Domain ·
+      <a href="https://commons.wikimedia.org/wiki/Category:Rider-Waite-Smith_tarot_deck_(Geldard)" target="_blank" rel="noopener noreferrer">Wikimedia Commons</a>
+    </p>
   </main>
+
+  <div id="axisMenu" class="axis-menu hidden" role="menu" aria-label="行列操作">
+    <button id="deleteAxisButton" class="danger-menu-item" type="button" role="menuitem">削除</button>
+  </div>
 
   <script src="./config.js"></script>
   <script type="module" src="./app.js"></script>

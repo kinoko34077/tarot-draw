@@ -6,60 +6,85 @@ async function read(path) {
   return readFile(new URL(path, import.meta.url), 'utf8');
 }
 
-test('initial page exposes one strongest primary action and keeps copy/draw hidden', async () => {
+test('page hosts append-only reading history and no longer exposes numeric dimensions or top reset', async () => {
   const html = await read('../web/index.html');
-  assert.ok(html.includes('id="shuffleButton" class="primary"'));
-  assert.ok(html.includes('id="drawButton" class="primary hidden"'));
-  assert.ok(html.includes('id="copyButton" class="secondary hidden"'));
-  assert.ok(!html.includes('id="copyButton" class="primary"'));
+  assert.ok(html.includes('id="readings"'));
+  assert.ok(html.includes('id="newReadingButton"'));
+  assert.ok(!html.includes('id="rowCount"'));
+  assert.ok(!html.includes('id="columnCount"'));
+  assert.ok(!html.includes('id="resetButton"'));
 });
 
-test('matrix is the central work surface with compact dimensions and semantic table construction', async () => {
-  const [html, app] = await Promise.all([read('../web/index.html'), read('../web/app.js')]);
-  assert.ok(html.includes('id="primaryMatrix" class="table-scroll"'));
-  assert.ok(html.includes('id="rowCount"'));
-  assert.ok(html.includes('id="columnCount"'));
-  assert.ok(!html.includes('id="rowLabels"'));
-  assert.ok(!html.includes('id="columnLabels"'));
-  assert.ok(!html.includes('result-grid'));
+test('one reading exposes one strongest primary action per phase and secondary copy', async () => {
+  const app = await read('../web/app.js');
+  assert.ok(app.includes('class="copy-button secondary hidden"'));
+  assert.ok(app.includes('class="shuffle-button primary"'));
+  assert.ok(app.includes('class="draw-button primary hidden"'));
+  assert.ok(!app.includes('copy-button primary'));
+});
+
+test('question context appears before the matrix and is owned per reading', async () => {
+  const app = await read('../web/app.js');
+  assert.ok(app.includes('class="question-field"'));
+  assert.ok(app.includes('class="question-prefix">Q.</span>'));
+  assert.ok(app.includes("state.question = event.target.value"));
+  assert.ok(app.includes('question: state.question'));
+});
+
+test('matrix uses direct plus controls and contextual axis deletion', async () => {
+  const app = await read('../web/app.js');
+  assert.ok(app.includes("addColumn.textContent = '＋'"));
+  assert.ok(app.includes("button.textContent = '＋'"));
+  assert.ok(app.includes('LONG_PRESS_MS = 520'));
+  assert.ok(app.includes("target.addEventListener('contextmenu'"));
+  assert.ok(app.includes("menuButton.textContent = '⋮'"));
+  assert.ok(app.includes("removeAxisLabel(state.rowLabels, index)"));
+  assert.ok(app.includes("removeAxisLabel(state.columnLabels, index)"));
+});
+
+test('matrix remains semantic and narrow layouts preserve geometry', async () => {
+  const [app, css] = await Promise.all([read('../web/app.js'), read('../web/styles.css')]);
   assert.ok(app.includes("document.createElement('table')"));
   assert.ok(app.includes("table.className = 'reading-table'"));
   assert.ok(app.includes("th.scope = 'col'"));
   assert.ok(app.includes("rowHeader.scope = 'row'"));
-  assert.ok(app.includes("createAxisEditor('column'"));
-  assert.ok(app.includes("createAxisEditor('row'"));
-});
-
-test('narrow layout preserves matrix geometry with horizontal scrolling instead of one-column collapse', async () => {
-  const css = await read('../web/styles.css');
   assert.ok(css.includes('overflow-x: auto'));
+  assert.ok(css.includes('.matrix-section { min-width: 0; }'));
+  assert.ok(css.includes('max-width: 100%'));
   assert.ok(css.includes('.row-header {'));
   assert.ok(css.includes('position: sticky'));
-  assert.ok(css.includes('@media (max-width: 720px)'));
-  assert.ok(!css.includes('.result-grid'));
   assert.ok(!css.includes('grid-template-columns: 1fr'));
 });
 
-test('pile selection is compact and result UI remains result-only', async () => {
-  const [css, app] = await Promise.all([read('../web/styles.css'), read('../web/app.js')]);
-  assert.ok(css.includes('min-height: 34px'));
-  assert.ok(app.includes('cardDisplayText(card)'));
-  assert.ok(!app.includes('card.meaning'));
-  assert.ok(!app.includes('card.interpretation'));
-  assert.ok(!app.includes('meaning_up'));
-  assert.ok(!app.includes('meaning_rev'));
+test('standard cards render Commons RWS art and reversed art rotates without rotating label text', async () => {
+  const [app, css] = await Promise.all([read('../web/app.js'), read('../web/styles.css')]);
+  assert.ok(app.includes('rwsImageUrl(card)'));
+  assert.ok(app.includes("image.classList.add('is-reversed')"));
+  assert.ok(app.includes("image.addEventListener('error'"));
+  assert.ok(app.includes("face.classList.add('is-reversed')"));
+  assert.ok(css.includes('.card-art.is-reversed { transform: rotate(180deg); }'));
+  assert.ok(css.includes('.custom-card-face.is-reversed { transform: rotate(180deg); }'));
+  assert.ok(css.includes('.card-result-text'));
 });
 
-test('UI contract includes accessible status and pile-selection semantics', async () => {
+test('completed readings remain while new reading appends below and each keeps copy', async () => {
+  const app = await read('../web/app.js');
+  assert.ok(app.includes('page.readings.append(controller.article)'));
+  assert.ok(app.includes("page.newReadingButton.addEventListener('click', appendReading)"));
+  assert.ok(app.includes("page.newReadingButton.classList.remove('hidden')"));
+  assert.ok(!app.includes('replaceChildren(controller.article)'));
+});
+
+test('UI contract includes accessible status and alternative axis-menu paths', async () => {
   const [html, app] = await Promise.all([read('../web/index.html'), read('../web/app.js')]);
-  assert.ok(html.includes('role="status" aria-live="polite"'));
-  assert.ok(html.includes('<button id="resetButton"'));
-  assert.ok(app.includes("setAttribute('aria-pressed'"));
+  assert.ok(html.includes('role="menu"'));
+  assert.ok(html.includes('role="menuitem"'));
   assert.ok(app.includes("setAttribute('aria-label'"));
-  assert.ok(app.includes("table.setAttribute('aria-label'"));
+  assert.ok(app.includes("event.key === 'Escape'"));
+  assert.ok(app.includes("target.addEventListener('contextmenu'"));
 });
 
-test('Pages assets are relative and runtime config loads before app module', async () => {
+test('Pages assets remain relative and runtime config loads before app module', async () => {
   const html = await read('../web/index.html');
   assert.ok(html.includes('href="./styles.css"'));
   assert.ok(html.includes('src="./config.js"'));
@@ -67,7 +92,7 @@ test('Pages assets are relative and runtime config loads before app module', asy
   assert.ok(html.indexOf('src="./config.js"') < html.indexOf('src="./app.js"'));
 });
 
-test('Pages-safe UI disables authoritative drawing when external API is unconfigured', async () => {
+test('Pages-safe UI keeps authoritative drawing server-side', async () => {
   const app = await read('../web/app.js');
   assert.ok(app.includes('!runtime.apiAvailable'));
   assert.ok(app.includes('API未接続'));

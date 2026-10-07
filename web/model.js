@@ -23,6 +23,11 @@ const MAJOR_NUMBERS = Object.freeze({
   world: 'XXI'
 });
 
+export const CUSTOM_CARD_NOTES = Object.freeze({
+  'meta.title': 'タイトルカード: 愚者（0）より前に位置づける独自カード。正位置・逆位置あり。',
+  'meta.guarantee': 'GUARANTEE: 世界（XXI）の後、22に対応づける独自カード。正位置・逆位置あり。'
+});
+
 export function buildPositionIds(rowCount, columnCount) {
   const ids = [];
   for (let row = 0; row < rowCount; row += 1) {
@@ -35,6 +40,16 @@ export function buildPositionIds(rowCount, columnCount) {
 
 export function resizeLabels(labels, count) {
   return Array.from({ length: count }, (_, index) => labels[index] ?? '');
+}
+
+export function appendAxisLabel(labels) {
+  return [...labels, ''];
+}
+
+export function removeAxisLabel(labels, index) {
+  if (!Array.isArray(labels) || labels.length <= 1) return Array.isArray(labels) ? [...labels] : [''];
+  if (!Number.isInteger(index) || index < 0 || index >= labels.length) return [...labels];
+  return labels.filter((_, current) => current !== index);
 }
 
 export function labelOrFallback(labels, index, kind) {
@@ -64,10 +79,50 @@ export function cardDisplayText(card) {
   return `${name} ${orientationLabel(card.orientation)}`;
 }
 
-export function formatReadingText({ rowCount, columnCount, rowLabels, columnLabels, primary, parallel }) {
-  const sections = [];
+export function rwsImageUrl(card, width = 320) {
+  if (!card?.card_id || card.card_id.startsWith('meta.')) return null;
+
+  let fileTitle = card.name_en;
+  if (card.card_id === 'minor.pentacles.ace') fileTitle = 'One of Pentacles';
+  if (card.card_id === 'minor.swords.ace') fileTitle = 'One of Swords';
+
+  const filename = `${fileTitle} (Rider-Waite Smith tarot deck).png`;
+  const safeWidth = Number.isFinite(width) ? Math.max(120, Math.min(800, Math.round(width))) : 320;
+  return `https://commons.wikimedia.org/wiki/Special:Redirect/file/${encodeURIComponent(filename)}?width=${safeWidth}`;
+}
+
+export function customCardNotesForResults(...results) {
+  const seen = new Set();
+  for (const result of results) {
+    for (const card of Object.values(result?.positions ?? {})) {
+      if (CUSTOM_CARD_NOTES[card?.card_id]) seen.add(card.card_id);
+    }
+  }
+
+  return ['meta.title', 'meta.guarantee']
+    .filter(cardId => seen.has(cardId))
+    .map(cardId => CUSTOM_CARD_NOTES[cardId]);
+}
+
+export function formatReadingText({
+  question = '',
+  rowCount,
+  columnCount,
+  rowLabels,
+  columnLabels,
+  primary,
+  parallel
+}) {
+  const sections = [`Q. ${question.trim()}`];
+
   if (primary) sections.push(formatBranch('Primary', primary));
   if (parallel) sections.push(formatBranch('Parallel', parallel));
+
+  const customNotes = customCardNotesForResults(primary, parallel);
+  if (customNotes.length > 0) {
+    sections.push(['【独自カード説明】', ...customNotes].join('\n'));
+  }
+
   return sections.join('\n\n');
 
   function formatBranch(branchLabel, result) {

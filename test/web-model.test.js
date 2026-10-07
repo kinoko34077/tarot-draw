@@ -1,9 +1,24 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { buildPositionIds, cardDisplayText, formatReadingText } from '../web/model.js';
+import {
+  appendAxisLabel,
+  buildPositionIds,
+  cardDisplayText,
+  customCardNotesForResults,
+  formatReadingText,
+  removeAxisLabel,
+  rwsImageUrl
+} from '../web/model.js';
 
 test('position IDs are row-major and opaque to API semantics', () => {
   assert.deepEqual(buildPositionIds(2, 3), ['r0c0', 'r0c1', 'r0c2', 'r1c0', 'r1c1', 'r1c2']);
+});
+
+test('axis helpers append and remove without destroying unaffected labels', () => {
+  assert.deepEqual(appendAxisLabel(['A', 'B']), ['A', 'B', '']);
+  assert.deepEqual(removeAxisLabel(['A', 'B', 'C'], 1), ['A', 'C']);
+  assert.deepEqual(removeAxisLabel(['only'], 0), ['only']);
+  assert.deepEqual(removeAxisLabel(['A', 'B'], 99), ['A', 'B']);
 });
 
 test('card display text is compact and uses major roman numerals where available', () => {
@@ -15,36 +30,62 @@ test('card display text is compact and uses major roman numerals where available
     cardDisplayText({ card_id: 'meta.guarantee', name_ja: 'GUARANTEE（保証カード）', orientation: 'upright' }),
     'GUARANTEE 正位置'
   );
+});
+
+test('RWS image URLs use the public-domain Commons set and omit custom cards', () => {
   assert.equal(
-    cardDisplayText({ card_id: 'minor.cups.2', name_ja: 'カップの2', orientation: 'upright' }),
-    'カップの2 正位置'
+    rwsImageUrl({ card_id: 'meta.title', name_en: 'Title Card' }),
+    null
+  );
+  assert.match(
+    rwsImageUrl({ card_id: 'major.fool', name_en: 'The Fool' }),
+    /commons\.wikimedia\.org\/wiki\/Special:Redirect\/file\/The%20Fool%20\(Rider-Waite%20Smith%20tarot%20deck\)\.png\?width=320/
+  );
+  assert.match(
+    rwsImageUrl({ card_id: 'minor.pentacles.ace', name_en: 'Ace of Pentacles' }),
+    /One%20of%20Pentacles/
+  );
+  assert.match(
+    rwsImageUrl({ card_id: 'minor.swords.ace', name_en: 'Ace of Swords' }),
+    /One%20of%20Swords/
   );
 });
 
-test('bulk copy preserves matrix geometry as TSV', () => {
+test('custom-card notes include only custom cards that occurred', () => {
+  const title = { positions: { r0c0: { card_id: 'meta.title' } } };
+  const normal = { positions: { r0c0: { card_id: 'major.sun' } } };
+  assert.deepEqual(customCardNotesForResults(normal), []);
+  assert.deepEqual(customCardNotesForResults(title), [
+    'タイトルカード: 愚者（0）より前に位置づける独自カード。正位置・逆位置あり。'
+  ]);
+});
+
+test('bulk copy starts with question, preserves TSV geometry, and appends custom notes', () => {
   const result = {
     positions: {
       r0c0: { card_id: 'major.hanged-man', name_ja: '吊るされた男', orientation: 'reversed' },
-      r0c1: { card_id: 'major.moon', name_ja: '月', orientation: 'reversed' },
+      r0c1: { card_id: 'meta.guarantee', name_ja: 'GUARANTEE（保証カード）', orientation: 'upright' },
       r1c0: { card_id: 'meta.title', name_ja: 'タイトルカード', orientation: 'reversed' },
       r1c1: { card_id: 'major.tower', name_ja: '塔', orientation: 'upright' }
     }
   };
 
   const text = formatReadingText({
+    question: '今後の活動をどう進める？',
     rowCount: 2,
     columnCount: 2,
-    rowLabels: ['優先度 (上段)', '現状 (中段)'],
-    columnLabels: ['開発系', '行政書士勉強'],
+    rowLabels: ['優先度', '現状'],
+    columnLabels: ['開発', '作品'],
     primary: result,
     parallel: null
   });
 
-  assert.equal(
-    text,
-    '【Primary】\n\t開発系\t行政書士勉強\n優先度 (上段)\tXII 吊るされた男 逆位置\tXVIII 月 逆位置\n現状 (中段)\tタイトルカード 逆位置\tXVI 塔 正位置'
-  );
-  assert.doesNotMatch(text, /card_id|major.|session|meaning|解釈/);
+  assert.match(text, /^Q\. 今後の活動をどう進める？\n\n【Primary】/);
+  assert.match(text, /\t開発\t作品/);
+  assert.match(text, /優先度\tXII 吊るされた男 逆位置\tGUARANTEE 正位置/);
+  assert.match(text, /【独自カード説明】/);
+  assert.match(text, /タイトルカード: 愚者（0）より前/);
+  assert.match(text, /GUARANTEE: 世界（XXI）の後、22に対応づける/);
 });
 
 test('bulk copy supports the user-facing 3x6 table shape without flattening', () => {
@@ -60,6 +101,7 @@ test('bulk copy supports the user-facing 3x6 table shape without flattening', ()
   }
 
   const text = formatReadingText({
+    question: '活動の優先順位は？',
     rowCount: 3,
     columnCount: 6,
     rowLabels: ['優先度 (上段)', '現状 (中段)', '付き合い方 (下段)'],
@@ -69,23 +111,8 @@ test('bulk copy supports the user-facing 3x6 table shape without flattening', ()
   });
 
   const lines = text.split('\n');
-  assert.equal(lines.length, 5);
-  assert.equal(lines[1].split('\t').length, 7);
-  assert.equal(lines[2].split('\t').length, 7);
+  assert.equal(lines[0], 'Q. 活動の優先順位は？');
+  assert.equal(lines[3].split('\t').length, 7);
   assert.equal(lines[4].split('\t').length, 7);
-});
-
-test('bulk copy uses deterministic fallback labels when labels are empty', () => {
-  const result = { positions: { r0c0: { card_id: 'major.fool', name_ja: '愚者', orientation: 'upright' } } };
-  assert.equal(
-    formatReadingText({
-      rowCount: 1,
-      columnCount: 1,
-      rowLabels: [''],
-      columnLabels: [''],
-      primary: result,
-      parallel: null
-    }),
-    '【Primary】\n\t列1\n行1\t0 愚者 正位置'
-  );
+  assert.equal(lines[6].split('\t').length, 7);
 });
