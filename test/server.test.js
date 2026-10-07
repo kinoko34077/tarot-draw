@@ -115,3 +115,14 @@ test('local server exposes runtime configuration modules', async () => {
     assert.match(await runtimeResponse.text(), /resolveRuntimeConfig/);
   });
 });
+
+test('local server serves generated static ruby module without external image assets', async () => {
+  await withServer(async base => {
+    const response = await fetch(`${base}/card-name-ruby.js`);
+    assert.equal(response.status, 200);
+    assert.match(response.headers.get('content-type') ?? '', /text\/javascript/);
+    const content = await response.text();
+    assert.match(content, /MINOR_CARD_DISPLAY/);
+    assert.match(content, /aozora-wasm 0\.5\.0/);
+  });
+});

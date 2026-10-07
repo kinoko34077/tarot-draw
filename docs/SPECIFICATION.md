@@ -70,3 +70,13 @@ Card catalog -> deck session -> shuffle (order + orientation fixed) -> three-way
 - Matrix card assets are 128px WebP with a generation target of 24 KiB; the accepted generated set records average 7,648 bytes and maximum 11,228 bytes.
 - Detail card assets are 256px WebP, loaded only when the detail view opens, with a generation target of 56 KiB; the accepted generated set records average 25,824 bytes and maximum 41,416 bytes.
 - Runtime image delivery must remain presentation-only and must not affect authoritative draw/session behavior.
+
+
+## Compact ruby names (Issue #22)
+
+- For standard Minor Arcana, display suits as `杖《ワンド》`, `盃《カップ》`, `剣《ソード》`, `金貨《ペンタクル》`.
+- Display ranks as `一《エース》`, numerals 2–10, `小姓《ペイジ》`, `騎士《ナイト》`, `女王《クイーン》`, `王《キング》`.
+- `aozora-wasm 0.5.0` renders Aozora notation to ruby HTML in a generation step. The checked-in 56-card mapping is display-only and imported in the browser, without a runtime WASM dependency.
+- Plain-text TSV copying preserves row/column geometry and uses Japanese base names with parenthesized katakana readings.
+- The existing public-domain RWS images, existing card-detail popup artwork, and draw/API/session semantics are unaffected.
+- Third-party concept/reference images from Issue #21 are explicitly excluded from this release while usage rights remain unverified.
