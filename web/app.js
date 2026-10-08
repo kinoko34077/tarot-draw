@@ -648,6 +648,44 @@ function createReadingController(number) {
         return [...refs.primaryMatrix.querySelectorAll(headerSelector)].indexOf(hit);
       };
 
+      // Track across the whole viewport, not only the pressed grip. Pointer
+      // capture can be lost in browser-automation, touch and cross-cell cases.
+      // Local-only pointerup left a stuck destination highlight.
+      const stopTracking = () => {
+        window.removeEventListener('pointermove', onPointerMove, true);
+        window.removeEventListener('pointerup', onPointerUp, true);
+        window.removeEventListener('pointercancel', onPointerCancel, true);
+      };
+      const onPointerMove = event => {
+        if (event.pointerId !== pointerId) return;
+        if (!dragged && Math.hypot(event.clientX - originX, event.clientY - originY) < 7) return;
+        dragged = true;
+        clearDrop();
+        const next = dropIndexAt(event.clientX, event.clientY);
+        if (next >= 0) {
+          dropHeader = refs.primaryMatrix.querySelectorAll(headerSelector)[next];
+          dropHeader?.classList.add('axis-drop-target');
+        }
+      };
+      const onPointerUp = event => {
+        if (event.pointerId !== pointerId) return;
+        const didDrag = dragged;
+        const to = didDrag ? dropIndexAt(event.clientX, event.clientY) : -1;
+        stopTracking();
+        pointerId = null;
+        clearDrop();
+        if (didDrag) {
+          event.preventDefault();
+          if (to >= 0) moveAxis(kind, index, to);
+        }
+      };
+      const onPointerCancel = event => {
+        if (event.pointerId !== pointerId) return;
+        stopTracking();
+        pointerId = null;
+        dragged = false;
+        clearDrop();
+      };
       menuButton.addEventListener('pointerdown', event => {
         if (!canEditAxes() || event.button !== 0) return;
         event.stopPropagation();
@@ -655,35 +693,10 @@ function createReadingController(number) {
         originX = event.clientX;
         originY = event.clientY;
         dragged = false;
+        window.addEventListener('pointermove', onPointerMove, true);
+        window.addEventListener('pointerup', onPointerUp, true);
+        window.addEventListener('pointercancel', onPointerCancel, true);
         try { menuButton.setPointerCapture(event.pointerId); } catch {}
-      });
-      menuButton.addEventListener('pointermove', event => {
-        if (event.pointerId !== pointerId) return;
-        event.stopPropagation();
-        if (!dragged && Math.hypot(event.clientX - originX, event.clientY - originY) < 7) return;
-        dragged = true;
-        clearDrop();
-        const next = dropIndexAt(event.clientX, event.clientY);
-        if (next < 0) return;
-        dropHeader = refs.primaryMatrix.querySelectorAll(headerSelector)[next];
-        dropHeader?.classList.add('axis-drop-target');
-      });
-      menuButton.addEventListener('pointerup', event => {
-        if (event.pointerId !== pointerId) return;
-        event.stopPropagation();
-        const didDrag = dragged;
-        const to = didDrag ? dropIndexAt(event.clientX, event.clientY) : -1;
-        pointerId = null;
-        clearDrop();
-        if (didDrag) {
-          event.preventDefault();
-          if (to >= 0) moveAxis(kind, index, to);
-        }
-      });
-      menuButton.addEventListener('pointercancel', () => {
-        pointerId = null;
-        dragged = false;
-        clearDrop();
       });
       menuButton.addEventListener('click', event => {
         if (!dragged) return;
