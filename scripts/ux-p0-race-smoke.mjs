@@ -13,6 +13,7 @@ const bin = process.env.CHROME_BIN || ['google-chrome','chromium','chromium-brow
   .find(result => result.status === 0)?.stdout.trim();
 if (!bin) throw Error('P0 requires Chromium');
 const sleep = ms => new Promise(resolve => setTimeout(resolve, ms));
+const expectSafe = process.argv.includes('--expect-safe');
 const server = createTarotServer();
 const profile = await mkdtemp(join(tmpdir(),'tarot-p0-'));
 let browser, socket;
@@ -44,7 +45,7 @@ const mock = `(() => {
   const p0 = window.__p0 = {
     sessions: 0, shuffleCalls: 0, branchCalls: [], drawCalls: [],
     deferredShuffle: [], deferredDraw: [], deferShuffle: false, deferDraw: true,
-    copiedText: null
+    copiedText: null, failDrawPiles: []
   };
   const ok = (data,status=200) => new Response(JSON.stringify(data),{
     status,headers:{'Content-Type':'application/json'}
@@ -71,7 +72,7 @@ const mock = `(() => {
       const pile=JSON.parse(init.body).pile;
       const id='b'+(p0.branchCalls.length+1)+'-'+pile;
       p0.branchCalls.push({pile,id});
-      return ok({branch_id:id},201);
+      return ok({branch_id:id,pile_id:pile},201);
     }
     if (/^\\/api\\/branches\\/[^/]+\\/draw$/.test(path)) {
       const id=path.split('/')[3];
@@ -83,7 +84,9 @@ const mock = `(() => {
         name_ja:branch.pile==='A'?'愚者':'魔術師',
         orientation:branch.pile==='A'?'upright':'reversed'
       }]));
-      const reply=()=>ok({pile_id:branch.pile,positions:cards});
+      const reply=()=>p0.failDrawPiles.includes(branch.pile)
+        ? Promise.reject(new Error('P1 mock transport loss for '+branch.pile))
+        : ok({pile_id:branch.pile,positions:cards});
       if (p0.deferDraw) return new Promise(resolve=>p0.deferredDraw.push(()=>resolve(reply())));
       return reply();
     }
@@ -173,16 +176,22 @@ try {
     one('.shuffle-button').click();
     await sleep(30);
     const disabledBefore=one('.shuffle-button').disabled;
-    one('.axis-add-row-header .axis-add-button').click();
+    one('.axis-add-row-header .axis-add-button')?.click();
     const enabledAfter=!one('.shuffle-button').disabled;
     if(enabledAfter)one('.shuffle-button').click();
     await sleep(30);
     return {disabledBefore,enabledAfter,sessionCalls:__p0.sessions,shuffleCalls:__p0.shuffleCalls};
   })()`);
   assert.equal(shuffle.disabledBefore,true);
-  assert.equal(shuffle.enabledAfter,true,'Known C04 shuffle rerender race should reproduce');
-  assert.ok(shuffle.sessionCalls>=2,'Duplicate shuffle session request should reproduce');
-  report('C04-SHUFFLE-REENABLE',{status:'REPRODUCED',...shuffle});
+  if (expectSafe) {
+    assert.equal(shuffle.enabledAfter,false,'Pending Shuffle must never re-enable');
+    assert.equal(shuffle.sessionCalls,1);
+    assert.equal(shuffle.shuffleCalls,1);
+  } else {
+    assert.equal(shuffle.enabledAfter,true,'Known C04 shuffle rerender race should reproduce');
+    assert.ok(shuffle.sessionCalls>=2,'Duplicate shuffle session request should reproduce');
+  }
+  report('C04-SHUFFLE-REENABLE',{status:expectSafe?'FIXED':'REPRODUCED',...shuffle});
 
   // C03: change primary pile while server-owned A result remains pending.
   await navigate();
@@ -206,9 +215,10 @@ try {
     };
   })()`);
   assert.deepEqual(pendingC03.pendingPiles,['A']);
-  assert.equal(pendingC03.label,'山 B','Expected selected mutable B pile label on A response');
+  assert.equal(pendingC03.label,expectSafe?'山 A':'山 B',
+    'Rendered selected pile label must agree with tested state contract');
   assert.equal(pendingC03.resultPile,'A','Expected actual card identity from branch A');
-  report('C03-PILE-MISATTRIBUTION',{status:'REPRODUCED',...pendingC03});
+  report('C03-PILE-MISATTRIBUTION',{status:expectSafe?'FIXED':'REPRODUCED',...pendingC03});
 
   // C04b: selecting optional B during pending A draw re-enables Draw and creates second A branch.
   await navigate();
@@ -228,9 +238,15 @@ try {
     return {disabledBefore,enabledAfter,branches:__p0.branchCalls.map(b=>b.pile),draws:__p0.drawCalls.map(d=>d.pile)};
   })()`);
   assert.equal(duplicate.disabledBefore,true);
-  assert.equal(duplicate.enabledAfter,true);
-  assert.ok(duplicate.branches.filter(x=>x==='A').length>=2);
-  report('C04-DRAW-REENABLE',{status:'REPRODUCED',...duplicate});
+  if (expectSafe) {
+    assert.equal(duplicate.enabledAfter,false,'Pending Draw must stay disabled');
+    assert.deepEqual(duplicate.branches,['A']);
+    assert.deepEqual(duplicate.draws,['A']);
+  } else {
+    assert.equal(duplicate.enabledAfter,true);
+    assert.ok(duplicate.branches.filter(x=>x==='A').length>=2);
+  }
+  report('C04-DRAW-REENABLE',{status:expectSafe?'FIXED':'REPRODUCED',...duplicate});
 
   // Normal 27 x 2 and responsive UX baseline: no pending API, no persistence.
   await navigate();
@@ -291,7 +307,58 @@ try {
     })()`);
     report('VIEWPORT-'+width,{status:'MEASURED',...geometry});
   }
-  console.log('P0 controlled baseline successful (known defects intentionally reproduced; not P1 acceptance)');
+  if (expectSafe) {
+    // One branch may have committed while the other has an unknown transport result.
+    await navigate();
+    const partial = await evalInPage(`(async () => {
+      const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+      const one=q=>document.querySelector(q);
+      const all=q=>[...document.querySelectorAll(q)];
+      __p0.deferDraw=false;
+      __p0.failDrawPiles=['B'];
+      one('.shuffle-button').click();
+      for(let i=0;i<100 && all('.pile-button').length!==3;i++)await sleep(20);
+      all('.pile-button')[0].click(); all('.pile-button')[1].click();
+      one('.draw-button').click();
+      for(let i=0;i<100 && !one('.reading-status').textContent.includes('確定状況が不明');i++)await sleep(20);
+      const before=__p0.drawCalls.length;
+      one('.draw-button').click();
+      await sleep(30);
+      return {status:one('.reading-status').textContent,
+        primaryCards:all('.primary-matrix .card-detail-trigger').length,
+        parallelCards:all('.parallel-matrix .card-detail-trigger').length,
+        before,after:__p0.drawCalls.length,
+        newReadingVisible:!one('#newReadingButton').classList.contains('hidden')};
+    })()`);
+    assert.equal(partial.primaryCards,3);
+    assert.equal(partial.parallelCards,0);
+    assert.equal(partial.after,partial.before,'Never re-dispatch potentially committed partial draw');
+    assert.equal(partial.newReadingVisible,true);
+    report('PARTIAL-COMMIT-UNKNOWN',{status:'PASS',...partial});
+
+    await navigate();
+    const unknown=await evalInPage(`(async()=>{
+      const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+      const one=q=>document.querySelector(q);
+      __p0.deferDraw=false;
+      __p0.failDrawPiles=['A'];
+      one('.shuffle-button').click();
+      for(let i=0;i<100 && document.querySelectorAll('.pile-button').length!==3;i++)await sleep(20);
+      one('.pile-button:nth-child(1)').click();
+      one('.draw-button').click();
+      for(let i=0;i<100 && !one('.reading-status').textContent.includes('確定済みの可能性');i++)await sleep(20);
+      const before=__p0.drawCalls.length;
+      one('.draw-button').click();
+      await sleep(30);
+      return {status:one('.reading-status').textContent,before,after:__p0.drawCalls.length,
+        resultCount:document.querySelectorAll('.card-detail-trigger').length};
+    })()`);
+    assert.equal(unknown.resultCount,0);
+    assert.equal(unknown.after,unknown.before);
+    report('ALL-UNKNOWN-NO-RETRY',{status:'PASS',...unknown});
+  }
+  console.log(expectSafe ? 'P1 corrected controlled tests successful' :
+    'P0 controlled baseline successful (known defects intentionally reproduced; not P1 acceptance)');
 } finally {
   socket?.close();
   browser?.kill('SIGKILL');
