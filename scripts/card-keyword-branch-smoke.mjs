@@ -278,7 +278,6 @@ try {
   })()`);
   if (!infoTrigger.focusable) throw Error('Source-info button cannot receive keyboard focus');
   await cdp.call('Input.dispatchKeyEvent', { type: 'keyDown', key: 'Enter', code: 'Enter', windowsVirtualKeyCode: 13, text: '\r', unmodifiedText: '\r' });
-  await cdp.call('Input.dispatchKeyEvent', { type: 'char', text: '\r', unmodifiedText: '\r' });
   await cdp.call('Input.dispatchKeyEvent', { type: 'keyUp', key: 'Enter', code: 'Enter', windowsVirtualKeyCode: 13 });
   await pause(60);
   const popup = await evaluate(`(() => {
