@@ -74,7 +74,7 @@ test('lookup supplies a defensive copy and does not invent unknown data', () => 
   assert.notEqual(keywordGridDraft('major.fool')[0].heading, 'changed');
 });
 
-test('prototype is browser text, keeps RWS artwork and puts explanations below the grid', async () => {
+test('detail reference uses adjacent enlarged artwork and a vertical writing table without a visible scope banner', async () => {
   const [html, app, css, notice] = await Promise.all([
     readFile(new URL('../web/index.html', import.meta.url), 'utf8'),
     readFile(new URL('../web/app.js', import.meta.url), 'utf8'),
@@ -85,25 +85,33 @@ test('prototype is browser text, keeps RWS artwork and puts explanations below t
   assert.ok(html.includes('id="cardDetailKeywordGrid"'));
   assert.ok(html.indexOf('id="cardDetailVisual"') < html.indexOf('id="cardDetailKeywordGrid"'));
   assert.ok(html.indexOf('id="cardDetailKeywordGrid"') < html.indexOf('class="card-detail-copy"'));
-  assert.ok(html.includes('id="cardDetailKeywordRows"'));
+  assert.ok(html.includes('<table id="cardDetailKeywordRows" class="keyword-grid-table"'));
+  assert.ok(html.includes('<tbody></tbody>'));
   assert.ok(html.includes('id="cardDetailSourceInfo"'));
-  assert.ok(html.includes('class="keyword-grid-note"'));
-  assert.ok(html.includes('正位置・逆位置の両面を含む'));
-  assert.ok(html.includes('Tarotooのデータ・ライセンス'));
-  assert.ok(css.includes('.keyword-grid-rows'));
-  assert.ok(css.includes('grid-template-columns: repeat(4, minmax(0, 1fr))'));
+  assert.ok(html.indexOf('id="cardDetailSourceInfo"') < html.indexOf('class="card-detail-body"'));
+  assert.ok(html.includes('正・逆位置の両面を含む'));
+  assert.ok(html.includes('出典：Tarotoo Tarot Dataset（MIT）'));
+  assert.ok(html.includes('Tarotoo-com/tarotoo-tarot-dataset'));
+  assert.ok(!html.includes('keyword-grid-note'), 'scope note must not consume default visible space');
+  assert.ok(css.includes('grid-template-columns: minmax(0, 35%) minmax(0, 1fr)'));
+  assert.ok(css.includes('grid-template-columns: minmax(0, 62%) minmax(0, 1fr)'));
+  assert.ok(css.includes('aspect-ratio: 150 / 257'));
+  assert.ok(css.includes('table-layout: fixed'));
+  assert.ok(css.includes('writing-mode: vertical-rl'));
+  assert.ok(css.includes('text-orientation: upright'));
   assert.ok(css.includes('overflow-x: clip'));
-  assert.ok(css.includes('height: min(94dvh, 960px)'));
-  assert.ok(css.includes('width: 190px;'));
-  assert.ok(css.includes('width: 146px;'));
-  assert.ok(css.includes('#cardDetailEssence'));
-  assert.ok(css.includes('font-size: .98rem'));
+  assert.ok(!css.includes('height: min(94dvh, 960px)'), 'do not force empty modal height');
   assert.ok(css.includes('grid-column: 1 / -1'));
-  assert.ok(!css.includes('.keyword-grid-columns'));
-  assert.ok(!app.includes('keyword-grid-source'));
-  assert.ok(app.includes("rows.append(group)"));
+  assert.ok(css.includes('#cardDetailEssence { font-size: .98rem'));
+  assert.ok(!css.includes('.keyword-grid-meta'));
+  assert.ok(!css.includes('.keyword-grid-note'));
+  assert.ok(app.includes("document.createElement('tr')"));
+  assert.ok(app.includes("document.createElement('th')"));
+  assert.ok(app.includes("document.createElement('td')"));
+  assert.ok(app.includes("label.scope = 'row'"));
   assert.ok(app.includes("item.textContent = term"));
   assert.ok(app.includes("label.textContent = heading"));
+  assert.ok(app.includes("page.cardDetailSourceInfo.classList.toggle('hidden', !groups)"));
   assert.ok(app.includes("renderKeywordGrid(detail ? card.card_id : null)"));
   assert.ok(app.includes("createCardVisual(card, { detail: true })"));
   assert.ok(notice.includes('MIT License') && notice.includes('Copyright (c) 2026 Tarotoo'));

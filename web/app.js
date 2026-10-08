@@ -99,28 +99,28 @@ function closeCardDetail() {
 }
 
 function renderKeywordGrid(cardId) {
-  const host = page.cardDetailKeywordGrid;
   const groups = cardId ? keywordGridDraft(cardId) : null;
-  const rows = page.cardDetailKeywordRows;
-  rows.replaceChildren();
+  const body = page.cardDetailKeywordRows.tBodies[0];
+  body.replaceChildren();
   page.cardDetailSourceInfo.open = false;
-  host.classList.toggle('hidden', !groups);
+  page.cardDetailSourceInfo.classList.toggle('hidden', !groups);
+  page.cardDetailKeywordGrid.classList.toggle('hidden', !groups);
   if (!groups) return;
-  for (const { heading, terms } of groups) {
-    const group = document.createElement('section');
-    group.className = 'keyword-grid-group';
-    const label = document.createElement('h3');
-    label.textContent = heading;
-    const list = document.createElement('ul');
-    for (const term of terms) {
-      const item = document.createElement('li');
-      item.textContent = term;
-      list.append(item);
-    }
-    group.append(label, list);
-    rows.append(group);
-  }
 
+  for (const { heading, terms } of groups) {
+    const row = document.createElement('tr');
+    row.className = 'keyword-grid-group';
+    const label = document.createElement('th');
+    label.scope = 'row';
+    label.textContent = heading;
+    row.append(label);
+    for (const term of terms) {
+      const item = document.createElement('td');
+      item.textContent = term;
+      row.append(item);
+    }
+    body.append(row);
+  }
 }
 
 function openCardDetail(card, trigger) {
