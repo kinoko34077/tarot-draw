@@ -291,7 +291,7 @@ try {
     };
   })()`);
   if (!popup.open || !popup.link?.includes('Tarotoo-com') || !popup.content.includes('MIT') || !popup.fitsViewport) {
-    throw Error('Source popup did not open accessibly or overflowed viewport');
+    throw Error('Source popup failed: ' + JSON.stringify(popup));
   }
   await cdp.call('Input.dispatchKeyEvent', { type: 'rawKeyDown', key: 'Escape', code: 'Escape', windowsVirtualKeyCode: 27 });
   await cdp.call('Input.dispatchKeyEvent', { type: 'keyUp', key: 'Escape', code: 'Escape', windowsVirtualKeyCode: 27 });
