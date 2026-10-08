@@ -131,7 +131,9 @@ try {
   base='http://127.0.0.1:'+server.address().port+'/';
   browser=spawn(bin,['--headless=new','--no-sandbox','--disable-gpu',
     '--remote-debugging-port=9377','--user-data-dir='+profile,'--window-size=1440,1000','about:blank'],{stdio:'ignore'});
-  // The existing repository Chrome harness uses a fixed local CDP port.\n  const port=9377;\n  let target;
+  // The existing repository Chrome harness uses a fixed local CDP port.
+  const port=9377;
+  let target;
   for(let i=0;i<70;i++){
     try {
       const tabs=await (await fetch('http://127.0.0.1:'+port+'/json/list')).json();
