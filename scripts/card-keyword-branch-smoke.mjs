@@ -258,41 +258,64 @@ try {
     }
     return {records: ids.length, actualResultTriggers: triggers.length, standardDetails: standard, customDetails: custom};
   })()`);
-  // Exercise native keyboard scrolling, a real CDP touch gesture and page zoom.
-  const keyboardTarget = await evaluate(`(() => {
+  // Exercise native keyboard interaction for the source disclosure and ensure that
+  // horizontal touch panning does not move the keyword area in the row layout.
+  const infoTrigger = await evaluate(`(() => {
     const trigger = [...document.querySelectorAll('.card-detail-trigger')]
       .find(button => button.querySelector('img.card-art'));
-    if (!trigger) throw Error('No standard result for input-mode check');
+    if (!trigger) throw Error('No standard result for source-info check');
     trigger.click();
-    const host = document.querySelector('#cardDetailKeywordGrid');
-    if (!host || host.classList.contains('hidden')) throw Error('Scrollable grid missing');
-    host.scrollLeft = 0;
-    host.focus();
-    const rect = host.getBoundingClientRect();
+    const info = document.querySelector('#cardDetailSourceInfo');
+    if (info.open) throw Error('Source panel already open');
+    const summary = info.querySelector('summary');
+    summary.focus();
+    const rect = document.querySelector('#cardDetailKeywordGrid').getBoundingClientRect();
     return {
+      focusable: document.activeElement === summary,
       x: Math.round(rect.right - 24),
-      y: Math.round(Math.min(rect.bottom - 30, rect.top + 86)),
-      focusable: document.activeElement === host,
-      clientWidth: host.clientWidth,
-      scrollWidth: host.scrollWidth
+      y: Math.round(Math.min(rect.bottom - 12, rect.top + 94))
     };
   })()`);
-  if (!keyboardTarget.focusable) throw Error('Keyboard cannot focus the keyword scroller');
-  await cdp.call('Input.dispatchKeyEvent', {
-    type: 'rawKeyDown', key: 'ArrowRight', code: 'ArrowRight', windowsVirtualKeyCode: 39
-  });
-  await cdp.call('Input.dispatchKeyEvent', {
-    type: 'keyUp', key: 'ArrowRight', code: 'ArrowRight', windowsVirtualKeyCode: 39
-  });
-  await pause(400);
-  const keyboardScroll = await evaluate("document.querySelector('#cardDetailKeywordGrid').scrollLeft");
-  if (keyboardScroll <= 0) throw Error('Native ArrowRight did not scroll focused keywords');
+  if (!infoTrigger.focusable) throw Error('Source-info button cannot receive keyboard focus');
+  await cdp.call('Input.dispatchKeyEvent', { type: 'rawKeyDown', key: 'Enter', code: 'Enter', windowsVirtualKeyCode: 13 });
+  await cdp.call('Input.dispatchKeyEvent', { type: 'keyUp', key: 'Enter', code: 'Enter', windowsVirtualKeyCode: 13 });
+  const popup = await evaluate(`(() => {
+    const info = document.querySelector('#cardDetailSourceInfo');
+    const surface = info.querySelector('.keyword-source-popover');
+    const r = surface.getBoundingClientRect();
+    return {
+      open: info.open,
+      link: info.querySelector('a')?.href,
+      content: surface.textContent,
+      fitsViewport: r.left >= 0 && r.right <= window.innerWidth + 1
+    };
+  })()`);
+  if (!popup.open || !popup.link?.includes('Tarotoo-com') || !popup.content.includes('MIT') || !popup.fitsViewport) {
+    throw Error('Source popup did not open accessibly or overflowed viewport');
+  }
+  await cdp.call('Input.dispatchKeyEvent', { type: 'rawKeyDown', key: 'Escape', code: 'Escape', windowsVirtualKeyCode: 27 });
+  await cdp.call('Input.dispatchKeyEvent', { type: 'keyUp', key: 'Escape', code: 'Escape', windowsVirtualKeyCode: 27 });
+  const escapePopup = await evaluate(`(() => ({
+    popupClosed: !document.querySelector('#cardDetailSourceInfo').open,
+    dialogStayedOpen: document.querySelector('#cardDetailDialog').open,
+    summaryFocused: document.activeElement === document.querySelector('#cardDetailSourceInfo summary')
+  }))()`);
+  if (!escapePopup.popupClosed || !escapePopup.dialogStayedOpen || !escapePopup.summaryFocused) {
+    throw Error('Escape failed to dismiss only the source popup and restore its focus');
+  }
+  const outside = await evaluate(`(() => {
+    const info = document.querySelector('#cardDetailSourceInfo');
+    info.querySelector('summary').click();
+    if (!info.open) throw Error('Click failed to reopen source popup');
+    document.querySelector('.keyword-grid-note').click();
+    return {dismissed: !info.open,dialogOpen: document.querySelector('#cardDetailDialog').open};
+  })()`);
+  if (!outside.dismissed || !outside.dialogOpen) throw Error('Click outside did not dismiss source popup');
 
-  await evaluate("document.querySelector('#cardDetailKeywordGrid').scrollLeft = 0");
   await cdp.call('Emulation.setTouchEmulationEnabled', { enabled: true, maxTouchPoints: 1 });
   const touch = (x, y) => ({x, y});
-  const startX = keyboardTarget.x;
-  const y = keyboardTarget.y;
+  const startX = infoTrigger.x;
+  const y = infoTrigger.y;
   await cdp.call('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [touch(startX, y)] });
   for (let delta = 30; delta <= 180; delta += 30) {
     await cdp.call('Input.dispatchTouchEvent', {
@@ -301,10 +324,10 @@ try {
     await pause(30);
   }
   await cdp.call('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
-  await pause(300);
+  await pause(200);
   const touchScroll = await evaluate("document.querySelector('#cardDetailKeywordGrid').scrollLeft");
   await cdp.call('Emulation.setTouchEmulationEnabled', { enabled: false });
-  if (touchScroll <= 0) throw Error('Actual touch swipe did not scroll keyword grid');
+  if (touchScroll !== 0) throw Error('Horizontal touch pan moved the keyword area');
 
   await cdp.call('Emulation.setPageScaleFactor', { pageScaleFactor: 2 });
   await pause(100);
@@ -314,33 +337,35 @@ try {
     clientWidth: document.querySelector('#cardDetailKeywordGrid').clientWidth,
     detailOpen: document.querySelector('#cardDetailDialog').open
   }))()`);
-  if (!zoom.detailOpen || zoom.scale < 1.9 || zoom.scrollWidth <= zoom.clientWidth) {
-    throw Error('200% mobile zoom obscured the keyword scroll area');
+  if (!zoom.detailOpen || zoom.scale < 1.9 || zoom.scrollWidth > zoom.clientWidth + 1) {
+    throw Error('200% mobile zoom introduces keyword horizontal overflow or obscures the dialog');
   }
   await cdp.call('Emulation.setPageScaleFactor', { pageScaleFactor: 1 });
   await cdp.call('Emulation.setDeviceMetricsOverride', {
     width: 320, height: 720, deviceScaleFactor: 1, mobile: true
   });
-  await pause(100);
+  await pause(120);
   const narrow = await evaluate(`(() => {
     const host = document.querySelector('#cardDetailKeywordGrid');
-    const visual = document.querySelector('#cardDetailVisual');
+    const image = document.querySelector('#cardDetailVisual img.detail-card-art');
+    const dialog = document.querySelector('#cardDetailDialog');
     return {
       viewportWidth: window.innerWidth,
       clientWidth: host.clientWidth,
       scrollWidth: host.scrollWidth,
-      cardWidth: visual.getBoundingClientRect().width,
-      groupCount: document.querySelectorAll('.keyword-grid-group').length
+      cardWidth: image.getBoundingClientRect().width,
+      groupCount: document.querySelectorAll('.keyword-grid-group').length,
+      dialogHeight: dialog.getBoundingClientRect().height
     };
   })()`);
-  if (narrow.viewportWidth !== 320 || narrow.scrollWidth <= narrow.clientWidth ||
-    narrow.cardWidth < 75 || narrow.groupCount !== 5) {
-    throw Error('320px reflow failed for artwork + five columns');
+  if (narrow.viewportWidth !== 320 || narrow.scrollWidth > narrow.clientWidth + 1 ||
+    narrow.cardWidth < 130 || narrow.groupCount !== 5 || narrow.dialogHeight < 680) {
+    throw Error('320px portrait reflow fails no-horizontal-scroll, image size or dialog height');
   }
   await evaluate("document.querySelector('#cardDetailClose').click()");
   console.log('KEYWORD_GRID_BROWSER=' + JSON.stringify({
     sample: picked, mobile, close, coverage,
-    inputModes: {keyboardScroll, touchScroll, zoom, narrow}
+    inputModes: {popup, escapePopup, outside, touchScroll, zoom, narrow}
   }));
   cdp.close();
   cdp = null;
