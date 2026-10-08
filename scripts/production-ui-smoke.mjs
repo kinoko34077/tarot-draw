@@ -192,10 +192,37 @@ try {
     all('.column-header .axis-inline-label').forEach((button, index) => renameAxis(button, columns[index]));
     all('.row-header .axis-inline-label').forEach((button, index) => renameAxis(button, rows[index]));
 
+    const getColumns = () => all('.primary-matrix .column-header .axis-inline-label')
+      .map(button => button.textContent);
+    const keyboardMoveFirstColumnRight = () => {
+      const grip = one('.primary-matrix .column-header .axis-menu-trigger');
+      if (!grip) throw new Error('Keyboard-accessible reorder grip absent.');
+      grip.dispatchEvent(new KeyboardEvent('keydown', {
+        key: 'ArrowRight', bubbles: true, cancelable: true
+      }));
+    };
+    keyboardMoveFirstColumnRight();
+    if (getColumns()[0] !== columns[1] || getColumns()[1] !== columns[0]) {
+      throw new Error('Keyboard column reorder was not reflected in the source table.');
+    }
+    click('.axis-undo-button');
+    if (JSON.stringify(getColumns()) !== JSON.stringify(columns)) {
+      throw new Error('Undo did not restore original column order.');
+    }
+    click('.axis-redo-button');
+    if (getColumns()[0] !== columns[1]) throw new Error('Redo did not reapply column order.');
+    click('.axis-undo-button');
+
     click('.shuffle-button');
     for (let i = 0; i < 120 && all('.pile-button').length < 3; i += 1) await sleep(100);
     const piles = all('.pile-button').filter(button => !button.disabled);
     if (piles.length < 2) throw new Error('Two selectable piles were not available.');
+    keyboardMoveFirstColumnRight();
+    if (getColumns()[0] !== columns[1]) throw new Error('Reorder before Draw was lost after Shuffle.');
+    click('.axis-undo-button');
+    if (JSON.stringify(getColumns()) !== JSON.stringify(columns)) {
+      throw new Error('Pre-draw Undo after Shuffle did not restore layout.');
+    }
     piles[0].click();
     piles[1].click();
     click('.draw-button');
