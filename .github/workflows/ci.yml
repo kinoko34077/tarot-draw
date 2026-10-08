@@ -25,6 +25,8 @@ jobs:
           CHROME_BIN="$(command -v google-chrome || command -v chromium || command -v chromium-browser || true)"
           test -n "$CHROME_BIN"
           echo "CHROME_BIN=$CHROME_BIN" >> "$GITHUB_ENV"
+      - name: Characterize P0 delayed shuffle and draw races (mocked local API, not production)
+        run: node scripts/ux-p0-race-smoke.mjs
       - name: Verify five-card dialog in local Chromium (desktop/mobile)
         run: node scripts/card-keyword-branch-smoke.mjs
       - name: Retain branch-only UI screenshots
