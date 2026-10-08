@@ -141,14 +141,15 @@ try {
     const tableRect = one('#cardDetailKeywordRows').getBoundingClientRect();
     const heading = one('#cardDetailKeywordHeading');
     const headingRect = heading.getBoundingClientRect();
+    const headerRect = one('.keyword-grid-heading-bar').getBoundingClientRect();
     const infoRect = one('#cardDetailSourceInfo summary').getBoundingClientRect();
     if (heading.textContent.trim() !== 'キーワード') throw Error('Visible keyword heading is missing');
     if (one('#cardDetailKeywordRows').getAttribute('aria-labelledby') !== heading.id ||
       one('#cardDetailKeywordGrid').getAttribute('aria-labelledby') !== heading.id) {
       throw Error('Keyword table and region not semantically labelled by visible heading');
     }
-    if (Math.abs(headingRect.top - visualRect.top) > 4 ||
-      tableRect.top < headingRect.bottom - 2 ||
+    if (Math.abs(headerRect.top - visualRect.top) > 4 ||
+      tableRect.top < headerRect.bottom - 2 ||
       Math.abs(infoRect.top + infoRect.height / 2 - headingRect.top - headingRect.height / 2) > 9 ||
       infoRect.left < headingRect.right ||
       infoRect.right > gridRect.right + 3) {
@@ -202,14 +203,15 @@ try {
     if (!host || !art || table.querySelectorAll('tr').length !== 5 || cells.length !== 25) throw Error('Missing mobile semantic 5x5 table');
     const a = art.getBoundingClientRect(), t = table.getBoundingClientRect();
     const heading = one('#cardDetailKeywordHeading'), h = heading.getBoundingClientRect();
+    const header = one('.keyword-grid-heading-bar').getBoundingClientRect();
     const info = one('#cardDetailSourceInfo summary'), i = info.getBoundingClientRect();
     if (heading.textContent.trim() !== 'キーワード' ||
       table.getAttribute('aria-labelledby') !== heading.id ||
       one('#cardDetailKeywordGrid').getAttribute('aria-labelledby') !== heading.id) {
       throw Error('Visible 390px heading or accessible table name missing');
     }
-    if (a.right + 2 > t.left || Math.abs(a.top - h.top) > 4 ||
-      t.top < h.bottom - 2 || i.left < h.right ||
+    if (a.right + 2 > t.left || Math.abs(a.top - header.top) > 4 ||
+      t.top < header.bottom - 2 || i.left < h.right ||
       Math.abs((i.top+i.bottom)/2-(h.top+h.bottom)/2) > 9) {
       throw Error('390px keyword heading and info must be above table beside left artwork');
     }
@@ -411,16 +413,17 @@ try {
     const a = art.getBoundingClientRect(), t = table.getBoundingClientRect();
     const headingEl = document.querySelector('#cardDetailKeywordHeading');
     const heading = headingEl.getBoundingClientRect();
+    const header = document.querySelector('.keyword-grid-heading-bar').getBoundingClientRect();
     const info = document.querySelector('#cardDetailSourceInfo summary').getBoundingClientRect();
     const cells = [...table.querySelectorAll('th, td')];
     const copyTop = document.querySelector('.card-detail-copy').getBoundingClientRect().top;
     return {viewportWidth:window.innerWidth,scrollWidth:host.scrollWidth,clientWidth:host.clientWidth,
       tableScrollWidth:table.scrollWidth,tableClientWidth:table.clientWidth,
       imageWidth:a.width,imageHeight:a.height,imageOnLeft:a.right+2<=t.left,
-      topAligned:Math.abs(a.top-heading.top)<=4,
+      topAligned:Math.abs(a.top-header.top)<=4,
       headingVisible:headingEl.textContent.trim()==='キーワード'&&heading.width>=40,
       infoAdjacent:info.left>=heading.right&&Math.abs((info.top+info.bottom)/2-(heading.top+heading.bottom)/2)<=9,
-      tableBelowHeading:t.top>=heading.bottom-2,
+      tableBelowHeading:t.top>=header.bottom-2,
       unusedBelowArt:Math.max(0,t.bottom-a.bottom),
       gapBeforeEssence:copyTop-Math.max(a.bottom,t.bottom),
       verticalCells:cells.filter(el=>getComputedStyle(el).writingMode==='vertical-rl').length,
