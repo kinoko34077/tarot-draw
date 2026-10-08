@@ -126,3 +126,19 @@ test('local server serves generated static ruby module without external image as
     assert.match(content, /aozora-wasm 0\.5\.0/);
   });
 });
+
+test('local server serves the keyword grid module required by the detail dialog', async () => {
+  await withServer(async base => {
+    const [app, keywords] = await Promise.all([
+      fetch(`${base}/app.js`),
+      fetch(`${base}/card-keyword-grid.js`)
+    ]);
+    assert.equal(app.status, 200);
+    assert.equal(keywords.status, 200);
+    assert.match(keywords.headers.get('content-type') ?? '', /text\\/javascript/);
+    assert.match(await app.text(), /from '\\.\\/card-keyword-grid\\.js'/);
+    const module = await keywords.text();
+    assert.match(module, /KEYWORD_GRID_DRAFTS/);
+    assert.match(module, /keywordGridDraft/);
+  });
+});
