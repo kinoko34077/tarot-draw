@@ -105,7 +105,7 @@ test('detail reference uses adjacent enlarged artwork and a vertical writing tab
   assert.ok(html.includes('Tarotoo-com/tarotoo-tarot-dataset'));
   assert.ok(!html.includes('keyword-grid-note'), 'scope note must not consume default visible space');
   assert.ok(css.includes('grid-template-columns: minmax(0, 35%) minmax(0, 1fr)'));
-  assert.ok(css.includes('grid-template-columns: minmax(0, 62%) minmax(0, 1fr)'));
+  assert.ok(css.includes('grid-template-columns: minmax(0, 58%) minmax(0, 1fr)'));
   assert.ok(css.includes('aspect-ratio: 150 / 257'));
   assert.ok(css.includes('.keyword-grid-heading-bar {'));
   assert.ok(css.includes('flex-direction: column'));
