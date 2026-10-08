@@ -191,6 +191,28 @@ try {
       dialogHeight: dialog.getBoundingClientRect().height
     }};
   })()`);
+  // UX-15 audit: record discoverability/feedback geometry even for features
+  // outside the narrow #34 heading fix. Observations are not verdicts about users.
+  const readingUx = await evaluate(`(() => {
+    const reading = document.querySelector('.reading-workbench');
+    const question = reading.querySelector('.question-field');
+    const copy = reading.querySelector('.copy-button');
+    const status = reading.querySelector('.reading-status');
+    const trigger = reading.querySelector('.card-detail-trigger');
+    const copyBox = copy.getBoundingClientRect(), statusBox = status.getBoundingClientRect();
+    return {
+      questionVisibleLabel: question.querySelector('.question-prefix')?.textContent?.trim(),
+      questionInputAccessibleLabel: question.querySelector('input')?.getAttribute('aria-label'),
+      questionPlaceholder: question.querySelector('input')?.getAttribute('placeholder'),
+      drawingResultVisibleDetailCue: /詳細/.test(trigger?.textContent ?? ''),
+      drawingResultAccessibleDetailCue: trigger?.getAttribute('aria-label')?.includes('詳細') ?? false,
+      copyFeedbackDistancePx: Math.round(statusBox.top - copyBox.top),
+      initialViewportHeight: innerHeight,
+      copyFeedbackInSameViewportWhenCopyTopVisible: statusBox.top-copyBox.top < innerHeight-100,
+      branchHeading: reading.querySelector('.parallel-section h2')?.textContent,
+      statusLocation: status.closest('.reading-workbench')?.dataset.reading
+    };
+  })()`);
   await screenshot('keyword-grid-desktop.png');
   await cdp.call('Emulation.setDeviceMetricsOverride', {
     width: 390, height: 844, deviceScaleFactor: 1, mobile: true
@@ -460,7 +482,7 @@ try {
   }
   await evaluate("document.querySelector('#cardDetailClose').click()");
   console.log('KEYWORD_GRID_BROWSER=' + JSON.stringify({
-    sample: picked, mobile, close, coverage,
+    sample: picked, readingUx, mobile, close, coverage,
     inputModes: {popup, escapePopup, outside, touchScroll, zoom, narrow, narrowPopup}
   }));
   cdp.close();
