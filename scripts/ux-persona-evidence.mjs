@@ -387,8 +387,10 @@ async function axisWorkflowTask() {
   const rename = (kind, index, value) => {
     const header = kind === 'row' ? '.row-header' : '.column-header';
     const button = reading.querySelectorAll(header + ' .axis-inline-label')[index];
+    if (!button) throw Error('Heading absent for ' + kind + index);
+    const holder = button.parentElement;
     button.click();
-    const input = reading.querySelectorAll(header + ' .axis-inline-input')[index];
+    const input = holder?.querySelector('.axis-inline-input');
     if (!input) throw Error('Editor missing for ' + kind + index);
     input.value = value;
     input.dispatchEvent(new KeyboardEvent('keydown', { bubbles: true, key: 'Enter' }));
