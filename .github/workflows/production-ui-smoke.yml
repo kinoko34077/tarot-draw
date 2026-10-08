@@ -2,12 +2,6 @@ name: Production UI Smoke
 
 on:
   workflow_dispatch:
-  push:
-    branches: [main]
-    paths:
-      - 'scripts/production-ui-smoke.mjs'
-      - 'scripts/card-detail-production-smoke.mjs'
-      - '.github/workflows/production-ui-smoke.yml'
   workflow_run:
     workflows: ['Deploy Pages']
     types: [completed]
