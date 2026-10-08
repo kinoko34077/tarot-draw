@@ -572,9 +572,9 @@ function createReadingController(number) {
     const menuButton = document.createElement('button');
     menuButton.className = 'axis-menu-trigger';
     menuButton.type = 'button';
-    menuButton.textContent = '⋮';
-    menuButton.title = axisName + 'の操作';
-    menuButton.setAttribute('aria-label', axisName + (index + 1) + 'の操作');
+    menuButton.textContent = '⠿';
+    menuButton.title = 'ドラッグして順番を変更／押して操作／矢印キーでも移動';
+    menuButton.setAttribute('aria-label', axisName + (index + 1) + 'を移動・操作');
 
     function updateParallelHeading() {
       // The reading's server-drawn cards stay at their original position IDs.
@@ -602,10 +602,12 @@ function createReadingController(number) {
         finished = true;
         const values = [...state[stateKey]];
         values[index] = commit ? input.value : previousValue;
+        if (commit && values[index] !== previousValue && canEditAxes()) recordAxisHistory();
         state[stateKey] = values;
         label.textContent = labelOrFallback(values, index, kind);
         input.replaceWith(label);
         updateParallelHeading();
+        renderLayoutState();
         if (restoreFocus) label.focus({ preventScroll: true });
       };
       input.addEventListener('compositionstart', () => { isComposing = true; });
@@ -626,6 +628,80 @@ function createReadingController(number) {
     }
 
     label.addEventListener('click', beginEdit);
+
+    // Reuse the existing secondary-action button as a drag grip. The name
+    // itself remains a pure edit surface, never a hidden dragging target.
+    if (canEditAxes()) {
+      let pointerId = null;
+      let originX = 0;
+      let originY = 0;
+      let dragged = false;
+      let dropHeader = null;
+      const headerSelector = kind === 'row' ? '.row-header' : '.column-header';
+      const clearDrop = () => {
+        dropHeader?.classList.remove('axis-drop-target');
+        dropHeader = null;
+      };
+      const dropIndexAt = (x, y) => {
+        const hit = document.elementFromPoint(x, y)?.closest(headerSelector);
+        if (!hit || !refs.primaryMatrix.contains(hit)) return -1;
+        return [...refs.primaryMatrix.querySelectorAll(headerSelector)].indexOf(hit);
+      };
+
+      menuButton.addEventListener('pointerdown', event => {
+        if (!canEditAxes() || event.button !== 0) return;
+        event.stopPropagation();
+        pointerId = event.pointerId;
+        originX = event.clientX;
+        originY = event.clientY;
+        dragged = false;
+        try { menuButton.setPointerCapture(event.pointerId); } catch {}
+      });
+      menuButton.addEventListener('pointermove', event => {
+        if (event.pointerId !== pointerId) return;
+        event.stopPropagation();
+        if (!dragged && Math.hypot(event.clientX - originX, event.clientY - originY) < 7) return;
+        dragged = true;
+        clearDrop();
+        const next = dropIndexAt(event.clientX, event.clientY);
+        if (next < 0) return;
+        dropHeader = refs.primaryMatrix.querySelectorAll(headerSelector)[next];
+        dropHeader?.classList.add('axis-drop-target');
+      });
+      menuButton.addEventListener('pointerup', event => {
+        if (event.pointerId !== pointerId) return;
+        event.stopPropagation();
+        const didDrag = dragged;
+        const to = didDrag ? dropIndexAt(event.clientX, event.clientY) : -1;
+        pointerId = null;
+        clearDrop();
+        if (didDrag) {
+          event.preventDefault();
+          if (to >= 0) moveAxis(kind, index, to);
+        }
+      });
+      menuButton.addEventListener('pointercancel', () => {
+        pointerId = null;
+        dragged = false;
+        clearDrop();
+      });
+      menuButton.addEventListener('click', event => {
+        if (!dragged) return;
+        event.preventDefault();
+        event.stopImmediatePropagation();
+        dragged = false;
+      }, true);
+      menuButton.addEventListener('keydown', event => {
+        if (!canEditAxes()) return;
+        const before = kind === 'row' ? 'ArrowUp' : 'ArrowLeft';
+        const after = kind === 'row' ? 'ArrowDown' : 'ArrowRight';
+        if (event.key !== before && event.key !== after) return;
+        event.preventDefault();
+        event.stopPropagation();
+        moveAxis(kind, index, index + (event.key === before ? -1 : 1));
+      });
+    }
+
     handle.append(label, menuButton);
     wrapper.append(handle);
     return { wrapper, handle, menuButton };
@@ -663,6 +739,7 @@ function createReadingController(number) {
     table.setAttribute('aria-label', label);
 
     const canEditStructure = state.phase === 'editing' && !state.pendingOperation;
+    const canReorder = canEditAxes();
     const thead = document.createElement('thead');
     const headerRow = document.createElement('tr');
 
@@ -680,8 +757,8 @@ function createReadingController(number) {
       if (editableHeaders) {
         const editor = createAxisEditor('column', column, 'columnLabels');
         th.append(editor.wrapper);
-        if (canEditStructure) bindAxisContextMenu(editor.handle, controller, 'column', column, editor.menuButton);
-        if (!canEditStructure) editor.menuButton.classList.add('hidden');
+        if (canReorder) bindAxisContextMenu(editor.handle, controller, 'column', column, editor.menuButton);
+        if (!canReorder) editor.menuButton.classList.add('hidden');
       } else {
         th.textContent = labelOrFallback(state.columnLabels, column, 'column');
       }
@@ -718,8 +795,8 @@ function createReadingController(number) {
       if (editableHeaders) {
         const editor = createAxisEditor('row', row, 'rowLabels');
         rowHeader.append(editor.wrapper);
-        if (canEditStructure) bindAxisContextMenu(editor.handle, controller, 'row', row, editor.menuButton);
-        if (!canEditStructure) editor.menuButton.classList.add('hidden');
+        if (canReorder) bindAxisContextMenu(editor.handle, controller, 'row', row, editor.menuButton);
+        if (!canReorder) editor.menuButton.classList.add('hidden');
       } else {
         rowHeader.textContent = labelOrFallback(state.rowLabels, row, 'row');
       }
@@ -786,11 +863,15 @@ function createReadingController(number) {
     const completed = state.phase === 'completed' || state.phase === 'draw-uncertain';
     refs.primaryTitle.textContent = completed ? 'Primary' : '配置';
     refs.primaryPileLabel.textContent = state.primaryPile ? `山 ${state.primaryPile}` : '';
+    const left = refs.primaryMatrix.scrollLeft;
+    const top = refs.primaryMatrix.scrollTop;
     refs.primaryMatrix.replaceChildren(createMatrixTable({
       result: state.primaryResult,
       editableHeaders: true,
       label: completed ? `Reading ${state.number} Primary結果` : `Reading ${state.number} 配置`
     }));
+    refs.primaryMatrix.scrollLeft = left;
+    refs.primaryMatrix.scrollTop = top;
   }
 
   function renderParallelMatrix() {
