@@ -40,7 +40,20 @@
       </header>
       <div class="card-detail-body">
         <div id="cardDetailVisual" class="detail-visual-slot"></div>
-        <section id="cardDetailKeywordGrid" class="card-detail-keywords hidden" tabindex="0" aria-label="カードの関連キーワード"></section>
+        <section id="cardDetailKeywordGrid" class="card-detail-keywords hidden" aria-label="カード全体の関連キーワード">
+          <div class="keyword-grid-meta">
+            <p class="keyword-grid-note">※正位置・逆位置の両面を含む、カード全体の象徴と注意点です。今回の向きの意味は下の正位置・逆位置を参照。</p>
+            <details id="cardDetailSourceInfo" class="keyword-source-disclosure">
+              <summary class="keyword-source-trigger" aria-label="キーワードの出典と編集方針を表示" title="出典・編集方針"><span aria-hidden="true">ⓘ</span></summary>
+              <div class="keyword-source-popover">
+                <strong>キーワードの出典・編集方針</strong>
+                <p>Tarotooのタロット解釈データ（MITライセンス）を参考に、標準78枚の語句を日本語で独自編集しています。正位置・逆位置の両面を含むカード全体の関連語で、今回引いた向きだけの解釈ではありません。</p>
+                <a href="https://github.com/Tarotoo-com/tarotoo-tarot-dataset" target="_blank" rel="noopener noreferrer">Tarotooのデータ・ライセンス</a>
+              </div>
+            </details>
+          </div>
+          <div id="cardDetailKeywordRows" class="keyword-grid-rows"></div>
+        </section>
         <div class="card-detail-copy">
           <div id="cardDetailReference">
             <section class="detail-meaning">
