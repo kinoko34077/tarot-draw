@@ -165,12 +165,14 @@ try {
 
     const renameAxis = (button, value) => {
       if (!button) throw new Error('Missing direct heading edit control.');
+      const holder = button.parentElement;
+      if (!holder) throw new Error('Direct heading editor lost its original cell.');
       button.click();
-      const input = button.parentElement.querySelector('.axis-inline-input');
+      const input = holder.querySelector('.axis-inline-input');
       if (!input) throw new Error('Heading did not open its editor in the same cell.');
       input.value = value;
       input.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }));
-      if (button.textContent !== value || button.parentElement.querySelector('.axis-inline-input')) {
+      if (button.textContent !== value || holder.querySelector('.axis-inline-input')) {
         throw new Error('Heading was not committed at the original display location.');
       }
     };
