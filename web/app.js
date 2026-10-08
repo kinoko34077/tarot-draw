@@ -100,6 +100,8 @@ function renderKeywordGrid(cardId) {
   const host = page.cardDetailKeywordGrid;
   const groups = cardId ? keywordGridDraft(cardId) : null;
   host.replaceChildren();
+  // Every newly opened card begins at its first keyword column, not the prior card's scroll position.
+  host.scrollLeft = 0;
   host.classList.toggle('hidden', !groups);
   if (!groups) return;
 
