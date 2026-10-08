@@ -137,13 +137,14 @@ try {
   await once(server,'listening');
   base='http://127.0.0.1:'+server.address().port+'/';
   browser=spawn(bin,['--headless=new','--no-sandbox','--disable-gpu',
+    '--disable-dev-shm-usage','--no-first-run','--no-default-browser-check',
     '--remote-debugging-port=0','--user-data-dir='+profile,'--window-size=1440,1000',base],{stdio:['ignore','ignore','pipe']});
   let browserStderr='';
   browser.stderr.on('data',chunk=>{browserStderr=(browserStderr+chunk.toString()).slice(-3000);});
   // Each run gets an isolated CDP port to avoid colliding with other Chrome jobs.
   // Chrome writes the selected port and browser WS URI into DevToolsActivePort.
   let port=0;
-  for(let i=0;i<120;i++){
+  for(let i=0;i<300;i++){
     try {
       const address=await readFile(join(profile,'DevToolsActivePort'),'utf8');
       port=Number(address.split('\n')[0]);
@@ -154,7 +155,7 @@ try {
   }
   if(!port)throw Error('Chromium debugging port unavailable: '+browserStderr);
   let target;
-  for(let i=0;i<120;i++){
+  for(let i=0;i<300;i++){
     try {
       const tabs=await (await fetch('http://127.0.0.1:'+port+'/json/list')).json();
       target=tabs.find(tab=>tab.type==='page' && tab.url.startsWith(base)) ||
