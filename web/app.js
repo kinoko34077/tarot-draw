@@ -334,7 +334,9 @@ function createReadingController(number) {
     primaryPile: null,
     parallelPile: null,
     primaryResult: null,
-    parallelResult: null
+    parallelResult: null,
+    pendingOperation: null,
+    drawOutcome: null
   };
 
   const article = document.createElement('article');
@@ -416,6 +418,7 @@ function createReadingController(number) {
   };
 
   refs.questionInput.addEventListener('input', event => {
+    if (state.pendingOperation || state.phase === 'draw-uncertain' || state.phase === 'completed') return;
     state.question = event.target.value;
   });
   refs.shuffleButton.addEventListener('click', shuffle);
@@ -427,7 +430,7 @@ function createReadingController(number) {
   }
 
   function addAxis(kind) {
-    if (state.phase !== 'editing') return;
+    if (state.phase !== 'editing' || state.pendingOperation) return;
 
     if (kind === 'row') {
       if (!canAddRow(state)) {
@@ -446,7 +449,7 @@ function createReadingController(number) {
   }
 
   function removeAxis(kind, index) {
-    if (state.phase !== 'editing') return;
+    if (state.phase !== 'editing' || state.pendingOperation) return;
 
     if (kind === 'row') {
       state.rowLabels = removeAxisLabel(state.rowLabels, index);
@@ -481,10 +484,12 @@ function createReadingController(number) {
     input.type = 'text';
     input.value = state[stateKey][index] ?? '';
     input.autocomplete = 'off';
+    input.readOnly = Boolean(state.pendingOperation);
     input.placeholder = kind === 'row' ? '行名' : '列名';
     input.setAttribute('aria-label', `${kind === 'row' ? '行' : '列'}${index + 1}の名前`);
 
     input.addEventListener('input', event => {
+      if (state.pendingOperation) return;
       const next = [...state[stateKey]];
       next[index] = event.target.value;
       state[stateKey] = next;
@@ -525,7 +530,7 @@ function createReadingController(number) {
     table.className = 'reading-table';
     table.setAttribute('aria-label', label);
 
-    const canEditStructure = state.phase === 'editing';
+    const canEditStructure = state.phase === 'editing' && !state.pendingOperation;
     const thead = document.createElement('thead');
     const headerRow = document.createElement('tr');
 
@@ -540,7 +545,7 @@ function createReadingController(number) {
       th.className = 'column-header';
       th.scope = 'col';
 
-      if (editableHeaders && state.phase !== 'completed') {
+      if (editableHeaders && state.phase !== 'completed' && state.phase !== 'draw-uncertain') {
         const editor = createAxisEditor('column', column, 'columnLabels');
         th.append(editor.wrapper);
         if (canEditStructure) bindAxisContextMenu(editor.handle, controller, 'column', column, editor.menuButton);
@@ -578,7 +583,7 @@ function createReadingController(number) {
       rowHeader.className = 'row-header';
       rowHeader.scope = 'row';
 
-      if (editableHeaders && state.phase !== 'completed') {
+      if (editableHeaders && state.phase !== 'completed' && state.phase !== 'draw-uncertain') {
         const editor = createAxisEditor('row', row, 'rowLabels');
         rowHeader.append(editor.wrapper);
         if (canEditStructure) bindAxisContextMenu(editor.handle, controller, 'row', row, editor.menuButton);
@@ -646,7 +651,7 @@ function createReadingController(number) {
   }
 
   function renderPrimaryMatrix() {
-    const completed = state.phase === 'completed';
+    const completed = state.phase === 'completed' || state.phase === 'draw-uncertain';
     refs.primaryTitle.textContent = completed ? 'Primary' : '配置';
     refs.primaryPileLabel.textContent = state.primaryPile ? `山 ${state.primaryPile}` : '';
     refs.primaryMatrix.replaceChildren(createMatrixTable({
@@ -687,7 +692,7 @@ function createReadingController(number) {
 
       const selected = pile.pile_id === state.primaryPile || pile.pile_id === state.parallelPile;
       button.setAttribute('aria-pressed', String(selected));
-      button.disabled = pile.count < count;
+      button.disabled = pile.count < count || Boolean(state.pendingOperation);
 
       const name = document.createElement('span');
       name.className = 'pile-name';
@@ -715,7 +720,7 @@ function createReadingController(number) {
   }
 
   function selectPile(pileId) {
-    if (state.phase !== 'choosing') return;
+    if (state.phase !== 'choosing' || state.pendingOperation) return;
 
     if (pileId === state.primaryPile) {
       state.primaryPile = null;
@@ -744,7 +749,7 @@ function createReadingController(number) {
   function updateDrawAction() {
     const choosing = state.phase === 'choosing';
     refs.drawButton.classList.toggle('hidden', !choosing);
-    refs.drawButton.disabled = !state.primaryPile;
+    refs.drawButton.disabled = !state.primaryPile || !choosing || Boolean(state.pendingOperation);
   }
 
   function renderLayoutState() {
@@ -761,10 +766,10 @@ function createReadingController(number) {
       }
     }
 
-    refs.shuffleButton.disabled = !runtime.apiAvailable || state.phase !== 'editing';
+    refs.shuffleButton.disabled = !runtime.apiAvailable || state.phase !== 'editing' || Boolean(state.pendingOperation);
     refs.shuffleButton.classList.toggle('hidden', state.phase !== 'editing');
     refs.copyButton.classList.toggle('hidden', state.phase !== 'completed');
-    refs.questionInput.readOnly = state.phase === 'completed';
+    refs.questionInput.readOnly = state.phase === 'completed' || state.phase === 'draw-uncertain' || Boolean(state.pendingOperation);
   }
 
   function render() {
@@ -774,79 +779,123 @@ function createReadingController(number) {
     updateDrawAction();
   }
 
+  // Once an operation is sent, rendering must derive all button states from
+  // this synchronous guard. This prevents event re-entry even if a stale DOM
+  // element or rerender tries to invoke a handler while the response is late.
   async function shuffle() {
-    if (state.phase !== 'editing') return;
+    if (state.phase !== 'editing' || state.pendingOperation) return;
+
+    state.pendingOperation = 'shuffle';
+    render();
+    setTextStatus(refs.status, 'シャッフル中…');
 
     try {
-      refs.shuffleButton.disabled = true;
-      setTextStatus(refs.status, 'シャッフル中…');
-
       const session = await api('/api/sessions', { method: 'POST', body: '{}' });
       state.sessionId = session.session_id;
-      const split = await api(`/api/sessions/${encodeURIComponent(state.sessionId)}/shuffle`, {
-        method: 'POST',
-        body: '{}'
+      const split = await api(`/api/sessions/${encodeURIComponent(session.session_id)}/shuffle`, {
+        method: 'POST', body: '{}'
       });
-
       state.piles = split.piles;
       state.primaryPile = null;
       state.parallelPile = null;
       state.phase = 'choosing';
-
       refs.pilePanel.classList.remove('hidden');
-      renderPiles();
-      render();
       setTextStatus(refs.selectionMessage, 'Primaryの山を選択してください。');
       setTextStatus(refs.status, '山を選択');
     } catch (error) {
-      refs.shuffleButton.disabled = false;
-      setTextStatus(refs.status, error.message, 'error');
+      setTextStatus(refs.status, `シャッフル結果を確認できませんでした。未完成の山は使用しません。${error.message}`, 'error');
+    } finally {
+      state.pendingOperation = null;
+      renderPiles();
+      render();
     }
   }
 
-  async function createBranchAndDraw(pileId, positions) {
-    const branch = await api(`/api/sessions/${encodeURIComponent(state.sessionId)}/branches`, {
-      method: 'POST',
-      body: JSON.stringify({ pile: pileId })
+  async function createBranchAndDraw(sessionId, pileId, positions) {
+    const branch = await api(`/api/sessions/${encodeURIComponent(sessionId)}/branches`, {
+      method: 'POST', body: JSON.stringify({ pile: pileId })
     });
+    if (branch.pile_id !== pileId) throw new Error('選択した山とAPIの分岐応答が一致しません。');
+    const result = await api(`/api/branches/${encodeURIComponent(branch.branch_id)}/draw`, {
+      method: 'POST', body: JSON.stringify({ positions })
+    });
+    if (result.pile_id !== pileId || !result.positions ||
+        positions.some(position => !result.positions[position])) {
+      throw new Error('抽選結果の山または配置位置が要求と一致しません。');
+    }
+    return result;
+  }
 
-    return api(`/api/branches/${encodeURIComponent(branch.branch_id)}/draw`, {
-      method: 'POST',
-      body: JSON.stringify({ positions })
+  function snapshotDrawIntent() {
+    return Object.freeze({
+      sessionId: state.sessionId,
+      question: state.question,
+      rowLabels: Object.freeze([...state.rowLabels]),
+      columnLabels: Object.freeze([...state.columnLabels]),
+      primaryPile: state.primaryPile,
+      parallelPile: state.parallelPile,
+      positions: Object.freeze(buildPositionIds(state.rowLabels.length, state.columnLabels.length))
     });
   }
 
   async function draw() {
-    if (state.phase !== 'choosing' || !state.primaryPile) return;
+    if (state.phase !== 'choosing' || !state.primaryPile || !state.sessionId ||
+        state.pendingOperation || state.drawOutcome) return;
 
-    const positions = buildPositionIds(state.rowLabels.length, state.columnLabels.length);
+    const intent = snapshotDrawIntent();
+    state.pendingOperation = 'draw';
+    renderPiles();
+    render();
+    setTextStatus(refs.status, '抽選中…');
+
     try {
-      refs.drawButton.disabled = true;
-      setTextStatus(refs.status, '抽選中…');
-
-      const [primary, parallel] = await Promise.all([
-        createBranchAndDraw(state.primaryPile, positions),
-        state.parallelPile ? createBranchAndDraw(state.parallelPile, positions) : Promise.resolve(null)
+      const outcomes = await Promise.allSettled([
+        createBranchAndDraw(intent.sessionId, intent.primaryPile, intent.positions),
+        intent.parallelPile
+          ? createBranchAndDraw(intent.sessionId, intent.parallelPile, intent.positions)
+          : Promise.resolve(null)
       ]);
+      const primary = outcomes[0].status === 'fulfilled' ? outcomes[0].value : null;
+      const parallel = outcomes[1].status === 'fulfilled' ? outcomes[1].value : null;
+      const failed = outcomes.some(outcome => outcome.status === 'rejected');
 
+      // Display metadata must belong to the request that actually produced
+      // the result, never a mutable selection changed during a pending fetch.
+      state.question = intent.question;
+      state.rowLabels = [...intent.rowLabels];
+      state.columnLabels = [...intent.columnLabels];
+      state.primaryPile = intent.primaryPile;
+      state.parallelPile = intent.parallelPile;
       state.primaryResult = primary;
       state.parallelResult = parallel;
-      state.phase = 'completed';
 
-      refs.pilePanel.classList.add('hidden');
-      render();
-      setTextStatus(refs.status, '抽選完了');
-      page.newReadingButton.classList.remove('hidden');
-
-      const completedSession = state.sessionId;
-      state.sessionId = null;
-      if (completedSession) {
-        api(`/api/sessions/${encodeURIComponent(completedSession)}`, { method: 'DELETE' }).catch(() => {});
+      if (failed) {
+        // The remote branch may already have committed; no implicit DELETE,
+        // retry or replacement random draw is safe without a server receipt.
+        state.drawOutcome = 'unknown';
+        state.phase = 'draw-uncertain';
+        const got = [primary && `Primary 山${intent.primaryPile}`,
+          parallel && `Parallel 山${intent.parallelPile}`].filter(Boolean).join('・');
+        setTextStatus(refs.status, got
+          ? `${got} の結果は取得できました。ほかの抽選は確定状況が不明です。二重抽選を避けるため、この占いの再試行を停止しました。`
+          : '抽選結果を確認できませんでした。サーバー側で確定済みの可能性があるため、同じ抽選の再試行は停止しました。', 'error');
+        page.newReadingButton.classList.remove('hidden');
+      } else {
+        state.drawOutcome = 'completed';
+        state.phase = 'completed';
+        setTextStatus(refs.status, '抽選完了');
+        page.newReadingButton.classList.remove('hidden');
+        const completedSession = intent.sessionId;
+        state.sessionId = null;
+        if (completedSession) {
+          api(`/api/sessions/${encodeURIComponent(completedSession)}`, { method: 'DELETE' }).catch(() => {});
+        }
       }
-    } catch (error) {
-      refs.drawButton.disabled = false;
-      const details = error.details ? `（${error.details.available}枚利用可能）` : '';
-      setTextStatus(refs.status, `${error.message}${details}`, 'error');
+      refs.pilePanel.classList.add('hidden');
+    } finally {
+      state.pendingOperation = null;
+      renderPiles();
+      render();
     }
   }
 
