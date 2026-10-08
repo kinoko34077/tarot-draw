@@ -1,4 +1,4 @@
-// Branch-only real-browser verification of Issue #26, without touching public Pages.
+// Branch-only real-browser verification of Issues #26/#28/#30, without touching public Pages.
 // Uses the repo's actual Node HTTP server + API/draw UI and Chrome DevTools Protocol.
 import { spawn, spawnSync } from 'node:child_process';
 import { once } from 'node:events';
@@ -126,7 +126,7 @@ try {
     hit.click();
     for (let i = 0; i < 80 && !one('#cardDetailDialog').open; i++) await sleep(50);
     if (!one('#cardDetailDialog').open) throw Error('Detail dialog did not open');
-    if (all('.keyword-grid-group').length !== 5 || all('.keyword-grid-group li').length !== 20) throw Error('Missing 5x4 grid');
+    if (all('.keyword-grid-group').length !== 5 || all('.keyword-grid-group li').length !== 20) throw Error('Missing 5 rows and 20 terms');
     if (!one('#cardDetailEssence').textContent || !one('#cardDetailUpright').textContent || !one('#cardDetailReversed').textContent) throw Error('Legacy meanings missing');
     const image = one('#cardDetailVisual img.detail-card-art');
     if (!image) throw Error('Detail RWS image not rendered');
@@ -137,7 +137,18 @@ try {
     if (active?.id !== (reversed ? 'cardDetailReversedBlock' : 'cardDetailUprightBlock')) throw Error('Orientation highlight mismatch');
     const visualRect = one('#cardDetailVisual').getBoundingClientRect();
     const gridRect = one('#cardDetailKeywordGrid').getBoundingClientRect();
-    if (!(gridRect.left > visualRect.left && Math.abs(gridRect.top - visualRect.top) <= 3)) throw Error('Desktop artwork not left of 5 columns');
+    if (!(gridRect.left > visualRect.left && Math.abs(gridRect.top - visualRect.top) <= 3)) throw Error('Desktop artwork not left of keyword rows');
+    if (visualRect.width < 180) throw Error('Desktop artwork not enlarged');
+    const groupRows = all('.keyword-grid-group');
+    if (!groupRows.every((row, index) => index === 0 || row.getBoundingClientRect().top > groupRows[index - 1].getBoundingClientRect().top)) throw Error('Five headings are not vertically stacked');
+    if (!groupRows.every(row => row.querySelector('h3').getBoundingClientRect().right < row.querySelector('li').getBoundingClientRect().left)) throw Error('Rows do not place four terms after their heading');
+    const dialog = one('#cardDetailDialog');
+    if (dialog.getBoundingClientRect().height < window.innerHeight * .85) throw Error('Dialog height not expanded');
+    if (!one('.keyword-grid-note').textContent.includes('正位置・逆位置の両面')) throw Error('Missing keyword scope note');
+    if (one('#cardDetailSourceInfo').open) throw Error('Source info shown by default');
+    const essenceSize = parseFloat(getComputedStyle(one('#cardDetailEssence')).fontSize);
+    const uprightSize = parseFloat(getComputedStyle(one('#cardDetailUpright')).fontSize);
+    if (essenceSize <= uprightSize) throw Error('Essence is not larger than upright/reversed descriptions');
     return {cardAsset, reversed, desktop: {visualLeft: visualRect.left, gridLeft: gridRect.left, columns: all('.keyword-grid-group').length, terms: all('.keyword-grid-group li').length}};
   })()`);
   await screenshot('keyword-grid-desktop.png');
@@ -149,21 +160,22 @@ try {
     const one = q => document.querySelector(q);
     const host = one('#cardDetailKeywordGrid');
     const image = one('#cardDetailVisual');
-    const column = one('.keyword-grid-group');
-    if (!host || !image || !column) throw Error('Missing mobile layout');
-    const before = host.scrollLeft;
-    host.scrollLeft = host.scrollWidth;
-    const after = host.scrollLeft;
-    if (host.scrollWidth <= host.clientWidth || after <= before) throw Error('Five columns cannot scroll horizontally');
-    if (host.scrollWidth > 470) throw Error('Compact grid width regression');
-    if (image.getBoundingClientRect().width < 75) throw Error('Card artwork collapsed on mobile');
+    const rows = [...host.querySelectorAll('.keyword-grid-group')];
+    if (!host || !image || rows.length !== 5) throw Error('Missing mobile portrait rows');
+    if (host.scrollWidth > host.clientWidth + 1) throw Error('Keyword area still overflows horizontally');
+    host.scrollLeft = 999;
+    if (host.scrollLeft !== 0) throw Error('Keyword area is still horizontally scrollable');
+    const bounds = host.getBoundingClientRect();
+    if (rows.some(row => row.getBoundingClientRect().right > bounds.right + 1)) throw Error('Keyword row clipped on mobile');
+    if (image.querySelector('img')?.getBoundingClientRect().width < 130) throw Error('Mobile card art not enlarged');
+    if (image.getBoundingClientRect().top >= host.getBoundingClientRect().top) throw Error('Mobile card image not above keyword rows');
     const visibleText = [...host.querySelectorAll('li')].every(el => el.textContent.trim().length > 0);
     if (!visibleText) throw Error('Mobile keywords missing text');
     const shortLabels = [...host.querySelectorAll('h3, li')];
     if (shortLabels.some(el => [...el.textContent.trim()].length > 6)) throw Error('Keyword too long in browser');
     if (shortLabels.some(el => el.getBoundingClientRect().height > 40)) throw Error('Keyword wraps visually');
     if (!one('#cardDetailDialog').open) throw Error('Mobile resize closed dialog');
-    return {width: window.innerWidth, scrollWidth: host.scrollWidth, clientWidth: host.clientWidth, scrolledTo: after, artworkWidth: image.getBoundingClientRect().width, termsVisibleInDOM: visibleText};
+    return {width: window.innerWidth, scrollWidth: host.scrollWidth, clientWidth: host.clientWidth, horizontalScrollLeft: host.scrollLeft, artworkWidth: image.querySelector('img')?.getBoundingClientRect().width, termsVisibleInDOM: visibleText};
   })()`);
   await screenshot('keyword-grid-mobile.png');
   const close = await evaluate(`(async () => {
@@ -220,7 +232,8 @@ try {
         if (host.classList.contains('hidden') || groups.length !== 5 || terms.length !== 20) {
           throw Error('Rendered grid missing on ' + trigger.getAttribute('aria-label'));
         }
-        if (host.scrollLeft !== 0) throw Error('New card inherited prior keyword scroll offset');
+        if (host.scrollWidth > host.clientWidth + 1 || host.scrollLeft !== 0) throw Error('Opened card has horizontal keyword overflow');
+        if (document.querySelector('#cardDetailSourceInfo').open) throw Error('Source popover leaked between cards');
         if (!document.querySelector('#cardDetailEssence').textContent) throw Error('Legacy card meaning missing');
         const detailImage = document.querySelector('#cardDetailVisual img.detail-card-art');
         if (!detailImage) throw Error('Detail artwork missing');
@@ -229,7 +242,6 @@ try {
           throw Error('Reverse artwork state mismatch');
         }
         standard += 1;
-        host.scrollLeft = host.scrollWidth;
       } else {
         if (!host.classList.contains('hidden')) throw Error('Custom card leaked standard keywords');
         custom += 1;
