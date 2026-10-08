@@ -69,7 +69,7 @@ const report = {
   executable: CHROME_BIN,
   origin: 'real local Chromium + local Node API; synthetic scripted actions, NOT actual children, novices or experts',
   policy: ['03_Development_Specification_Principles.md §15', '利用者起点 UI-UX 設計原則', 'devflow#161/#176/#177', '.ai-guidelines#23'],
-  commit: process.env.GITHUB_SHA || 'LOCAL_HEAD_UNSPECIFIED',
+  commit: process.env.UX_HEAD_SHA || process.env.GITHUB_SHA || 'LOCAL_HEAD_UNSPECIFIED',
   timestamp: new Date().toISOString(),
   scenarios: [],
   checks: [],
