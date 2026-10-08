@@ -703,8 +703,8 @@ input:focus-visible {
   .keyword-grid-table { border-spacing: 2px; }
   .keyword-grid-table th,
   .keyword-grid-table td {
-    font-size: clamp(.72rem, 1.8vw, .88rem);
-    line-height: 1.08;
+    font-size: clamp(.78rem, 2vw, .96rem);
+    line-height: 1.03;
     padding: 2px 1px;
     border-radius: 3px;
   }
@@ -714,7 +714,7 @@ input:focus-visible {
 
 @media (max-width: 420px) {
   .card-detail-body {
-    grid-template-columns: minmax(0, 60%) minmax(0, 1fr);
+    grid-template-columns: minmax(0, 62%) minmax(0, 1fr);
     column-gap: 5px;
     padding: 6px;
   }
