@@ -135,7 +135,7 @@ try {
   const {readFile}=await import('node:fs/promises');
   let port;
   for(let i=0;i<100;i++){
-    try {port=Number((await readFile(join(profile,'DevToolsActivePort'),'utf8')).split('\\n')[0]);if(port)break;}catch{}
+    try {port=Number((await readFile(join(profile,'DevToolsActivePort'),'utf8')).split('\n')[0]);if(port)break;}catch{}
     await sleep(100);
   }
   if(!port)throw Error('Chromium debugging endpoint unavailable');
