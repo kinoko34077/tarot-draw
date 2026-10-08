@@ -45,7 +45,7 @@ const mock = `(() => {
   const p0 = window.__p0 = {
     sessions: 0, shuffleCalls: 0, branchCalls: [], drawCalls: [],
     deferredShuffle: [], deferredDraw: [], deferShuffle: false, deferDraw: true,
-    copiedText: null, failDrawPiles: []
+    copiedText: null, failDrawPiles: [], failDrawStatuses: {}
   };
   const ok = (data,status=200) => new Response(JSON.stringify(data),{
     status,headers:{'Content-Type':'application/json'}
@@ -84,9 +84,13 @@ const mock = `(() => {
         name_ja:branch.pile==='A'?'愚者':'魔術師',
         orientation:branch.pile==='A'?'upright':'reversed'
       }]));
-      const reply=()=>p0.failDrawPiles.includes(branch.pile)
-        ? Promise.reject(new Error('P1 mock transport loss for '+branch.pile))
-        : ok({pile_id:branch.pile,positions:cards});
+      const reply=()=>{
+        if(p0.failDrawPiles.includes(branch.pile))
+          return Promise.reject(new Error('P1 mock transport loss for '+branch.pile));
+        if(p0.failDrawStatuses[branch.pile])
+          return ok({error:{code:'RATE_LIMITED',message:'Try later.'}},p0.failDrawStatuses[branch.pile]);
+        return ok({pile_id:branch.pile,positions:cards});
+      };
       if (p0.deferDraw) return new Promise(resolve=>p0.deferredDraw.push(()=>resolve(reply())));
       return reply();
     }
@@ -324,7 +328,7 @@ try {
       const before=__p0.drawCalls.length;
       one('.draw-button').click();
       await sleep(30);
-      return {status:one('.reading-status').textContent,
+      return {message:one('.reading-status').textContent,
         primaryCards:all('.primary-matrix .card-detail-trigger').length,
         parallelCards:all('.parallel-matrix .card-detail-trigger').length,
         before,after:__p0.drawCalls.length,
@@ -350,12 +354,64 @@ try {
       const before=__p0.drawCalls.length;
       one('.draw-button').click();
       await sleep(30);
-      return {status:one('.reading-status').textContent,before,after:__p0.drawCalls.length,
+      return {message:one('.reading-status').textContent,before,after:__p0.drawCalls.length,
         resultCount:document.querySelectorAll('.card-detail-trigger').length};
     })()`);
     assert.equal(unknown.resultCount,0);
     assert.equal(unknown.after,unknown.before);
     report('ALL-UNKNOWN-NO-RETRY',{status:'PASS',...unknown});
+
+    // Two independent branches return in reverse order: view role and cards
+    // must still be mapped to their own pile, not promise completion order.
+    await navigate();
+    const reordered=await evalInPage(`(async()=>{
+      const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+      const one=q=>document.querySelector(q);
+      const all=q=>[...document.querySelectorAll(q)];
+      one('.shuffle-button').click();
+      for(let i=0;i<100 && all('.pile-button').length!==3;i++)await sleep(20);
+      all('.pile-button')[0].click(); all('.pile-button')[1].click();
+      one('.draw-button').click();
+      for(let i=0;i<100 && __p0.deferredDraw.length!==2;i++)await sleep(20);
+      const releases=__p0.deferredDraw.splice(0);
+      releases[1]();
+      await sleep(30);
+      const prematurelyCompleted=one('.reading-status').textContent.includes('抽選完了');
+      releases[0]();
+      for(let i=0;i<100 && !one('.reading-status').textContent.includes('抽選完了');i++)await sleep(20);
+      return {prematurelyCompleted,
+        primaryLabel:one('.primary-pile-label').textContent,
+        parallelLabel:one('.parallel-pile-label').textContent,
+        primaryA:one('.primary-matrix .card-art')?.src.includes('major-fool'),
+        parallelB:one('.parallel-matrix .card-art')?.src.includes('major-magician')};
+    })()`);
+    assert.equal(reordered.prematurelyCompleted,false);
+    assert.equal(reordered.primaryLabel,'山 A');
+    assert.equal(reordered.parallelLabel,'山 B');
+    assert.equal(reordered.primaryA,true);
+    assert.equal(reordered.parallelB,true);
+    report('REORDERED-BRANCH-RESPONSES',{status:'PASS',...reordered});
+
+    // Rate-limit errors are not safe to interpret as a draw rollback.
+    await navigate();
+    const limited=await evalInPage(`(async()=>{
+      const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+      const one=q=>document.querySelector(q);
+      __p0.deferDraw=false;
+      __p0.failDrawStatuses={A:429};
+      one('.shuffle-button').click();
+      for(let i=0;i<100 && document.querySelectorAll('.pile-button').length!==3;i++)await sleep(20);
+      one('.pile-button:nth-child(1)').click();
+      one('.draw-button').click();
+      for(let i=0;i<100 && !one('.reading-status').textContent.includes('確定済みの可能性');i++)await sleep(20);
+      const before=__p0.drawCalls.length;
+      one('.draw-button').click();
+      await sleep(30);
+      return {before,after:__p0.drawCalls.length,message:one('.reading-status').textContent};
+    })()`);
+    assert.equal(limited.before,1);
+    assert.equal(limited.after,1);
+    report('RATE-LIMITED-NO-RETRY',{status:'PASS',...limited});
   }
   console.log(expectSafe ? 'P1 corrected controlled tests successful' :
     'P0 controlled baseline successful (known defects intentionally reproduced; not P1 acceptance)');
