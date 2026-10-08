@@ -50,9 +50,21 @@ class DevTools {
 }
 
 async function evaluate(expression) {
-  const result = await cdp.call('Runtime.evaluate', { expression, awaitPromise: true, returnByValue: true });
-  if (result.exceptionDetails) throw Error(result.exceptionDetails.exception?.description ?? 'CDP evaluation exception');
-  return result.result.value;
+  // A newly opened headless tab may briefly have no default JS context after Page.enable.
+  for (let attempt = 0; attempt < 25; attempt += 1) {
+    try {
+      const result = await cdp.call('Runtime.evaluate', {
+        expression,
+        awaitPromise: true,
+        returnByValue: true
+      });
+      if (result.exceptionDetails) throw Error(result.exceptionDetails.exception?.description ?? 'CDP evaluation exception');
+      return result.result.value;
+    } catch (error) {
+      if (!String(error.message).includes('Cannot find default execution context') || attempt === 24) throw error;
+      await pause(150);
+    }
+  }
 }
 
 async function screenshot(path) {
