@@ -182,7 +182,63 @@ try {
     if (dialog.open || document.activeElement !== trigger) throw Error('Backdrop/focus return failed');
     return {escape:true,button:true,backdrop:true,focusReturn:true};
   })()`);
-  console.log('KEYWORD_GRID_BROWSER=' + JSON.stringify({sample: picked, mobile, close}));
+  // Exercise the complete data module in the browser and every real API-drawn
+  // trigger present in this two-pile reading, rather than only one prototype.
+  const coverage = await evaluate(`(async () => {
+    const { CARD_KEYWORD_GRIDS, keywordGridDraft } =
+      await import(window.location.origin + '/card-keyword-grid.js');
+    const ids = Object.keys(CARD_KEYWORD_GRIDS);
+    if (ids.length !== 78) throw Error('Browser module has ' + ids.length + ' cards');
+    for (const id of ids) {
+      const groups = keywordGridDraft(id);
+      if (groups?.length !== 5 || groups.some(group => group.terms.length !== 4)) {
+        throw Error('Invalid browser keyword record: ' + id);
+      }
+    }
+    if (keywordGridDraft('meta.title') || keywordGridDraft('meta.guarantee')) {
+      throw Error('Custom card keywords are forbidden');
+    }
+    const dialog = document.querySelector('#cardDetailDialog');
+    const host = document.querySelector('#cardDetailKeywordGrid');
+    const triggers = [...document.querySelectorAll('.card-detail-trigger')];
+    if (triggers.length < 27) throw Error('Not enough real card results for UI coverage');
+    let standard = 0;
+    let custom = 0;
+    for (const trigger of triggers) {
+      const hasImage = Boolean(trigger.querySelector('img.card-art'));
+      const hasCustomFace = Boolean(trigger.querySelector('.custom-card-face'));
+      if (!hasImage && !hasCustomFace) throw Error('Card result has no visual');
+      trigger.click();
+      if (!dialog.open) throw Error('Card detail failed to open in coverage iteration');
+      if (hasImage) {
+        const groups = host.querySelectorAll('.keyword-grid-group');
+        const terms = host.querySelectorAll('.keyword-grid-group li');
+        if (host.classList.contains('hidden') || groups.length !== 5 || terms.length !== 20) {
+          throw Error('Rendered grid missing on ' + trigger.getAttribute('aria-label'));
+        }
+        if (host.scrollLeft !== 0) throw Error('New card inherited prior keyword scroll offset');
+        if (!document.querySelector('#cardDetailEssence').textContent) throw Error('Legacy card meaning missing');
+        const detailImage = document.querySelector('#cardDetailVisual img.detail-card-art');
+        if (!detailImage) throw Error('Detail artwork missing');
+        if (detailImage.classList.contains('is-reversed') !==
+          trigger.querySelector('img.card-art').classList.contains('is-reversed')) {
+          throw Error('Reverse artwork state mismatch');
+        }
+        standard += 1;
+        host.scrollLeft = host.scrollWidth;
+      } else {
+        if (!host.classList.contains('hidden')) throw Error('Custom card leaked standard keywords');
+        custom += 1;
+      }
+      document.querySelector('#cardDetailClose').click();
+      await new Promise(resolve => setTimeout(resolve, 2));
+      if (dialog.open || document.activeElement !== trigger) {
+        throw Error('Dialog close/focus return regression');
+      }
+    }
+    return {records: ids.length, actualResultTriggers: triggers.length, standardDetails: standard, customDetails: custom};
+  })()`);
+  console.log('KEYWORD_GRID_BROWSER=' + JSON.stringify({sample: picked, mobile, close, coverage}));
   cdp.close();
   cdp = null;
 } finally {
