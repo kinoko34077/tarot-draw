@@ -48,6 +48,18 @@ export function appendAxisLabel(labels) {
   return [...labels, ''];
 }
 
+export function moveAxisLabel(labels, fromIndex, toIndex) {
+  if (!Array.isArray(labels)) return [];
+  if (![fromIndex, toIndex].every(index => Number.isInteger(index) && index >= 0 && index < labels.length)) {
+    return [...labels];
+  }
+  if (fromIndex === toIndex) return [...labels];
+  const moved = [...labels];
+  const [item] = moved.splice(fromIndex, 1);
+  moved.splice(toIndex, 0, item);
+  return moved;
+}
+
 export function removeAxisLabel(labels, index) {
   if (!Array.isArray(labels) || labels.length <= 1) return Array.isArray(labels) ? [...labels] : [''];
   if (!Number.isInteger(index) || index < 0 || index >= labels.length) return [...labels];

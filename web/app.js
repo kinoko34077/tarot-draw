@@ -6,6 +6,7 @@ import {
   CUSTOM_CARD_NOTES,
   formatReadingText,
   labelOrFallback,
+  moveAxisLabel,
   removeAxisLabel,
   rwsImageUrl
 } from './model.js';
@@ -21,6 +22,8 @@ const page = {
   newReadingButton: document.querySelector('#newReadingButton'),
   axisMenu: document.querySelector('#axisMenu'),
   deleteAxisButton: document.querySelector('#deleteAxisButton'),
+  moveAxisBeforeButton: document.querySelector('#moveAxisBeforeButton'),
+  moveAxisAfterButton: document.querySelector('#moveAxisAfterButton'),
   cardDetailDialog: document.querySelector('#cardDetailDialog'),
   cardDetailClose: document.querySelector('#cardDetailClose'),
   cardDetailTitle: document.querySelector('#cardDetailTitle'),
@@ -238,26 +241,50 @@ function closeAxisMenu({ restoreFocus = false } = {}) {
 }
 
 function openAxisMenu(controller, kind, index, trigger, point = null) {
-  if (controller.state.phase !== 'editing') return;
+  if (controller.state.pendingOperation || !['editing', 'choosing'].includes(controller.state.phase)) return;
 
   axisMenuContext = { controller, kind, index, trigger };
   const count = kind === 'row'
     ? controller.state.rowLabels.length
     : controller.state.columnLabels.length;
 
-  page.deleteAxisButton.textContent = kind === 'row' ? 'この行を削除' : 'この列を削除';
+  const row = kind === 'row';
+  page.moveAxisBeforeButton.textContent = row ? 'この行を上へ' : 'この列を左へ';
+  page.moveAxisAfterButton.textContent = row ? 'この行を下へ' : 'この列を右へ';
+  page.moveAxisBeforeButton.disabled = index === 0;
+  page.moveAxisAfterButton.disabled = index === count - 1;
+  page.deleteAxisButton.textContent = row ? 'この行を削除' : 'この列を削除';
+  page.deleteAxisButton.classList.toggle('hidden', controller.state.phase !== 'editing');
   page.deleteAxisButton.disabled = count <= 1;
   page.deleteAxisButton.title = count <= 1 ? '最低1つの行・列が必要です' : '';
 
   const rect = trigger.getBoundingClientRect();
   const left = point?.x ?? Math.min(window.innerWidth - 180, Math.max(8, rect.left));
-  const top = point?.y ?? Math.min(window.innerHeight - 52, rect.bottom + 4);
+  const top = point?.y ?? Math.min(window.innerHeight - 128, rect.bottom + 4);
 
   page.axisMenu.style.left = `${left}px`;
   page.axisMenu.style.top = `${top}px`;
   page.axisMenu.classList.remove('hidden');
-  requestAnimationFrame(() => page.deleteAxisButton.focus());
+  requestAnimationFrame(() => {
+    if (!page.moveAxisBeforeButton.disabled) page.moveAxisBeforeButton.focus();
+    else if (!page.moveAxisAfterButton.disabled) page.moveAxisAfterButton.focus();
+    else if (!page.deleteAxisButton.classList.contains('hidden')) page.deleteAxisButton.focus();
+  });
 }
+
+page.moveAxisBeforeButton.addEventListener('click', () => {
+  if (!axisMenuContext) return;
+  const { controller, kind, index } = axisMenuContext;
+  controller.moveAxis(kind, index, index - 1);
+  closeAxisMenu();
+});
+
+page.moveAxisAfterButton.addEventListener('click', () => {
+  if (!axisMenuContext) return;
+  const { controller, kind, index } = axisMenuContext;
+  controller.moveAxis(kind, index, index + 1);
+  closeAxisMenu();
+});
 
 page.deleteAxisButton.addEventListener('click', () => {
   if (!axisMenuContext) return;
@@ -292,7 +319,7 @@ function bindAxisContextMenu(target, controller, kind, index, trigger) {
   };
 
   target.addEventListener('pointerdown', event => {
-    if (event.button !== 0 || controller.state.phase !== 'editing') return;
+    if (event.button !== 0 || !['editing', 'choosing'].includes(controller.state.phase)) return;
     startX = event.clientX;
     startY = event.clientY;
     cancel();
@@ -310,7 +337,7 @@ function bindAxisContextMenu(target, controller, kind, index, trigger) {
   target.addEventListener('pointerleave', cancel);
 
   target.addEventListener('contextmenu', event => {
-    if (controller.state.phase !== 'editing') return;
+    if (!['editing', 'choosing'].includes(controller.state.phase)) return;
     event.preventDefault();
     cancel();
     openAxisMenu(controller, kind, index, trigger, { x: event.clientX, y: event.clientY });
@@ -336,7 +363,9 @@ function createReadingController(number) {
     primaryResult: null,
     parallelResult: null,
     pendingOperation: null,
-    drawOutcome: null
+    drawOutcome: null,
+    undoStack: [],
+    redoStack: []
   };
 
   const article = document.createElement('article');
@@ -372,6 +401,10 @@ function createReadingController(number) {
         <div class="matrix-heading">
           <h2 class="primary-title">配置</h2>
           <span class="primary-pile-label branch-meta"></span>
+          <div class="axis-history-actions">
+            <button class="axis-undo-button secondary hidden" type="button" title="直前の編集を元に戻す">戻す</button>
+            <button class="axis-redo-button secondary hidden" type="button" title="取り消した編集をやり直す">やり直す</button>
+          </div>
         </div>
         <div class="primary-matrix table-scroll"></div>
       </section>
@@ -400,6 +433,8 @@ function createReadingController(number) {
     selectionMessage: article.querySelector('.selection-message'),
     primaryTitle: article.querySelector('.primary-title'),
     primaryPileLabel: article.querySelector('.primary-pile-label'),
+    undoButton: article.querySelector('.axis-undo-button'),
+    redoButton: article.querySelector('.axis-redo-button'),
     primaryMatrix: article.querySelector('.primary-matrix'),
     parallelSection: article.querySelector('.parallel-section'),
     parallelPileLabel: article.querySelector('.parallel-pile-label'),
@@ -413,6 +448,7 @@ function createReadingController(number) {
     refs,
     addAxis,
     removeAxis,
+    moveAxis,
     render,
     focusQuestion
   };
@@ -424,9 +460,62 @@ function createReadingController(number) {
   refs.shuffleButton.addEventListener('click', shuffle);
   refs.drawButton.addEventListener('click', draw);
   refs.copyButton.addEventListener('click', copyReading);
+  refs.undoButton.addEventListener('click', undoAxis);
+  refs.redoButton.addEventListener('click', redoAxis);
 
   function focusQuestion() {
     refs.questionInput.focus();
+  }
+
+  function snapshotAxes() {
+    return { rowLabels: [...state.rowLabels], columnLabels: [...state.columnLabels] };
+  }
+
+  function recordAxisHistory() {
+    state.undoStack.push(snapshotAxes());
+    if (state.undoStack.length > 40) state.undoStack.shift();
+    state.redoStack.length = 0;
+  }
+
+  function applyAxes(snapshot) {
+    state.rowLabels = [...snapshot.rowLabels];
+    state.columnLabels = [...snapshot.columnLabels];
+  }
+
+  function canEditAxes() {
+    return !state.pendingOperation && (state.phase === 'editing' || state.phase === 'choosing');
+  }
+
+  function undoAxis() {
+    if (!canEditAxes() || !state.undoStack.length) return;
+    state.redoStack.push(snapshotAxes());
+    applyAxes(state.undoStack.pop());
+    render();
+    setTextStatus(refs.layoutMessage, '元に戻しました。');
+  }
+
+  function redoAxis() {
+    if (!canEditAxes() || !state.redoStack.length) return;
+    state.undoStack.push(snapshotAxes());
+    applyAxes(state.redoStack.pop());
+    render();
+    setTextStatus(refs.layoutMessage, 'やり直しました。');
+  }
+
+  function moveAxis(kind, from, to) {
+    if (!canEditAxes()) return false;
+    const stateKey = kind === 'row' ? 'rowLabels' : 'columnLabels';
+    const values = state[stateKey];
+    if (![from, to].every(index => Number.isInteger(index) && index >= 0 && index < values.length)) return false;
+    if (from === to) return false;
+    recordAxisHistory();
+    state[stateKey] = moveAxisLabel(values, from, to);
+    render();
+    const selector = kind === 'row' ? '.row-header' : '.column-header';
+    const target = refs.primaryMatrix.querySelectorAll(selector)[to]?.querySelector('.axis-menu-trigger');
+    target?.focus({ preventScroll: true });
+    setTextStatus(refs.layoutMessage, `${kind === 'row' ? '行' : '列'}の順番を変えました。`);
+    return true;
   }
 
   function addAxis(kind) {
@@ -437,12 +526,14 @@ function createReadingController(number) {
         setTextStatus(refs.layoutMessage, '1つの山は最大27枚です。これ以上行を追加できません。', 'error');
         return;
       }
+      recordAxisHistory();
       state.rowLabels = appendAxisLabel(state.rowLabels);
     } else {
       if (!canAddColumn(state)) {
         setTextStatus(refs.layoutMessage, '1つの山は最大27枚です。これ以上列を追加できません。', 'error');
         return;
       }
+      recordAxisHistory();
       state.columnLabels = appendAxisLabel(state.columnLabels);
     }
     render();
@@ -450,7 +541,9 @@ function createReadingController(number) {
 
   function removeAxis(kind, index) {
     if (state.phase !== 'editing' || state.pendingOperation) return;
-
+    const labels = kind === 'row' ? state.rowLabels : state.columnLabels;
+    if (labels.length <= 1 || index < 0 || index >= labels.length) return;
+    recordAxisHistory();
     if (kind === 'row') {
       state.rowLabels = removeAxisLabel(state.rowLabels, index);
     } else {
@@ -479,9 +572,9 @@ function createReadingController(number) {
     const menuButton = document.createElement('button');
     menuButton.className = 'axis-menu-trigger';
     menuButton.type = 'button';
-    menuButton.textContent = '⋮';
-    menuButton.title = axisName + 'の操作';
-    menuButton.setAttribute('aria-label', axisName + (index + 1) + 'の操作');
+    menuButton.textContent = '⠿';
+    menuButton.title = 'ドラッグして順番を変更／押して操作／矢印キーでも移動';
+    menuButton.setAttribute('aria-label', axisName + (index + 1) + 'を移動・操作');
 
     function updateParallelHeading() {
       // The reading's server-drawn cards stay at their original position IDs.
@@ -509,10 +602,12 @@ function createReadingController(number) {
         finished = true;
         const values = [...state[stateKey]];
         values[index] = commit ? input.value : previousValue;
+        if (commit && values[index] !== previousValue && canEditAxes()) recordAxisHistory();
         state[stateKey] = values;
         label.textContent = labelOrFallback(values, index, kind);
         input.replaceWith(label);
         updateParallelHeading();
+        renderLayoutState();
         if (restoreFocus) label.focus({ preventScroll: true });
       };
       input.addEventListener('compositionstart', () => { isComposing = true; });
@@ -533,6 +628,93 @@ function createReadingController(number) {
     }
 
     label.addEventListener('click', beginEdit);
+
+    // Reuse the existing secondary-action button as a drag grip. The name
+    // itself remains a pure edit surface, never a hidden dragging target.
+    if (canEditAxes()) {
+      let pointerId = null;
+      let originX = 0;
+      let originY = 0;
+      let dragged = false;
+      let dropHeader = null;
+      const headerSelector = kind === 'row' ? '.row-header' : '.column-header';
+      const clearDrop = () => {
+        dropHeader?.classList.remove('axis-drop-target');
+        dropHeader = null;
+      };
+      const dropIndexAt = (x, y) => {
+        const hit = document.elementFromPoint(x, y)?.closest(headerSelector);
+        if (!hit || !refs.primaryMatrix.contains(hit)) return -1;
+        return [...refs.primaryMatrix.querySelectorAll(headerSelector)].indexOf(hit);
+      };
+
+      // Track across the whole viewport, not only the pressed grip. Pointer
+      // capture can be lost in browser-automation, touch and cross-cell cases.
+      // Local-only pointerup left a stuck destination highlight.
+      const stopTracking = () => {
+        window.removeEventListener('pointermove', onPointerMove, true);
+        window.removeEventListener('pointerup', onPointerUp, true);
+        window.removeEventListener('pointercancel', onPointerCancel, true);
+      };
+      const onPointerMove = event => {
+        if (event.pointerId !== pointerId) return;
+        if (!dragged && Math.hypot(event.clientX - originX, event.clientY - originY) < 7) return;
+        dragged = true;
+        clearDrop();
+        const next = dropIndexAt(event.clientX, event.clientY);
+        if (next >= 0) {
+          dropHeader = refs.primaryMatrix.querySelectorAll(headerSelector)[next];
+          dropHeader?.classList.add('axis-drop-target');
+        }
+      };
+      const onPointerUp = event => {
+        if (event.pointerId !== pointerId) return;
+        const didDrag = dragged;
+        const to = didDrag ? dropIndexAt(event.clientX, event.clientY) : -1;
+        stopTracking();
+        pointerId = null;
+        clearDrop();
+        if (didDrag) {
+          event.preventDefault();
+          if (to >= 0) moveAxis(kind, index, to);
+        }
+      };
+      const onPointerCancel = event => {
+        if (event.pointerId !== pointerId) return;
+        stopTracking();
+        pointerId = null;
+        dragged = false;
+        clearDrop();
+      };
+      menuButton.addEventListener('pointerdown', event => {
+        if (!canEditAxes() || event.button !== 0) return;
+        event.stopPropagation();
+        pointerId = event.pointerId;
+        originX = event.clientX;
+        originY = event.clientY;
+        dragged = false;
+        window.addEventListener('pointermove', onPointerMove, true);
+        window.addEventListener('pointerup', onPointerUp, true);
+        window.addEventListener('pointercancel', onPointerCancel, true);
+        try { menuButton.setPointerCapture(event.pointerId); } catch {}
+      });
+      menuButton.addEventListener('click', event => {
+        if (!dragged) return;
+        event.preventDefault();
+        event.stopImmediatePropagation();
+        dragged = false;
+      }, true);
+      menuButton.addEventListener('keydown', event => {
+        if (!canEditAxes()) return;
+        const before = kind === 'row' ? 'ArrowUp' : 'ArrowLeft';
+        const after = kind === 'row' ? 'ArrowDown' : 'ArrowRight';
+        if (event.key !== before && event.key !== after) return;
+        event.preventDefault();
+        event.stopPropagation();
+        moveAxis(kind, index, index + (event.key === before ? -1 : 1));
+      });
+    }
+
     handle.append(label, menuButton);
     wrapper.append(handle);
     return { wrapper, handle, menuButton };
@@ -570,6 +752,7 @@ function createReadingController(number) {
     table.setAttribute('aria-label', label);
 
     const canEditStructure = state.phase === 'editing' && !state.pendingOperation;
+    const canReorder = canEditAxes();
     const thead = document.createElement('thead');
     const headerRow = document.createElement('tr');
 
@@ -587,8 +770,8 @@ function createReadingController(number) {
       if (editableHeaders) {
         const editor = createAxisEditor('column', column, 'columnLabels');
         th.append(editor.wrapper);
-        if (canEditStructure) bindAxisContextMenu(editor.handle, controller, 'column', column, editor.menuButton);
-        if (!canEditStructure) editor.menuButton.classList.add('hidden');
+        if (canReorder) bindAxisContextMenu(editor.handle, controller, 'column', column, editor.menuButton);
+        if (!canReorder) editor.menuButton.classList.add('hidden');
       } else {
         th.textContent = labelOrFallback(state.columnLabels, column, 'column');
       }
@@ -625,8 +808,8 @@ function createReadingController(number) {
       if (editableHeaders) {
         const editor = createAxisEditor('row', row, 'rowLabels');
         rowHeader.append(editor.wrapper);
-        if (canEditStructure) bindAxisContextMenu(editor.handle, controller, 'row', row, editor.menuButton);
-        if (!canEditStructure) editor.menuButton.classList.add('hidden');
+        if (canReorder) bindAxisContextMenu(editor.handle, controller, 'row', row, editor.menuButton);
+        if (!canReorder) editor.menuButton.classList.add('hidden');
       } else {
         rowHeader.textContent = labelOrFallback(state.rowLabels, row, 'row');
       }
@@ -693,11 +876,15 @@ function createReadingController(number) {
     const completed = state.phase === 'completed' || state.phase === 'draw-uncertain';
     refs.primaryTitle.textContent = completed ? 'Primary' : '配置';
     refs.primaryPileLabel.textContent = state.primaryPile ? `山 ${state.primaryPile}` : '';
+    const left = refs.primaryMatrix.scrollLeft;
+    const top = refs.primaryMatrix.scrollTop;
     refs.primaryMatrix.replaceChildren(createMatrixTable({
       result: state.primaryResult,
       editableHeaders: true,
       label: completed ? `Reading ${state.number} Primary結果` : `Reading ${state.number} 配置`
     }));
+    refs.primaryMatrix.scrollLeft = left;
+    refs.primaryMatrix.scrollTop = top;
   }
 
   function renderParallelMatrix() {
@@ -793,6 +980,9 @@ function createReadingController(number) {
 
   function renderLayoutState() {
     const count = requiredCards(state);
+    const canUndo = canEditAxes();
+    refs.undoButton.classList.toggle('hidden', !canUndo || state.undoStack.length === 0);
+    refs.redoButton.classList.toggle('hidden', !canUndo || state.redoStack.length === 0);
     refs.cardCount.textContent = `${count}枚`;
 
     if (state.phase === 'editing') {
@@ -838,6 +1028,10 @@ function createReadingController(number) {
       state.primaryPile = null;
       state.parallelPile = null;
       state.phase = 'choosing';
+      // No size changes after shuffle: pre-shuffle structural snapshots must not
+      // be replayed into the fixed server session. New moves remain undoable.
+      state.undoStack.length = 0;
+      state.redoStack.length = 0;
       refs.pilePanel.classList.remove('hidden');
       setTextStatus(refs.selectionMessage, 'Primaryの山を選択してください。');
       setTextStatus(refs.status, '山を選択');
