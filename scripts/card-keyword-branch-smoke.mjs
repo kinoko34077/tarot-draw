@@ -175,7 +175,28 @@ try {
   cdp = null;
 } finally {
   cdp?.close();
-  chrome?.kill('SIGTERM');
+  // Chrome may still write its profile after SIGTERM; wait for child exit before removal.
+  if (chrome) {
+    const exit = chrome.exitCode !== null || chrome.signalCode !== null
+      ? Promise.resolve()
+      : once(chrome, 'exit');
+    chrome.kill('SIGTERM');
+    await Promise.race([exit, pause(2500)]);
+    if (chrome.exitCode === null && chrome.signalCode === null) {
+      const forceExit = once(chrome, 'exit');
+      chrome.kill('SIGKILL');
+      await Promise.race([forceExit, pause(2500)]);
+    }
+  }
   await new Promise(resolve => server.close(resolve));
-  await rm(profile, { recursive: true, force: true });
+  // Some Chrome helpers release files just after the browser process exits.
+  for (let attempt = 0; attempt < 6; attempt += 1) {
+    try {
+      await rm(profile, { recursive: true, force: true });
+      break;
+    } catch (error) {
+      if (attempt === 5 || !['ENOTEMPTY', 'EBUSY', 'EPERM'].includes(error.code)) throw error;
+      await pause(250);
+    }
+  }
 }
