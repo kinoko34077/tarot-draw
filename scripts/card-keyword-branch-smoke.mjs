@@ -155,6 +155,7 @@ try {
     host.scrollLeft = host.scrollWidth;
     const after = host.scrollLeft;
     if (host.scrollWidth <= host.clientWidth || after <= before) throw Error('Five columns cannot scroll horizontally');
+    if (host.scrollWidth > 470) throw Error('Compact grid width regression');
     if (image.getBoundingClientRect().width < 75) throw Error('Card artwork collapsed on mobile');
     const visibleText = [...host.querySelectorAll('li')].every(el => el.textContent.trim().length > 0);
     if (!visibleText) throw Error('Mobile keywords missing text');
