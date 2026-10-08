@@ -370,7 +370,9 @@ async function expertTask() {
     independentScrollRegions: Number(getComputedStyle(main).overflowX === 'auto') +
       Number(getComputedStyle(parallel).overflowX === 'auto'),
     copyAtTopToolbar: Boolean(pick('.reading-toolbar .copy-button:not(.hidden)')),
-    copyNearCompletion: Boolean(pick('.reading-status .copy-button'))
+    copyNearCompletion: Boolean(pick('.result-action-line .copy-button:not(.hidden)') &&
+      pick('.result-action-line .reading-status')?.textContent === '抽選完了'),
+    copyFeedbackReady: Boolean(pick('.result-action-line .copy-feedback'))
   };
 }
 
@@ -496,7 +498,9 @@ try {
     result('first-use-layout-' + width, 'child-like/novice proxy (NO child participant)', data);
     check('first-use-layout-' + width, 'no duplicate static caption+input', data.splitCaptionAndInput, false, !data.splitCaptionAndInput);
     check('first-use-layout-' + width, 'same-surface header edit entry', data.sameSurfaceEditor, true, data.sameSurfaceEditor);
-    check('first-use-layout-' + width, 'card count inside layout context', data.countAtLayout, true, data.countAtLayout);
+    check('first-use-layout-' + width, 'card count inside layout context and absent from Reading title',
+      { layout: data.countAtLayout, reading: data.countAtReading }, 'layout true, reading false',
+      data.countAtLayout && !data.countAtReading);
     check('first-use-layout-' + width, 'minimum add control hit area 40x40', data.addControlRect,
       'width>=40,height>=40', Boolean(data.addControlRect && data.addControlRect.width >= 40 && data.addControlRect.height >= 40));
   }
@@ -543,6 +547,9 @@ try {
   check('expert-27x2', 'one coordinated result scroll region', expert.independentScrollRegions, 1,
     expert.independentScrollRegions <= 1);
   check('expert-27x2', 'copy action at completion', expert.copyNearCompletion, true, expert.copyNearCompletion);
+  check('expert-27x2', 'copy feedback is colocated and toolbar has no redundant copy',
+    { feedback: expert.copyFeedbackReady, toolbarDuplicate: expert.copyAtTopToolbar },
+    'feedback true, duplicate false', expert.copyFeedbackReady && !expert.copyAtTopToolbar);
   check('expert-27x2', 'post-draw heading sync without changing cards',
     { renamed: expert.completedRename, parallel: expert.parallelLabelMatches, cardsUnchanged: expert.unchangedCardsAfterRename },
     'all true', expert.completedRename && expert.parallelLabelMatches && expert.unchangedCardsAfterRename);

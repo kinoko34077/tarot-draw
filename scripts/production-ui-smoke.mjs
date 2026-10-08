@@ -260,9 +260,17 @@ try {
     }
     if (reversedVisuals === 0) throw new Error('No reversed visual was observed.');
 
+    const completion = one('.result-action-line .reading-status');
+    const copyAction = one('.result-action-line .copy-button');
+    if (!completion || completion.textContent !== '抽選完了' || !copyAction) {
+      throw new Error('Copy button and completion are not together before the result grid.');
+    }
+    const distance = Math.abs(completion.getBoundingClientRect().top - copyAction.getBoundingClientRect().top);
+    if (distance > 16) throw new Error('Copy button and completion are not on the same row: ' + distance);
     click('.copy-button');
-    for (let i = 0; i < 40 && !one('.reading-status').textContent.includes('コピー'); i += 1) await sleep(80);
-    if (!one('.reading-status').textContent.includes('コピー')) throw new Error('Copy action did not complete.');
+    for (let i = 0; i < 40 && !one('.copy-feedback').textContent.includes('コピー'); i += 1) await sleep(80);
+    if (!one('.copy-feedback').textContent.includes('コピー')) throw new Error('Nearby copy feedback did not appear.');
+    if (one('.reading-status').textContent !== '抽選完了') throw new Error('Copy changed the draw completion state.');
 
     let clipboard = '';
     try { clipboard = await navigator.clipboard.readText(); } catch {}

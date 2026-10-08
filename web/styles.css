@@ -181,6 +181,31 @@ input:focus-visible {
 .pile-role { color: var(--accent); font-weight: 700; font-size: .74rem; }
 .pile-status { margin-left: auto; min-width: 0; text-align: right; }
 
+.result-action-line {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  padding: 5px 8px;
+  background: var(--surface-soft);
+  border-bottom: 1px solid var(--border);
+}
+.result-action-line .reading-status {
+  flex: 0 1 auto;
+  padding: 2px 0;
+  min-height: 30px;
+  border: 0;
+  background: transparent;
+  align-content: center;
+}
+.result-action-line .copy-button { min-height: 36px; }
+.copy-feedback {
+  font-size: .76rem;
+  color: var(--muted);
+  min-height: 1em;
+}
+.copy-feedback[data-kind="error"] { color: var(--danger); }
+.layout-count { color: var(--muted); font-size: .76rem; white-space: nowrap; }
 .matrix-stack { display: grid; gap: 0; min-width: 0; }
 .matrix-section { min-width: 0; }
 .matrix-section + .matrix-section { border-top: 8px solid #f0f1f3; }
