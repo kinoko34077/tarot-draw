@@ -27,6 +27,8 @@ const page = {
   cardDetailOrientation: document.querySelector('#cardDetailOrientation'),
   cardDetailVisual: document.querySelector('#cardDetailVisual'),
   cardDetailKeywordGrid: document.querySelector('#cardDetailKeywordGrid'),
+  cardDetailKeywordRows: document.querySelector('#cardDetailKeywordRows'),
+  cardDetailSourceInfo: document.querySelector('#cardDetailSourceInfo'),
   cardDetailReference: document.querySelector('#cardDetailReference'),
   cardDetailEssence: document.querySelector('#cardDetailEssence'),
   cardDetailUpright: document.querySelector('#cardDetailUpright'),
@@ -99,12 +101,11 @@ function closeCardDetail() {
 function renderKeywordGrid(cardId) {
   const host = page.cardDetailKeywordGrid;
   const groups = cardId ? keywordGridDraft(cardId) : null;
-  host.replaceChildren();
+  const rows = page.cardDetailKeywordRows;
+  rows.replaceChildren();
+  page.cardDetailSourceInfo.open = false;
   host.classList.toggle('hidden', !groups);
   if (!groups) return;
-
-  const columns = document.createElement('div');
-  columns.className = 'keyword-grid-columns';
   for (const { heading, terms } of groups) {
     const group = document.createElement('section');
     group.className = 'keyword-grid-group';
@@ -117,20 +118,9 @@ function renderKeywordGrid(cardId) {
       list.append(item);
     }
     group.append(label, list);
-    columns.append(group);
+    rows.append(group);
   }
-  const source = document.createElement('p');
-  source.className = 'keyword-grid-source';
-  source.append('全78枚：Tarotoo（MIT）を参考に独自編集したキーワードです。 ');
-  const link = document.createElement('a');
-  link.href = 'https://github.com/Tarotoo-com/tarotoo-tarot-dataset';
-  link.textContent = '出典・利用条件';
-  link.target = '_blank';
-  link.rel = 'noopener noreferrer';
-  source.append(link);
-  host.append(columns, source);
-  // Reset after replacement/reflow so each card opens on the first column.
-  host.scrollLeft = 0;
+
 }
 
 function openCardDetail(card, trigger) {
@@ -158,19 +148,26 @@ function openCardDetail(card, trigger) {
   }
 
   page.cardDetailDialog.showModal();
-  // The closed dialog has no layout; reset again after showModal to avoid restoring
-  // the previously opened card's horizontal position in Chrome/Safari.
-  page.cardDetailKeywordGrid.scrollLeft = 0;
+  // The popup always begins closed; keywords now fit the available width without panning.
+  page.cardDetailDialog.scrollTop = 0;
 }
 
 page.cardDetailClose.addEventListener('click', closeCardDetail);
 page.cardDetailDialog.addEventListener('click', event => {
+  if (page.cardDetailSourceInfo.open && !page.cardDetailSourceInfo.contains(event.target)) {
+    page.cardDetailSourceInfo.open = false;
+  }
   if (event.target === page.cardDetailDialog) closeCardDetail();
 });
 page.cardDetailDialog.addEventListener('keydown', event => {
   if (event.key === 'Escape') {
     event.preventDefault();
-    closeCardDetail();
+    if (page.cardDetailSourceInfo.open) {
+      page.cardDetailSourceInfo.open = false;
+      page.cardDetailSourceInfo.querySelector('summary')?.focus({ preventScroll: true });
+    } else {
+      closeCardDetail();
+    }
   }
 });
 page.cardDetailDialog.addEventListener('cancel', () => {
