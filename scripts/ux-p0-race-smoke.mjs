@@ -3,7 +3,7 @@
 import assert from 'node:assert/strict';
 import { spawn, spawnSync } from 'node:child_process';
 import { once } from 'node:events';
-import { mkdtemp, rm } from 'node:fs/promises';
+import { mkdtemp, readFile, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { createTarotServer } from '../src/server.js';
@@ -130,19 +130,34 @@ try {
   await once(server,'listening');
   base='http://127.0.0.1:'+server.address().port+'/';
   browser=spawn(bin,['--headless=new','--no-sandbox','--disable-gpu',
-    '--remote-debugging-port=9294','--user-data-dir='+profile,'--window-size=1440,1000',base],{stdio:'ignore'});
-  // The existing repository Chrome harness uses a fixed local CDP port.
-  const port=9294;
-  let target;
-  for(let i=0;i<70;i++){
+    '--remote-debugging-port=0','--user-data-dir='+profile,'--window-size=1440,1000',base],{stdio:['ignore','ignore','pipe']});
+  let browserStderr='';
+  browser.stderr.on('data',chunk=>{browserStderr=(browserStderr+chunk.toString()).slice(-3000);});
+  // Each run gets an isolated CDP port to avoid colliding with other Chrome jobs.
+  // Chrome writes the selected port and browser WS URI into DevToolsActivePort.
+  let port=0;
+  for(let i=0;i<120;i++){
     try {
-      const tabs=await (await fetch('http://127.0.0.1:'+port+'/json/list')).json();
-      target=tabs.find(tab=>tab.type==='page' && tab.url.startsWith(base));
-      if(target)break;
+      const address=await readFile(join(profile,'DevToolsActivePort'),'utf8');
+      port=Number(address.split('\n')[0]);
+      if(Number.isInteger(port)&&port>0)break;
     }catch{}
+    if(browser.exitCode!==null)throw Error('Chromium exited '+browser.exitCode+': '+browserStderr);
     await sleep(100);
   }
-  if(!target)throw Error('Chromium tab not ready');
+  if(!port)throw Error('Chromium debugging port unavailable: '+browserStderr);
+  let target;
+  for(let i=0;i<120;i++){
+    try {
+      const tabs=await (await fetch('http://127.0.0.1:'+port+'/json/list')).json();
+      target=tabs.find(tab=>tab.type==='page' && tab.url.startsWith(base)) ||
+        tabs.find(tab=>tab.type==='page');
+      if(target)break;
+    }catch{}
+    if(browser.exitCode!==null)throw Error('Chromium exited '+browser.exitCode+': '+browserStderr);
+    await sleep(100);
+  }
+  if(!target)throw Error('Chromium tab not ready: '+browserStderr);
   cdp=devtools(target.webSocketDebuggerUrl);
   await cdp.ready();
   await cdp.call('Runtime.enable');
