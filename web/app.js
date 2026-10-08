@@ -121,7 +121,7 @@ function renderKeywordGrid(cardId) {
   }
   const source = document.createElement('p');
   source.className = 'keyword-grid-source';
-  source.append('試作・5枚のみ：Tarotoo（MIT）に基づく独自編集。原資料の図版は使用していません。 ');
+  source.append('全78枚：Tarotoo（MIT）を参考に独自編集したキーワードです。 ');
   const link = document.createElement('a');
   link.href = 'https://github.com/Tarotoo-com/tarotoo-tarot-dataset';
   link.textContent = '出典・利用条件';
