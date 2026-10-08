@@ -22,6 +22,8 @@ const page = {
   newReadingButton: document.querySelector('#newReadingButton'),
   axisMenu: document.querySelector('#axisMenu'),
   deleteAxisButton: document.querySelector('#deleteAxisButton'),
+  moveAxisBeforeButton: document.querySelector('#moveAxisBeforeButton'),
+  moveAxisAfterButton: document.querySelector('#moveAxisAfterButton'),
   cardDetailDialog: document.querySelector('#cardDetailDialog'),
   cardDetailClose: document.querySelector('#cardDetailClose'),
   cardDetailTitle: document.querySelector('#cardDetailTitle'),
@@ -239,26 +241,50 @@ function closeAxisMenu({ restoreFocus = false } = {}) {
 }
 
 function openAxisMenu(controller, kind, index, trigger, point = null) {
-  if (controller.state.phase !== 'editing') return;
+  if (controller.state.pendingOperation || !['editing', 'choosing'].includes(controller.state.phase)) return;
 
   axisMenuContext = { controller, kind, index, trigger };
   const count = kind === 'row'
     ? controller.state.rowLabels.length
     : controller.state.columnLabels.length;
 
-  page.deleteAxisButton.textContent = kind === 'row' ? 'この行を削除' : 'この列を削除';
+  const row = kind === 'row';
+  page.moveAxisBeforeButton.textContent = row ? 'この行を上へ' : 'この列を左へ';
+  page.moveAxisAfterButton.textContent = row ? 'この行を下へ' : 'この列を右へ';
+  page.moveAxisBeforeButton.disabled = index === 0;
+  page.moveAxisAfterButton.disabled = index === count - 1;
+  page.deleteAxisButton.textContent = row ? 'この行を削除' : 'この列を削除';
+  page.deleteAxisButton.classList.toggle('hidden', controller.state.phase !== 'editing');
   page.deleteAxisButton.disabled = count <= 1;
   page.deleteAxisButton.title = count <= 1 ? '最低1つの行・列が必要です' : '';
 
   const rect = trigger.getBoundingClientRect();
   const left = point?.x ?? Math.min(window.innerWidth - 180, Math.max(8, rect.left));
-  const top = point?.y ?? Math.min(window.innerHeight - 52, rect.bottom + 4);
+  const top = point?.y ?? Math.min(window.innerHeight - 128, rect.bottom + 4);
 
   page.axisMenu.style.left = `${left}px`;
   page.axisMenu.style.top = `${top}px`;
   page.axisMenu.classList.remove('hidden');
-  requestAnimationFrame(() => page.deleteAxisButton.focus());
+  requestAnimationFrame(() => {
+    if (!page.moveAxisBeforeButton.disabled) page.moveAxisBeforeButton.focus();
+    else if (!page.moveAxisAfterButton.disabled) page.moveAxisAfterButton.focus();
+    else if (!page.deleteAxisButton.classList.contains('hidden')) page.deleteAxisButton.focus();
+  });
 }
+
+page.moveAxisBeforeButton.addEventListener('click', () => {
+  if (!axisMenuContext) return;
+  const { controller, kind, index } = axisMenuContext;
+  controller.moveAxis(kind, index, index - 1);
+  closeAxisMenu();
+});
+
+page.moveAxisAfterButton.addEventListener('click', () => {
+  if (!axisMenuContext) return;
+  const { controller, kind, index } = axisMenuContext;
+  controller.moveAxis(kind, index, index + 1);
+  closeAxisMenu();
+});
 
 page.deleteAxisButton.addEventListener('click', () => {
   if (!axisMenuContext) return;
@@ -293,7 +319,7 @@ function bindAxisContextMenu(target, controller, kind, index, trigger) {
   };
 
   target.addEventListener('pointerdown', event => {
-    if (event.button !== 0 || controller.state.phase !== 'editing') return;
+    if (event.button !== 0 || !['editing', 'choosing'].includes(controller.state.phase)) return;
     startX = event.clientX;
     startY = event.clientY;
     cancel();
@@ -311,7 +337,7 @@ function bindAxisContextMenu(target, controller, kind, index, trigger) {
   target.addEventListener('pointerleave', cancel);
 
   target.addEventListener('contextmenu', event => {
-    if (controller.state.phase !== 'editing') return;
+    if (!['editing', 'choosing'].includes(controller.state.phase)) return;
     event.preventDefault();
     cancel();
     openAxisMenu(controller, kind, index, trigger, { x: event.clientX, y: event.clientY });
