@@ -59,3 +59,12 @@ Deploy with `npm run deploy:cloudflare` after verification. The deployed Worker 
 The browser UI uses direct table manipulation: rows and columns are added from the matrix itself and can be removed from contextual axis controls before shuffle. Each completed reading keeps its question, matrix, optional Parallel branch and copy action in an append-only in-page history.
 
 Standard 78-card results use the public-domain Pamela Colman Smith Rider-Waite-Smith image set sourced from Wikimedia Commons. Runtime delivery is self-hosted compressed WebP: 128px grid assets and 256px detail assets. The accepted generated set is 7.6 KB average / 11.2 KB maximum for grid images and 25.8 KB average / 41.4 KB maximum for detail images. Reversed cards rotate the artwork 180 degrees while keeping the textual card identity/orientation upright. Title Card and GUARANTEE intentionally use separate non-RWS faces.
+
+
+## 78-card detail keyword grid (#26)
+
+The card-detail dialog for each standard Rider–Waite–Smith card displays the existing artwork, **five independent Japanese theme headings × four keywords**, and the previously available essence/upright/reversed reference text. Narrow viewports retain legible columns with horizontal scrolling inside the keyword area. Two original cards (Title / GUARANTEE) deliberately have no tarot keywords. The 80-card draw, API, branch, row/column layout and TSV copy behavior remain unchanged.
+
+The 78 keyword records are newly composed in Japanese using the [Tarotoo Tarot Card Meanings Dataset](https://github.com/Tarotoo-com/tarotoo-tarot-dataset) (MIT, © 2026 Tarotoo) as an English conceptual reference. [Full licence notice](docs/third-party/TAROTOO-LICENSE.txt), [editorial rules](docs/KEYWORD_EDITORIAL_GUIDE.md) and [78-card provenance / QA](docs/KEYWORD_W2_PROVENANCE.md) are preserved in the repository. Third-party concept-map graphics and the likely-transcribed original keyword compilation are **not** included and are not licensed by this feature.
+
+For local browser verification with Chrome/Chromium available, run `node scripts/card-keyword-branch-smoke.mjs`. Normal `npm test`, `npm run check`, and the GitHub CI workflow validate the static data and app behavior. Publication uses the existing Pages workflow after merge; no additional API deployment is required for this presentation-only feature.
