@@ -126,7 +126,8 @@ try {
     hit.click();
     for (let i = 0; i < 80 && !one('#cardDetailDialog').open; i++) await sleep(50);
     if (!one('#cardDetailDialog').open) throw Error('Detail dialog did not open');
-    if (all('.keyword-grid-group').length !== 5 || all('.keyword-grid-group li').length !== 20) throw Error('Missing 5 rows and 20 terms');
+    if (all('.keyword-grid-group').length !== 5 || all('.keyword-grid-group th').length !== 5 ||
+      all('.keyword-grid-group td').length !== 20) throw Error('Missing semantic 5x5 keyword table');
     if (!one('#cardDetailEssence').textContent || !one('#cardDetailUpright').textContent || !one('#cardDetailReversed').textContent) throw Error('Legacy meanings missing');
     const image = one('#cardDetailVisual img.detail-card-art');
     if (!image) throw Error('Detail RWS image not rendered');
@@ -135,21 +136,40 @@ try {
     if (image.classList.contains('is-reversed') !== reversed) throw Error('Artwork reverse flag mismatch');
     const active = one('.detail-meaning[data-active="true"]');
     if (active?.id !== (reversed ? 'cardDetailReversedBlock' : 'cardDetailUprightBlock')) throw Error('Orientation highlight mismatch');
-    const visualRect = one('#cardDetailVisual').getBoundingClientRect();
+    const visualRect = image.getBoundingClientRect();
     const gridRect = one('#cardDetailKeywordGrid').getBoundingClientRect();
-    if (!(gridRect.left > visualRect.left && Math.abs(gridRect.top - visualRect.top) <= 3)) throw Error('Desktop artwork not left of keyword rows');
-    if (visualRect.width < 180) throw Error('Desktop artwork not enlarged');
+    const tableRect = one('#cardDetailKeywordRows').getBoundingClientRect();
+    const copyTop = one('.card-detail-copy').getBoundingClientRect().top;
+    if (gridRect.left < visualRect.right + 4 || Math.abs(gridRect.top - visualRect.top) > 4) {
+      throw Error('Desktop card is not upper-left with keyword table directly to its right');
+    }
+    if (visualRect.width < 300 || visualRect.height < 510) throw Error('Desktop card is not enlarged into the detail height');
     const groupRows = all('.keyword-grid-group');
-    if (!groupRows.every((row, index) => index === 0 || row.getBoundingClientRect().top > groupRows[index - 1].getBoundingClientRect().top)) throw Error('Five headings are not vertically stacked');
-    if (!groupRows.every(row => row.querySelector('h3').getBoundingClientRect().right < row.querySelector('li').getBoundingClientRect().left)) throw Error('Rows do not place four terms after their heading');
+    const allCells = all('.keyword-grid-group th, .keyword-grid-group td');
+    if (!groupRows.every((row, index) => index === 0 || row.getBoundingClientRect().top > groupRows[index - 1].getBoundingClientRect().top)) throw Error('Five headings are not distinct table rows');
+    if (!groupRows.every(row => row.querySelector('th').getBoundingClientRect().right <= row.querySelector('td').getBoundingClientRect().left + 2)) throw Error('Table heading is not left of its four terms');
+    if (allCells.length !== 25 || !allCells.every(cell => getComputedStyle(cell).writingMode === 'vertical-rl' && getComputedStyle(cell).textOrientation === 'upright')) {
+      throw Error('Headings and keyword cells must all use upright Japanese vertical writing');
+    }
+    if (Math.abs(visualRect.bottom - gridRect.bottom) > 70) throw Error('Dead space below enlarged card beside keyword table');
+    if (copyTop - Math.max(visualRect.bottom, gridRect.bottom) > 24) throw Error('Unused gap between card/table and Essence');
     const dialog = one('#cardDetailDialog');
-    if (dialog.getBoundingClientRect().height < window.innerHeight * .85) throw Error('Dialog height not expanded');
-    if (!one('.keyword-grid-note').textContent.includes('正位置・逆位置の両面')) throw Error('Missing keyword scope note');
-    if (one('#cardDetailSourceInfo').open) throw Error('Source info shown by default');
+    if (dialog.getBoundingClientRect().height < window.innerHeight * .75) throw Error('Card/table do not use expanded dialog height');
+    if (one('.keyword-grid-note')) throw Error('Redundant permanent scope note is still visible');
+    const source = one('#cardDetailSourceInfo');
+    if (source.open || source.classList.contains('hidden')) throw Error('Standard card source info should start collapsed but available');
+    if (!source.textContent.includes('正・逆位置の両面')) throw Error('Brief keyword scope explanation is missing inside info');
     const essenceSize = parseFloat(getComputedStyle(one('#cardDetailEssence')).fontSize);
     const uprightSize = parseFloat(getComputedStyle(one('#cardDetailUpright')).fontSize);
     if (essenceSize <= uprightSize) throw Error('Essence is not larger than upright/reversed descriptions');
-    return {cardAsset, reversed, desktop: {visualLeft: visualRect.left, gridLeft: gridRect.left, columns: all('.keyword-grid-group').length, terms: all('.keyword-grid-group li').length}};
+    return {cardAsset, reversed, desktop: {
+      imageWidth: visualRect.width, imageHeight: visualRect.height,
+      tableWidth: tableRect.width, tableHeight: tableRect.height,
+      imageTableBottomGap: Math.abs(visualRect.bottom - gridRect.bottom),
+      essenceGap: copyTop - Math.max(visualRect.bottom, gridRect.bottom),
+      rows: groupRows.length, cells: allCells.length,
+      dialogHeight: dialog.getBoundingClientRect().height
+    }};
   })()`);
   await screenshot('keyword-grid-desktop.png');
   await cdp.call('Emulation.setDeviceMetricsOverride', {
