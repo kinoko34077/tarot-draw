@@ -54,13 +54,27 @@ class DevTools {
 
 async function evaluate(fn) {
   const expression = '(' + fn.toString() + ')()';
-  for (let attempt = 0; attempt < 25; attempt++) {
-    const reply = await cdp.call('Runtime.evaluate', { expression, returnByValue: true, awaitPromise: true });
-    if (!reply.exceptionDetails) return reply.result.value;
-    const message = reply.exceptionDetails.exception?.description || 'Unknown Chrome exception';
-    if (!message.includes('Cannot find default execution context') || attempt === 24) throw Error(message);
+  for (let attempt = 0; attempt < 40; attempt++) {
+    try {
+      const reply = await cdp.call('Runtime.evaluate', { expression, returnByValue: true, awaitPromise: true });
+      if (!reply.exceptionDetails) return reply.result.value;
+      const message = reply.exceptionDetails.exception?.description || 'Unknown Chrome exception';
+      if (!message.includes('Cannot find default execution context') || attempt === 39) throw Error(message);
+    } catch (error) {
+      // CDP can reject at transport/protocol level while the first page context
+      // is being replaced; it need not return exceptionDetails.
+      if (!String(error.message).includes('Cannot find default execution context') || attempt === 39) throw error;
+    }
     await sleep(100);
   }
+}
+
+async function waitForAppReady() {
+  for (let attempt = 0; attempt < 100; attempt++) {
+    if (await evaluate(() => Boolean(document.querySelector('.reading-workbench .shuffle-button')))) return;
+    await sleep(100);
+  }
+  throw Error('Application did not render its first reading after the browser connected');
 }
 
 const report = {
@@ -291,9 +305,21 @@ try {
   await cdp.ready();
   await cdp.call('Runtime.enable');
   await cdp.call('Page.enable');
+  // A DevTools target can exist before the first document's JS context or UI.
+  // Capturing empty DOM as a persona FAIL would be false observational evidence.
+  await waitForAppReady();
   for (const width of [1440, 390, 320]) {
     await cdp.call('Emulation.setDeviceMetricsOverride', { width, height: 880, deviceScaleFactor: 1, mobile: width < 600 });
-    const data = await evaluate(discoverabilityProbe);
+    let data;
+    for (let attempt = 0; attempt < 20; attempt++) {
+      data = await evaluate(discoverabilityProbe);
+      if (data.width === width && data.addControlRect) break;
+      await sleep(75);
+    }
+    if (data.width !== width || !data.addControlRect) {
+      throw Error('Browser instrumentation did not reach the requested responsive viewport: ' +
+        JSON.stringify({ requestedWidth: width, observedWidth: data.width, mounted: Boolean(data.addControlRect) }));
+    }
     result('first-use-layout-' + width, 'child-like/novice proxy (NO child participant)', data);
     check('first-use-layout-' + width, 'no duplicate static caption+input', data.splitCaptionAndInput, false, !data.splitCaptionAndInput);
     check('first-use-layout-' + width, 'same-surface header edit entry', data.sameSurfaceEditor, true, data.sameSurfaceEditor);
