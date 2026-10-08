@@ -93,7 +93,10 @@ test('detail reference uses adjacent enlarged artwork and a vertical writing tab
   assert.ok(html.includes('id="cardDetailSourceInfo"'));
   assert.ok(html.indexOf('id="cardDetailKeywordGrid"') < html.indexOf('id="cardDetailKeywordHeading"'));
   assert.ok(html.indexOf('id="cardDetailKeywordHeading"') < html.indexOf('id="cardDetailSourceInfo"'));
-  assert.ok(html.indexOf('id="cardDetailSourceInfo"') < html.indexOf('<table id="cardDetailKeywordRows"'));
+  assert.ok(html.indexOf('<table id="cardDetailKeywordRows"') < html.indexOf('id="cardDetailSourceInfo"'), 'the info control must be a part of the table');
+  assert.match(html, /<thead>[\s\S]*?<th colspan="5" class="keyword-grid-title-cell">[\s\S]*?id="cardDetailKeywordHeading"/);
+  assert.match(html, /<\/thead>[\s\S]*?<tbody><\/tbody>/);
+  assert.ok(html.indexOf('class="keyword-grid-heading-bar"') > html.indexOf('<table id="cardDetailKeywordRows"'));
   assert.ok(html.includes('aria-label="キーワードの意味と出典を表示"'));
   assert.ok(html.includes('<span aria-hidden="true">i</span>'));
   assert.ok(!html.slice(html.indexOf('class="detail-header-actions"'),html.indexOf('class="card-detail-body"')).includes('cardDetailSourceInfo'),'info must not be detached in global modal header');
@@ -110,6 +113,15 @@ test('detail reference uses adjacent enlarged artwork and a vertical writing tab
   assert.ok(css.includes('right: 0;'));
   assert.ok(css.includes('width: 36px;') && css.includes('height: 36px;'));
   assert.ok(css.includes('table-layout: fixed'));
+  assert.ok(css.includes('border-collapse: collapse'));
+  assert.ok(css.includes('border-spacing: 0'));
+  assert.ok(css.includes('.keyword-grid-table thead th.keyword-grid-title-cell'));
+  assert.ok(css.includes('border: 1px solid var(--border-strong)'));
+  assert.ok(!css.includes('border-radius: 5px;\n  writing-mode: vertical-rl;'));
+  assert.ok(html.includes('class="card-detail-heading-line"'));
+  assert.ok(html.includes('class="detail-orientations" role="group"'));
+  assert.ok(css.includes('grid-template-columns: repeat(2, minmax(0, 1fr))'));
+  assert.ok(app.includes("setAttribute('aria-label', isUpright ? '正位置（今回の抽選結果）'"));
   assert.ok(css.includes('writing-mode: vertical-rl'));
   assert.ok(css.includes('text-orientation: upright'));
   assert.ok(css.includes('overflow-x: clip'));
