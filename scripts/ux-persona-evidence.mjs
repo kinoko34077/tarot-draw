@@ -113,7 +113,7 @@ function discoverabilityProbe() {
     countAtReading: Boolean($('.reading-toolbar .card-count')),
     countAtLayout: Boolean($('.matrix-heading .card-count')),
     splitCaptionAndInput: Boolean($('.axis-caption') && $('.axis-input')),
-    sameSurfaceEditor: Boolean($('.column-header [contenteditable],.column-header .axis-inline-edit')),
+    sameSurfaceEditor: Boolean($('.column-header [contenteditable],.column-header .axis-inline-label')),
     editInputRect: rect($('.column-header .axis-input')),
     leftHeaderRect: rect($('.row-header')),
     columnRect: rect($('.column-header')),
@@ -147,18 +147,21 @@ async function noviceTask() {
   q.value = '初回操作テスト';
   q.dispatchEvent(new Event('input', { bubbles: true }));
   actions.push('type:question');
-  const col = $('.column-header .axis-input');
-  if (col) {
-    col.value = '過去';
-    col.dispatchEvent(new Event('input', { bubbles: true }));
-    actions.push('type:col');
+  const colButton = $('.column-header .axis-inline-label');
+  let headingCommitted = false;
+  let headingFocusRestored = false;
+  if (colButton) {
+    colButton.click();
+    const inline = $('.column-header .axis-inline-input');
+    if (!inline) throw Error('Clicking heading did not edit the same cell');
+    inline.value = '過去';
+    inline.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }));
+    headingCommitted = colButton.textContent === '過去';
+    headingFocusRestored = document.activeElement === colButton;
+    actions.push('type:col-in-place');
   }
   click('.axis-add-row-header .axis-add-button');
-  const focus = $('.column-header .axis-input');
-  focus?.focus();
-  const focusBefore = document.activeElement === focus;
   click('.axis-add-header .axis-add-button');
-  const focusAfter = document.activeElement === focus;
   click('.shuffle-button');
   await poll(() => $$('.pile-button').filter(el => !el.disabled).length >= 2, 'shuffled piles');
   click('.pile-button:not([disabled])');
@@ -174,9 +177,9 @@ async function noviceTask() {
     copyVisible: !copy.classList.contains('hidden'),
     feedbackDistancePx: Math.round(Math.abs(copyRect.y - completeRect.y)),
     withinSameViewport: Math.abs(copyRect.y - completeRect.y) < innerHeight,
-    resultCanEditHeader: Boolean(reading.querySelector('.primary-matrix .column-header input,.primary-matrix .column-header [contenteditable],.primary-matrix .column-header .axis-inline-edit')),
-    inputFocusBeforeRerender: focusBefore,
-    inputFocusAfterRerender: focusAfter
+    resultCanEditHeader: Boolean(reading.querySelector('.primary-matrix .column-header input,.primary-matrix .column-header [contenteditable],.primary-matrix .column-header .axis-inline-label')),
+    inlineHeaderCommitted: headingCommitted,
+    inlineHeaderFocusRestored: headingFocusRestored
   };
   const detail = $$('.primary-matrix .card-detail-trigger').find(button => button.querySelector('img'));
   if (!detail) throw Error('No regular RWS card among six; synthetic task cannot inspect standard detail');
@@ -243,7 +246,26 @@ async function expertTask() {
   await poll(() => pick('.reading-status')?.textContent === '抽選完了', 'two-pile draw');
   const main = pick('.primary-matrix');
   const parallel = pick('.parallel-matrix');
+  const cardsBefore = [...main.querySelectorAll('.card-result-block'), ...parallel.querySelectorAll('.card-result-block')]
+    .map(el => el.textContent);
+  const label = pick('.primary-matrix .column-header .axis-inline-label');
+  let completedRename = false;
+  let unchangedCardsAfterRename = false;
+  let parallelLabelMatches = false;
+  if (label) {
+    label.click();
+    const editor = pick('.primary-matrix .column-header .axis-inline-input');
+    if (!editor) throw Error('Completed heading did not become editable in same place');
+    editor.value = '訂正した列名';
+    editor.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }));
+    completedRename = label.textContent === '訂正した列名';
+    parallelLabelMatches = parallel.querySelector('.column-header')?.textContent === '訂正した列名';
+    const cardsAfter = [...main.querySelectorAll('.card-result-block'), ...parallel.querySelectorAll('.card-result-block')]
+      .map(el => el.textContent);
+    unchangedCardsAfterRename = JSON.stringify(cardsBefore) === JSON.stringify(cardsAfter);
+  }
   return {
+    completedRename, parallelLabelMatches, unchangedCardsAfterRename,
     actions,
     layout: { rows: reading.querySelectorAll('.primary-matrix .row-header').length,
       columns: reading.querySelectorAll('.primary-matrix .column-header').length },
@@ -274,6 +296,7 @@ try {
     const data = await evaluate(discoverabilityProbe);
     result('first-use-layout-' + width, 'child-like/novice proxy (NO child participant)', data);
     check('first-use-layout-' + width, 'no duplicate static caption+input', data.splitCaptionAndInput, false, !data.splitCaptionAndInput);
+    check('first-use-layout-' + width, 'same-surface header edit entry', data.sameSurfaceEditor, true, data.sameSurfaceEditor);
     check('first-use-layout-' + width, 'card count inside layout context', data.countAtLayout, true, data.countAtLayout);
     check('first-use-layout-' + width, 'minimum add control hit area 40x40', data.addControlRect,
       'width>=40,height>=40', Boolean(data.addControlRect && data.addControlRect.width >= 40 && data.addControlRect.height >= 40));
@@ -282,8 +305,9 @@ try {
   const novice = await evaluate(noviceTask);
   result('novice-complete-first-reading', 'first-time novice scripted proxy', novice);
   check('novice-complete-first-reading', 'six-card draw result', novice.focus.cards, 6, novice.focus.cards === 6);
-  check('novice-complete-first-reading', 'caret focus stable across structural update',
-    novice.focus.inputFocusAfterRerender, true, novice.focus.inputFocusAfterRerender);
+  check('novice-complete-first-reading', 'same-surface heading commit and focus return',
+    { committed: novice.focus.inlineHeaderCommitted, focusRestored: novice.focus.inlineHeaderFocusRestored },
+    'both true', novice.focus.inlineHeaderCommitted && novice.focus.inlineHeaderFocusRestored);
   check('novice-complete-first-reading', 'editable labels after draw', novice.focus.resultCanEditHeader, true,
     novice.focus.resultCanEditHeader);
   check('novice-complete-first-reading', 'completion and copy in same viewport', novice.focus.feedbackDistancePx,
@@ -309,6 +333,9 @@ try {
   check('expert-27x2', 'one coordinated result scroll region', expert.independentScrollRegions, 1,
     expert.independentScrollRegions <= 1);
   check('expert-27x2', 'copy action at completion', expert.copyNearCompletion, true, expert.copyNearCompletion);
+  check('expert-27x2', 'post-draw heading sync without changing cards',
+    { renamed: expert.completedRename, parallel: expert.parallelLabelMatches, cardsUnchanged: expert.unchangedCardsAfterRename },
+    'all true', expert.completedRename && expert.parallelLabelMatches && expert.unchangedCardsAfterRename);
 
   const failures = report.checks.filter(item => item.verdict === 'FAIL');
   report.summary = { passes: report.checks.length - failures.length, failures: failures.length,
