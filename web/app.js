@@ -462,40 +462,79 @@ function createReadingController(number) {
   function createAxisEditor(kind, index, stateKey) {
     const wrapper = document.createElement('div');
     wrapper.className = 'axis-editor';
-
     const handle = document.createElement('div');
     handle.className = 'axis-handle';
+    const axisName = kind === 'row' ? '行' : '列';
 
-    const caption = document.createElement('span');
-    caption.className = 'axis-caption';
-    caption.textContent = `${kind === 'row' ? '行' : '列'}${index + 1}`;
+    // The actual visible heading is the edit target. No duplicate caption,
+    // permanent input field, or separate editing row at rest.
+    const label = document.createElement('button');
+    label.type = 'button';
+    label.className = 'axis-inline-label';
+    label.textContent = labelOrFallback(state[stateKey], index, kind);
+    label.setAttribute('aria-label', axisName + (index + 1) + 'の名前を編集');
+    label.title = '名前を編集';
+    label.disabled = Boolean(state.pendingOperation) || state.phase === 'draw-uncertain';
 
     const menuButton = document.createElement('button');
     menuButton.className = 'axis-menu-trigger';
     menuButton.type = 'button';
     menuButton.textContent = '⋮';
-    menuButton.title = `${kind === 'row' ? '行' : '列'}の操作`;
-    menuButton.setAttribute('aria-label', `${kind === 'row' ? '行' : '列'}${index + 1}の操作`);
+    menuButton.title = axisName + 'の操作';
+    menuButton.setAttribute('aria-label', axisName + (index + 1) + 'の操作');
 
-    handle.append(caption, menuButton);
+    function updateParallelHeading() {
+      // The reading's server-drawn cards stay at their original position IDs.
+      // Renaming is only presentation metadata, including the other branch.
+      if (!state.parallelResult) return;
+      const selector = kind === 'row' ? '.row-header' : '.column-header';
+      const matching = refs.parallelMatrix.querySelectorAll(selector)[index];
+      if (matching) matching.textContent = labelOrFallback(state[stateKey], index, kind);
+    }
 
-    const input = document.createElement('input');
-    input.className = 'axis-input';
-    input.type = 'text';
-    input.value = state[stateKey][index] ?? '';
-    input.autocomplete = 'off';
-    input.readOnly = Boolean(state.pendingOperation);
-    input.placeholder = kind === 'row' ? '行名' : '列名';
-    input.setAttribute('aria-label', `${kind === 'row' ? '行' : '列'}${index + 1}の名前`);
+    function beginEdit() {
+      if (state.pendingOperation || state.phase === 'draw-uncertain') return;
+      const previousValue = state[stateKey][index] ?? '';
+      const input = document.createElement('input');
+      input.type = 'text';
+      input.className = 'axis-inline-input';
+      input.autocomplete = 'off';
+      input.value = previousValue;
+      input.placeholder = axisName + '名';
+      input.setAttribute('aria-label', axisName + (index + 1) + 'の名前');
+      let isComposing = false;
+      let finished = false;
+      const finish = (commit, restoreFocus = false) => {
+        if (finished) return;
+        finished = true;
+        const values = [...state[stateKey]];
+        values[index] = commit ? input.value : previousValue;
+        state[stateKey] = values;
+        label.textContent = labelOrFallback(values, index, kind);
+        input.replaceWith(label);
+        updateParallelHeading();
+        if (restoreFocus) label.focus({ preventScroll: true });
+      };
+      input.addEventListener('compositionstart', () => { isComposing = true; });
+      input.addEventListener('compositionend', () => { isComposing = false; });
+      input.addEventListener('keydown', event => {
+        if (event.key === 'Escape') {
+          event.preventDefault();
+          finish(false, true);
+        } else if (event.key === 'Enter' && !event.isComposing && !isComposing) {
+          event.preventDefault();
+          finish(true, true);
+        }
+      });
+      input.addEventListener('blur', () => finish(true));
+      label.replaceWith(input);
+      input.focus({ preventScroll: true });
+      input.select();
+    }
 
-    input.addEventListener('input', event => {
-      if (state.pendingOperation) return;
-      const next = [...state[stateKey]];
-      next[index] = event.target.value;
-      state[stateKey] = next;
-    });
-
-    wrapper.append(handle, input);
+    label.addEventListener('click', beginEdit);
+    handle.append(label, menuButton);
+    wrapper.append(handle);
     return { wrapper, handle, menuButton };
   }
 
@@ -545,7 +584,7 @@ function createReadingController(number) {
       th.className = 'column-header';
       th.scope = 'col';
 
-      if (editableHeaders && state.phase !== 'completed' && state.phase !== 'draw-uncertain') {
+      if (editableHeaders) {
         const editor = createAxisEditor('column', column, 'columnLabels');
         th.append(editor.wrapper);
         if (canEditStructure) bindAxisContextMenu(editor.handle, controller, 'column', column, editor.menuButton);
@@ -583,7 +622,7 @@ function createReadingController(number) {
       rowHeader.className = 'row-header';
       rowHeader.scope = 'row';
 
-      if (editableHeaders && state.phase !== 'completed' && state.phase !== 'draw-uncertain') {
+      if (editableHeaders) {
         const editor = createAxisEditor('row', row, 'rowLabels');
         rowHeader.append(editor.wrapper);
         if (canEditStructure) bindAxisContextMenu(editor.handle, controller, 'row', row, editor.menuButton);
