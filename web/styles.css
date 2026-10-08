@@ -573,7 +573,7 @@ input:focus-visible {
   overflow-wrap: normal;
   text-align: center;
   vertical-align: middle;
-  font-size: clamp(.83rem, 1.1vw, 1.04rem);
+  font-size: clamp(.9rem, 1.35vw, 1.16rem);
   font-weight: 500;
   line-height: 1.15;
 }
