@@ -373,20 +373,25 @@ try {
   await pause(120);
   const narrow = await evaluate(`(() => {
     const host = document.querySelector('#cardDetailKeywordGrid');
-    const image = document.querySelector('#cardDetailVisual img.detail-card-art');
-    const dialog = document.querySelector('#cardDetailDialog');
-    return {
-      viewportWidth: window.innerWidth,
-      clientWidth: host.clientWidth,
-      scrollWidth: host.scrollWidth,
-      cardWidth: image.getBoundingClientRect().width,
-      groupCount: document.querySelectorAll('.keyword-grid-group').length,
-      dialogHeight: dialog.getBoundingClientRect().height
-    };
+    const table = document.querySelector('#cardDetailKeywordRows');
+    const art = document.querySelector('#cardDetailVisual img.detail-card-art');
+    const a = art.getBoundingClientRect(), t = table.getBoundingClientRect();
+    const cells = [...table.querySelectorAll('th, td')];
+    const copyTop = document.querySelector('.card-detail-copy').getBoundingClientRect().top;
+    return {viewportWidth:window.innerWidth,scrollWidth:host.scrollWidth,clientWidth:host.clientWidth,
+      tableScrollWidth:table.scrollWidth,tableClientWidth:table.clientWidth,
+      imageWidth:a.width,imageHeight:a.height,imageOnLeft:a.right+2<=t.left,
+      topAligned:Math.abs(a.top-t.top)<=4,unusedBelowArt:Math.max(0,t.bottom-a.bottom),
+      gapBeforeEssence:copyTop-Math.max(a.bottom,t.bottom),
+      verticalCells:cells.filter(el=>getComputedStyle(el).writingMode==='vertical-rl').length,
+      overflowCells:cells.filter(el=>el.scrollHeight>el.clientHeight+2||el.scrollWidth>el.clientWidth+2).length,
+      dialogHeight:document.querySelector('#cardDetailDialog').getBoundingClientRect().height};
   })()`);
-  if (narrow.viewportWidth !== 320 || narrow.scrollWidth > narrow.clientWidth + 1 ||
-    narrow.cardWidth < 130 || narrow.groupCount !== 5 || narrow.dialogHeight < 680) {
-    throw Error('320px portrait reflow fails no-horizontal-scroll, image size or dialog height');
+  if (narrow.viewportWidth !== 320 || narrow.scrollWidth > narrow.clientWidth+1 ||
+    narrow.tableScrollWidth > narrow.tableClientWidth+1 || narrow.imageWidth < 160 ||
+    !narrow.imageOnLeft || !narrow.topAligned || narrow.unusedBelowArt > 80 ||
+    narrow.gapBeforeEssence > 20 || narrow.verticalCells !== 25 || narrow.overflowCells !== 0) {
+    throw Error('320px side-by-side vertical-table geometry failed: ' + JSON.stringify(narrow));
   }
   await evaluate("document.querySelector('#cardDetailClose').click()");
   console.log('KEYWORD_GRID_BROWSER=' + JSON.stringify({
