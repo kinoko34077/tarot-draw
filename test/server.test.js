@@ -135,10 +135,10 @@ test('local server serves the keyword grid module required by the detail dialog'
     ]);
     assert.equal(app.status, 200);
     assert.equal(keywords.status, 200);
-    assert.match(keywords.headers.get('content-type') ?? '', /text\\/javascript/);
-    assert.match(await app.text(), /from '\\.\\/card-keyword-grid\\.js'/);
+    assert.ok((keywords.headers.get('content-type') ?? '').includes('text/javascript'));
+    assert.ok((await app.text()).includes("from './card-keyword-grid.js'"));
     const module = await keywords.text();
-    assert.match(module, /KEYWORD_GRID_DRAFTS/);
-    assert.match(module, /keywordGridDraft/);
+    assert.ok(module.includes('KEYWORD_GRID_DRAFTS'));
+    assert.ok(module.includes('keywordGridDraft'));
   });
 });
