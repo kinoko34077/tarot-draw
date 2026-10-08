@@ -375,9 +375,7 @@ function createReadingController(number) {
   article.innerHTML = `
     <div class="reading-toolbar">
       <span class="reading-index">Reading ${number}</span>
-      <span class="card-count badge">3枚</span>
       <div class="reading-actions">
-        <button class="copy-button secondary hidden" type="button">コピー</button>
         <button class="shuffle-button primary" type="button">シャッフル</button>
         <button class="draw-button primary hidden" type="button">引く</button>
       </div>
@@ -396,10 +394,17 @@ function createReadingController(number) {
       <p class="selection-message helper pile-status" role="status"></p>
     </div>
 
+    <div class="result-action-line">
+      <p class="reading-status status" role="status" aria-live="polite"></p>
+      <button class="copy-button secondary hidden" type="button">結果をコピー</button>
+      <span class="copy-feedback" role="status" aria-live="polite"></span>
+    </div>
+
     <div class="matrix-stack">
       <section class="matrix-section">
         <div class="matrix-heading">
           <h2 class="primary-title">配置</h2>
+          <span class="card-count layout-count" aria-live="polite">1行 × 3列 · 3枚</span>
           <span class="primary-pile-label branch-meta"></span>
           <div class="axis-history-actions">
             <button class="axis-undo-button secondary hidden" type="button" title="直前の編集を元に戻す">戻す</button>
@@ -417,13 +422,13 @@ function createReadingController(number) {
         <div class="parallel-matrix table-scroll"></div>
       </section>
     </div>
-
-    <p class="reading-status status" role="status" aria-live="polite"></p>
+  
   `;
 
   const refs = {
     cardCount: article.querySelector('.card-count'),
     copyButton: article.querySelector('.copy-button'),
+    copyFeedback: article.querySelector('.copy-feedback'),
     shuffleButton: article.querySelector('.shuffle-button'),
     drawButton: article.querySelector('.draw-button'),
     questionInput: article.querySelector('.question-input'),
@@ -983,7 +988,7 @@ function createReadingController(number) {
     const canUndo = canEditAxes();
     refs.undoButton.classList.toggle('hidden', !canUndo || state.undoStack.length === 0);
     refs.redoButton.classList.toggle('hidden', !canUndo || state.redoStack.length === 0);
-    refs.cardCount.textContent = `${count}枚`;
+    refs.cardCount.textContent = `${state.rowLabels.length}行 × ${state.columnLabels.length}列 · ${count}枚`;
 
     if (state.phase === 'editing') {
       if (count === 27) {
@@ -1154,9 +1159,9 @@ function createReadingController(number) {
 
     try {
       await copyText(text);
-      setTextStatus(refs.status, '結果をコピーしました。');
+      setTextStatus(refs.copyFeedback, 'コピーしました。');
     } catch (error) {
-      setTextStatus(refs.status, error.message, 'error');
+      setTextStatus(refs.copyFeedback, error.message, 'error');
     }
   }
 
