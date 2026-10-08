@@ -163,14 +163,19 @@ try {
     questionInput.value = question;
     questionInput.dispatchEvent(new Event('input', { bubbles: true }));
 
-    all('.column-header .axis-input').forEach((input, index) => {
-      input.value = columns[index];
-      input.dispatchEvent(new Event('input', { bubbles: true }));
-    });
-    all('.row-header .axis-input').forEach((input, index) => {
-      input.value = rows[index];
-      input.dispatchEvent(new Event('input', { bubbles: true }));
-    });
+    const renameAxis = (button, value) => {
+      if (!button) throw new Error('Missing direct heading edit control.');
+      button.click();
+      const input = button.parentElement.querySelector('.axis-inline-input');
+      if (!input) throw new Error('Heading did not open its editor in the same cell.');
+      input.value = value;
+      input.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }));
+      if (button.textContent !== value || button.parentElement.querySelector('.axis-inline-input')) {
+        throw new Error('Heading was not committed at the original display location.');
+      }
+    };
+    all('.column-header .axis-inline-label').forEach((button, index) => renameAxis(button, columns[index]));
+    all('.row-header .axis-inline-label').forEach((button, index) => renameAxis(button, rows[index]));
 
     click('.shuffle-button');
     for (let i = 0; i < 120 && all('.pile-button').length < 3; i += 1) await sleep(100);
@@ -185,6 +190,18 @@ try {
     }
     if (one('.reading-status').textContent !== '抽選完了') {
       throw new Error('Production draw did not complete: ' + one('.reading-status').textContent);
+    }
+
+    const beforeRenameCards = all('.primary-matrix .card-result-block')
+      .concat(all('.parallel-matrix .card-result-block')).map(button => button.textContent);
+    renameAxis(all('.primary-matrix .column-header .axis-inline-label')[0], '抽選後の訂正列');
+    if (all('.parallel-matrix .column-header')[0]?.textContent !== '抽選後の訂正列') {
+      throw new Error('Edited heading was not updated on the parallel result.');
+    }
+    const afterRenameCards = all('.primary-matrix .card-result-block')
+      .concat(all('.parallel-matrix .card-result-block')).map(button => button.textContent);
+    if (JSON.stringify(beforeRenameCards) !== JSON.stringify(afterRenameCards)) {
+      throw new Error('Changing completed heading mutated server-drawn cards.');
     }
 
     for (let i = 0; i < 160; i += 1) {
