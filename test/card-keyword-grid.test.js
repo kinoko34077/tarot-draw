@@ -37,12 +37,12 @@ test('every standard card has five readable independent headings with four uniqu
     for (const group of groups) {
       assert.ok(group.heading.trim());
       assert.equal(group.heading, group.heading.trim(), cardId + ': heading whitespace');
-      assert.ok(group.heading.length <= 14, cardId + ': excessively long heading');
+      assert.ok([...group.heading].length >= 2 && [...group.heading].length <= 6, cardId + ': heading must be 2–6 characters');
       assert.equal(group.terms.length, 4, cardId + ':' + group.heading);
       for (const term of group.terms) {
         assert.ok(term.trim().length > 0, cardId + ': empty term');
         assert.equal(term, term.trim(), cardId + ': term whitespace');
-        assert.ok(term.length <= 16, cardId + ': excessively long term ' + term);
+        assert.ok([...term].length >= 2 && [...term].length <= 6, cardId + ': term must be 2–6 characters ' + term);
         assert.ok(!/[\r\n\t]/.test(term), cardId + ': control whitespace');
         assert.notEqual(term, group.heading, cardId + ': term duplicates heading');
         allTerms.push(term);
@@ -73,7 +73,7 @@ test('prototype is browser text, keeps RWS artwork and puts explanations below t
   assert.ok(html.includes('id="cardDetailKeywordGrid"'));
   assert.ok(html.indexOf('id="cardDetailVisual"') < html.indexOf('id="cardDetailKeywordGrid"'));
   assert.ok(html.indexOf('id="cardDetailKeywordGrid"') < html.indexOf('class="card-detail-copy"'));
-  assert.ok(css.includes('grid-template-columns: repeat(5, minmax(130px, 1fr))'));
+  assert.ok(css.includes('grid-template-columns: repeat(5, minmax(80px, 1fr))'));
   assert.ok(css.includes('.card-detail-keywords'));
   assert.ok(css.includes('overflow-x: auto'));
   assert.ok(css.includes('grid-column: 1 / -1'));
