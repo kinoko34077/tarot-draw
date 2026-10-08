@@ -10,6 +10,7 @@ import {
   rwsImageUrl
 } from './model.js';
 import { cardDetail } from './card-details.js';
+import { keywordGridDraft } from './card-keyword-grid.js';
 import { buildApiUrl, resolveRuntimeConfig } from './runtime-config.js';
 
 const runtime = resolveRuntimeConfig(globalThis.__TAROT_DRAW_CONFIG__ ?? {});
@@ -25,6 +26,7 @@ const page = {
   cardDetailTitle: document.querySelector('#cardDetailTitle'),
   cardDetailOrientation: document.querySelector('#cardDetailOrientation'),
   cardDetailVisual: document.querySelector('#cardDetailVisual'),
+  cardDetailKeywordGrid: document.querySelector('#cardDetailKeywordGrid'),
   cardDetailReference: document.querySelector('#cardDetailReference'),
   cardDetailEssence: document.querySelector('#cardDetailEssence'),
   cardDetailUpright: document.querySelector('#cardDetailUpright'),
@@ -94,6 +96,41 @@ function closeCardDetail() {
   if (page.cardDetailDialog.open) page.cardDetailDialog.close();
 }
 
+function renderKeywordGrid(cardId) {
+  const host = page.cardDetailKeywordGrid;
+  const groups = cardId ? keywordGridDraft(cardId) : null;
+  host.replaceChildren();
+  host.classList.toggle('hidden', !groups);
+  if (!groups) return;
+
+  const columns = document.createElement('div');
+  columns.className = 'keyword-grid-columns';
+  for (const { heading, terms } of groups) {
+    const group = document.createElement('section');
+    group.className = 'keyword-grid-group';
+    const label = document.createElement('h3');
+    label.textContent = heading;
+    const list = document.createElement('ul');
+    for (const term of terms) {
+      const item = document.createElement('li');
+      item.textContent = term;
+      list.append(item);
+    }
+    group.append(label, list);
+    columns.append(group);
+  }
+  const source = document.createElement('p');
+  source.className = 'keyword-grid-source';
+  source.append('試作・5枚のみ：Tarotoo（MIT）に基づく独自編集。原資料の図版は使用していません。 ');
+  const link = document.createElement('a');
+  link.href = 'https://github.com/Tarotoo-com/tarotoo-tarot-dataset';
+  link.textContent = '出典・利用条件';
+  link.target = '_blank';
+  link.rel = 'noopener noreferrer';
+  source.append(link);
+  host.append(columns, source);
+}
+
 function openCardDetail(card, trigger) {
   const parts = cardDisplayParts(card);
   const detail = cardDetail(card.card_id);
@@ -102,6 +139,7 @@ function openCardDetail(card, trigger) {
   setCardTitle(page.cardDetailTitle, parts);
   page.cardDetailOrientation.textContent = parts.orientation;
   page.cardDetailVisual.replaceChildren(createCardVisual(card, { detail: true }));
+  renderKeywordGrid(detail ? card.card_id : null);
 
   if (detail) {
     page.cardDetailReference.classList.remove('hidden');
