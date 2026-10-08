@@ -37,22 +37,25 @@
           <p id="cardDetailOrientation" class="detail-orientation"></p>
         </div>
         <div class="detail-header-actions">
-          <details id="cardDetailSourceInfo" class="keyword-source-disclosure hidden">
-            <summary class="keyword-source-trigger" aria-label="キーワードと出典の説明" title="キーワードと出典">ⓘ</summary>
-            <div class="keyword-source-popover">
-              <strong>キーワードについて</strong>
-              <p>正・逆位置の両面を含む、カード全体の関連語です。</p>
-              <p>出典：Tarotoo Tarot Dataset（MIT）。語句は独自編集。</p>
-              <a href="https://github.com/Tarotoo-com/tarotoo-tarot-dataset" target="_blank" rel="noopener noreferrer">出典・利用条件</a>
-            </div>
-          </details>
           <button id="cardDetailClose" class="detail-close" type="button" aria-label="カード詳細を閉じる">×</button>
         </div>
       </header>
       <div class="card-detail-body">
         <div id="cardDetailVisual" class="detail-visual-slot"></div>
-        <section id="cardDetailKeywordGrid" class="card-detail-keywords hidden" aria-label="カード全体の関連キーワード">
-          <table id="cardDetailKeywordRows" class="keyword-grid-table" aria-label="カードの分類と関連語">
+        <section id="cardDetailKeywordGrid" class="card-detail-keywords hidden" aria-labelledby="cardDetailKeywordHeading">
+          <div class="keyword-grid-heading-bar">
+            <h3 id="cardDetailKeywordHeading">キーワード</h3>
+            <details id="cardDetailSourceInfo" class="keyword-source-disclosure hidden">
+              <summary class="keyword-source-trigger" aria-label="キーワードの意味と出典を表示" title="キーワードの意味と出典"><span aria-hidden="true">i</span></summary>
+              <div class="keyword-source-popover">
+                <strong>キーワードについて</strong>
+                <p>正・逆位置の両面を含む、カード全体の関連語です。</p>
+                <p>出典：Tarotoo Tarot Dataset（MIT）。語句は独自編集。</p>
+                <a href="https://github.com/Tarotoo-com/tarotoo-tarot-dataset" target="_blank" rel="noopener noreferrer">出典・利用条件</a>
+              </div>
+            </details>
+          </div>
+          <table id="cardDetailKeywordRows" class="keyword-grid-table" aria-labelledby="cardDetailKeywordHeading">
             <tbody></tbody>
           </table>
         </section>

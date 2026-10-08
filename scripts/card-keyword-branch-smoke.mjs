@@ -139,6 +139,22 @@ try {
     const visualRect = image.getBoundingClientRect();
     const gridRect = one('#cardDetailKeywordGrid').getBoundingClientRect();
     const tableRect = one('#cardDetailKeywordRows').getBoundingClientRect();
+    const heading = one('#cardDetailKeywordHeading');
+    const headingRect = heading.getBoundingClientRect();
+    const headerRect = one('.keyword-grid-heading-bar').getBoundingClientRect();
+    const infoRect = one('#cardDetailSourceInfo summary').getBoundingClientRect();
+    if (heading.textContent.trim() !== 'キーワード') throw Error('Visible keyword heading is missing');
+    if (one('#cardDetailKeywordRows').getAttribute('aria-labelledby') !== heading.id ||
+      one('#cardDetailKeywordGrid').getAttribute('aria-labelledby') !== heading.id) {
+      throw Error('Keyword table and region not semantically labelled by visible heading');
+    }
+    if (Math.abs(headerRect.top - visualRect.top) > 4 ||
+      tableRect.top < headerRect.bottom - 2 ||
+      Math.abs(infoRect.top + infoRect.height / 2 - headingRect.top - headingRect.height / 2) > 9 ||
+      infoRect.left < headingRect.right ||
+      infoRect.right > gridRect.right + 3) {
+      throw Error('Keyword title/info must sit together directly above the right-hand table');
+    }
     const copyTop = one('.card-detail-copy').getBoundingClientRect().top;
     if (gridRect.left < visualRect.right + 4 || Math.abs(gridRect.top - visualRect.top) > 4) {
       throw Error('Desktop card is not upper-left with keyword table directly to its right');
@@ -175,6 +191,28 @@ try {
       dialogHeight: dialog.getBoundingClientRect().height
     }};
   })()`);
+  // UX-15 audit: record discoverability/feedback geometry even for features
+  // outside the narrow #34 heading fix. Observations are not verdicts about users.
+  const readingUx = await evaluate(`(() => {
+    const reading = document.querySelector('.reading-workbench');
+    const question = reading.querySelector('.question-field');
+    const copy = reading.querySelector('.copy-button');
+    const status = reading.querySelector('.reading-status');
+    const trigger = reading.querySelector('.card-detail-trigger');
+    const copyBox = copy.getBoundingClientRect(), statusBox = status.getBoundingClientRect();
+    return {
+      questionVisibleLabel: question.querySelector('.question-prefix')?.textContent?.trim(),
+      questionInputAccessibleLabel: question.querySelector('input')?.getAttribute('aria-label'),
+      questionPlaceholder: question.querySelector('input')?.getAttribute('placeholder'),
+      drawingResultVisibleDetailCue: /詳細/.test(trigger?.textContent ?? ''),
+      drawingResultAccessibleDetailCue: trigger?.getAttribute('aria-label')?.includes('詳細') ?? false,
+      copyFeedbackDistancePx: Math.round(statusBox.top - copyBox.top),
+      initialViewportHeight: innerHeight,
+      copyFeedbackInSameViewportWhenCopyTopVisible: statusBox.top-copyBox.top < innerHeight-100,
+      branchHeading: reading.querySelector('.parallel-section h2')?.textContent,
+      statusLocation: status.closest('.reading-workbench')?.dataset.reading
+    };
+  })()`);
   await screenshot('keyword-grid-desktop.png');
   await cdp.call('Emulation.setDeviceMetricsOverride', {
     width: 390, height: 844, deviceScaleFactor: 1, mobile: true
@@ -186,7 +224,19 @@ try {
     const table = one('#cardDetailKeywordRows'), cells = [...table.querySelectorAll('th, td')];
     if (!host || !art || table.querySelectorAll('tr').length !== 5 || cells.length !== 25) throw Error('Missing mobile semantic 5x5 table');
     const a = art.getBoundingClientRect(), t = table.getBoundingClientRect();
-    if (a.right + 2 > t.left || Math.abs(a.top - t.top) > 4) throw Error('Card must be upper left with table immediately right');
+    const heading = one('#cardDetailKeywordHeading'), h = heading.getBoundingClientRect();
+    const header = one('.keyword-grid-heading-bar').getBoundingClientRect();
+    const info = one('#cardDetailSourceInfo summary'), i = info.getBoundingClientRect();
+    if (heading.textContent.trim() !== 'キーワード' ||
+      table.getAttribute('aria-labelledby') !== heading.id ||
+      one('#cardDetailKeywordGrid').getAttribute('aria-labelledby') !== heading.id) {
+      throw Error('Visible 390px heading or accessible table name missing');
+    }
+    if (a.right + 2 > t.left || Math.abs(a.top - header.top) > 4 ||
+      t.top < header.bottom - 2 || i.left < h.right ||
+      Math.abs((i.top+i.bottom)/2-(h.top+h.bottom)/2) > 9) {
+      throw Error('390px keyword heading and info must be above table beside left artwork');
+    }
     if (a.width < 190) throw Error('390px artwork is not enlarged from 146px');
     if (Math.abs(a.bottom - t.bottom) > 80) throw Error('Unused blank space under card at 390px');
     const copyTop = one('.card-detail-copy').getBoundingClientRect().top;
@@ -272,7 +322,10 @@ try {
         }
         standard += 1;
       } else {
-        if (!host.classList.contains('hidden')) throw Error('Custom card leaked standard keywords');
+        if (!host.classList.contains('hidden') ||
+          !document.querySelector('#cardDetailSourceInfo').classList.contains('hidden')) {
+          throw Error('Custom card must not show keywords, title or source info');
+        }
         custom += 1;
       }
       document.querySelector('#cardDetailClose').click();
@@ -380,12 +433,21 @@ try {
     const table = document.querySelector('#cardDetailKeywordRows');
     const art = document.querySelector('#cardDetailVisual img.detail-card-art');
     const a = art.getBoundingClientRect(), t = table.getBoundingClientRect();
+    const headingEl = document.querySelector('#cardDetailKeywordHeading');
+    const heading = headingEl.getBoundingClientRect();
+    const header = document.querySelector('.keyword-grid-heading-bar').getBoundingClientRect();
+    const info = document.querySelector('#cardDetailSourceInfo summary').getBoundingClientRect();
     const cells = [...table.querySelectorAll('th, td')];
     const copyTop = document.querySelector('.card-detail-copy').getBoundingClientRect().top;
     return {viewportWidth:window.innerWidth,scrollWidth:host.scrollWidth,clientWidth:host.clientWidth,
       tableScrollWidth:table.scrollWidth,tableClientWidth:table.clientWidth,
       imageWidth:a.width,imageHeight:a.height,imageOnLeft:a.right+2<=t.left,
-      topAligned:Math.abs(a.top-t.top)<=4,unusedBelowArt:Math.max(0,t.bottom-a.bottom),
+      topAligned:Math.abs(a.top-header.top)<=4,
+      headingVisible:headingEl.textContent.trim()==='キーワード'&&heading.width>0&&getComputedStyle(headingEl).visibility==='visible',
+      headingTextFits:headingEl.scrollWidth<=headingEl.clientWidth+1,
+      infoAdjacent:info.left>=heading.right&&Math.abs((info.top+info.bottom)/2-(heading.top+heading.bottom)/2)<=9,
+      tableBelowHeading:t.top>=header.bottom-2,
+      unusedBelowArt:Math.max(0,t.bottom-a.bottom),
       gapBeforeEssence:copyTop-Math.max(a.bottom,t.bottom),
       verticalCells:cells.filter(el=>getComputedStyle(el).writingMode==='vertical-rl').length,
       overflowCells:cells.filter(el=>el.scrollHeight>el.clientHeight+2||el.scrollWidth>el.clientWidth+2).length,
@@ -393,14 +455,35 @@ try {
   })()`);
   if (narrow.viewportWidth !== 320 || narrow.scrollWidth > narrow.clientWidth+1 ||
     narrow.tableScrollWidth > narrow.tableClientWidth+1 || narrow.imageWidth < 160 ||
-    !narrow.imageOnLeft || !narrow.topAligned || narrow.unusedBelowArt > 80 ||
+    !narrow.imageOnLeft || !narrow.topAligned || !narrow.headingVisible || !narrow.headingTextFits ||
+    !narrow.infoAdjacent || !narrow.tableBelowHeading || narrow.unusedBelowArt > 80 ||
     narrow.gapBeforeEssence > 20 || narrow.verticalCells !== 25 || narrow.overflowCells !== 0) {
     throw Error('320px side-by-side vertical-table geometry failed: ' + JSON.stringify(narrow));
   }
+  const narrowPopup = await evaluate(`(() => {
+    const info = document.querySelector('#cardDetailSourceInfo');
+    const summary = info.querySelector('summary');
+    if (info.open || getComputedStyle(info).display === 'none') throw Error('Info should be available but initially closed');
+    summary.click();
+    const panel = info.querySelector('.keyword-source-popover');
+    const box = panel.getBoundingClientRect();
+    const spot = document.elementFromPoint(box.left+12, box.top+12);
+    const fits = box.left >= 0 && box.right <= innerWidth+1 && box.top >= 0 && box.bottom <= innerHeight+1;
+    const exposed = panel.contains(spot);
+    const named = summary.getAttribute('aria-label')?.includes('キーワード');
+    const open = info.open;
+    summary.click();
+    return {fits,exposed,named,open,closed:!info.open,clientWidth:innerWidth,
+      popupLeft:box.left,popupRight:box.right,touchWidth:summary.getBoundingClientRect().width};
+  })()`);
+  if (!narrowPopup.fits || !narrowPopup.exposed || !narrowPopup.named ||
+    !narrowPopup.open || !narrowPopup.closed || narrowPopup.touchWidth < 32) {
+    throw Error('320px source disclosure is inaccessible, detached or clipped: '+JSON.stringify(narrowPopup));
+  }
   await evaluate("document.querySelector('#cardDetailClose').click()");
   console.log('KEYWORD_GRID_BROWSER=' + JSON.stringify({
-    sample: picked, mobile, close, coverage,
-    inputModes: {popup, escapePopup, outside, touchScroll, zoom, narrow}
+    sample: picked, readingUx, mobile, close, coverage,
+    inputModes: {popup, escapePopup, outside, touchScroll, zoom, narrow, narrowPopup}
   }));
   cdp.close();
   cdp = null;
