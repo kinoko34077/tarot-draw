@@ -139,6 +139,21 @@ try {
     const visualRect = image.getBoundingClientRect();
     const gridRect = one('#cardDetailKeywordGrid').getBoundingClientRect();
     const tableRect = one('#cardDetailKeywordRows').getBoundingClientRect();
+    const heading = one('#cardDetailKeywordHeading');
+    const headingRect = heading.getBoundingClientRect();
+    const infoRect = one('#cardDetailSourceInfo summary').getBoundingClientRect();
+    if (heading.textContent.trim() !== 'キーワード') throw Error('Visible keyword heading is missing');
+    if (one('#cardDetailKeywordRows').getAttribute('aria-labelledby') !== heading.id ||
+      one('#cardDetailKeywordGrid').getAttribute('aria-labelledby') !== heading.id) {
+      throw Error('Keyword table and region not semantically labelled by visible heading');
+    }
+    if (Math.abs(headingRect.top - visualRect.top) > 4 ||
+      tableRect.top < headingRect.bottom - 2 ||
+      Math.abs(infoRect.top + infoRect.height / 2 - headingRect.top - headingRect.height / 2) > 9 ||
+      infoRect.left < headingRect.right ||
+      infoRect.right > gridRect.right + 3) {
+      throw Error('Keyword title/info must sit together directly above the right-hand table');
+    }
     const copyTop = one('.card-detail-copy').getBoundingClientRect().top;
     if (gridRect.left < visualRect.right + 4 || Math.abs(gridRect.top - visualRect.top) > 4) {
       throw Error('Desktop card is not upper-left with keyword table directly to its right');
@@ -186,7 +201,18 @@ try {
     const table = one('#cardDetailKeywordRows'), cells = [...table.querySelectorAll('th, td')];
     if (!host || !art || table.querySelectorAll('tr').length !== 5 || cells.length !== 25) throw Error('Missing mobile semantic 5x5 table');
     const a = art.getBoundingClientRect(), t = table.getBoundingClientRect();
-    if (a.right + 2 > t.left || Math.abs(a.top - t.top) > 4) throw Error('Card must be upper left with table immediately right');
+    const heading = one('#cardDetailKeywordHeading'), h = heading.getBoundingClientRect();
+    const info = one('#cardDetailSourceInfo summary'), i = info.getBoundingClientRect();
+    if (heading.textContent.trim() !== 'キーワード' ||
+      table.getAttribute('aria-labelledby') !== heading.id ||
+      one('#cardDetailKeywordGrid').getAttribute('aria-labelledby') !== heading.id) {
+      throw Error('Visible 390px heading or accessible table name missing');
+    }
+    if (a.right + 2 > t.left || Math.abs(a.top - h.top) > 4 ||
+      t.top < h.bottom - 2 || i.left < h.right ||
+      Math.abs((i.top+i.bottom)/2-(h.top+h.bottom)/2) > 9) {
+      throw Error('390px keyword heading and info must be above table beside left artwork');
+    }
     if (a.width < 190) throw Error('390px artwork is not enlarged from 146px');
     if (Math.abs(a.bottom - t.bottom) > 80) throw Error('Unused blank space under card at 390px');
     const copyTop = one('.card-detail-copy').getBoundingClientRect().top;
@@ -380,12 +406,19 @@ try {
     const table = document.querySelector('#cardDetailKeywordRows');
     const art = document.querySelector('#cardDetailVisual img.detail-card-art');
     const a = art.getBoundingClientRect(), t = table.getBoundingClientRect();
+    const headingEl = document.querySelector('#cardDetailKeywordHeading');
+    const heading = headingEl.getBoundingClientRect();
+    const info = document.querySelector('#cardDetailSourceInfo summary').getBoundingClientRect();
     const cells = [...table.querySelectorAll('th, td')];
     const copyTop = document.querySelector('.card-detail-copy').getBoundingClientRect().top;
     return {viewportWidth:window.innerWidth,scrollWidth:host.scrollWidth,clientWidth:host.clientWidth,
       tableScrollWidth:table.scrollWidth,tableClientWidth:table.clientWidth,
       imageWidth:a.width,imageHeight:a.height,imageOnLeft:a.right+2<=t.left,
-      topAligned:Math.abs(a.top-t.top)<=4,unusedBelowArt:Math.max(0,t.bottom-a.bottom),
+      topAligned:Math.abs(a.top-heading.top)<=4,
+      headingVisible:headingEl.textContent.trim()==='キーワード'&&heading.width>=40,
+      infoAdjacent:info.left>=heading.right&&Math.abs((info.top+info.bottom)/2-(heading.top+heading.bottom)/2)<=9,
+      tableBelowHeading:t.top>=heading.bottom-2,
+      unusedBelowArt:Math.max(0,t.bottom-a.bottom),
       gapBeforeEssence:copyTop-Math.max(a.bottom,t.bottom),
       verticalCells:cells.filter(el=>getComputedStyle(el).writingMode==='vertical-rl').length,
       overflowCells:cells.filter(el=>el.scrollHeight>el.clientHeight+2||el.scrollWidth>el.clientWidth+2).length,
@@ -393,7 +426,8 @@ try {
   })()`);
   if (narrow.viewportWidth !== 320 || narrow.scrollWidth > narrow.clientWidth+1 ||
     narrow.tableScrollWidth > narrow.tableClientWidth+1 || narrow.imageWidth < 160 ||
-    !narrow.imageOnLeft || !narrow.topAligned || narrow.unusedBelowArt > 80 ||
+    !narrow.imageOnLeft || !narrow.topAligned || !narrow.headingVisible ||
+    !narrow.infoAdjacent || !narrow.tableBelowHeading || narrow.unusedBelowArt > 80 ||
     narrow.gapBeforeEssence > 20 || narrow.verticalCells !== 25 || narrow.overflowCells !== 0) {
     throw Error('320px side-by-side vertical-table geometry failed: ' + JSON.stringify(narrow));
   }
