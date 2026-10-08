@@ -231,9 +231,13 @@ try {
         custom += 1;
       }
       document.querySelector('#cardDetailClose').click();
-      await new Promise(resolve => setTimeout(resolve, 2));
+      // The native 'close' event (where focus is restored) is dispatched async.
+      for (let attempt = 0; attempt < 20 &&
+        (dialog.open || document.activeElement !== trigger); attempt += 1) {
+        await new Promise(resolve => setTimeout(resolve, 10));
+      }
       if (dialog.open || document.activeElement !== trigger) {
-        throw Error('Dialog close/focus return regression');
+        throw Error('Dialog close/focus return regression: ' + trigger.getAttribute('aria-label'));
       }
     }
     return {records: ids.length, actualResultTriggers: triggers.length, standardDetails: standard, customDetails: custom};
