@@ -27,6 +27,14 @@ test('issue #26 sources all 78 standard cards exactly once; custom cards exclude
 });
 
 test('every standard card has five readable independent headings with four unique terms', () => {
+  let threeOrFewer = 0;
+  let checkedLabels = 0;
+  const countLength = label => {
+    const chars = [...label].length;
+    checkedLabels++;
+    if (chars <= 3) threeOrFewer++;
+    assert.ok(!label.includes(' '), `keyword has a space: ${label}`);
+  };
   for (const { card_id: cardId, arcana } of CARD_CATALOG.filter(card => card.arcana !== 'meta')) {
     const groups = keywordGridDraft(cardId);
     assert.ok(groups, cardId);
@@ -38,11 +46,13 @@ test('every standard card has five readable independent headings with four uniqu
       assert.ok(group.heading.trim());
       assert.equal(group.heading, group.heading.trim(), cardId + ': heading whitespace');
       assert.ok([...group.heading].length >= 2 && [...group.heading].length <= 6, cardId + ': heading must be 2–6 characters');
+      countLength(group.heading);
       assert.equal(group.terms.length, 4, cardId + ':' + group.heading);
       for (const term of group.terms) {
         assert.ok(term.trim().length > 0, cardId + ': empty term');
         assert.equal(term, term.trim(), cardId + ': term whitespace');
         assert.ok([...term].length >= 2 && [...term].length <= 6, cardId + ': term must be 2–6 characters ' + term);
+        countLength(term);
         assert.ok(!/[\r\n\t]/.test(term), cardId + ': control whitespace');
         assert.notEqual(term, group.heading, cardId + ': term duplicates heading');
         allTerms.push(term);
@@ -51,6 +61,8 @@ test('every standard card has five readable independent headings with four uniqu
     assert.equal(new Set(allTerms).size, 20, cardId + ': duplicated terms across columns');
     assert.ok(arcana === 'major' || arcana === 'minor');
   }
+  assert.equal(checkedLabels, 1950, '78 cards x (5 headings + 20 terms)');
+  assert.ok(threeOrFewer / checkedLabels >= 0.95, 'at least 95% of labels should be 2–3 characters');
 });
 
 test('lookup supplies a defensive copy and does not invent unknown data', () => {
