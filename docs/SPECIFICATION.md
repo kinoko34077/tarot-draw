@@ -91,3 +91,11 @@ Card catalog -> deck session -> shuffle (order + orientation fixed) -> three-way
 - Desktop retains the RWS image on the left and five fixed columns on the right. At narrow widths, the **keyword area alone** scrolls horizontally, without shrinking each column to illegibility; the first column is shown when a new card opens. Accessibility includes native dialog closing by Esc/×/backdrop, return of keyboard focus and natural keyboard access to horizontally scrollable text.
 - Data is shipped as static same-origin JS modules; no network call to a third-party tarot service, new WASM dependency, change to 80-card API shuffle/session/branch/draw semantics, TSV layout or 56-card ruby generation.
 - Required verification: strict 78-ID/5×4 structural tests, local Node and Pages build contract, actual desktop/mobile browser checks, rights/attribution checks, Formal Review, merge-readiness and post-Pages production smoke. #26 received explicit user approval for the ordinary merge/Pages public release **only after** these conditions are satisfied; this does not grant rights to the held original third-party material.
+
+### #28: concise keywords (supersedes the #26 label-length policy)
+
+- All 390 headings and 1,560 terms use Japanese nouns or compounds: normally 2–3 characters, hard maximum 6 characters. No sentence-like clauses.
+- Automated tests require all 1,950 labels to have 2–6 characters, and 95% or more to use 2–3 characters.
+- Minimum five-column grid is reduced from 674px to 424px (five 80px columns, four 6px gaps), with reduced padding and row heights.
+- RWS artwork, upright/reversed paragraphs and highlights, 80-card API, copy and special-card exclusion remain unchanged. #21 copyrighted images remain held.
+- #28 release permissions and CI/review rights gates are assessed separately from the already completed #26.

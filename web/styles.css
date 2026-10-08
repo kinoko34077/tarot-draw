@@ -545,9 +545,9 @@ input:focus-visible {
 }
 .keyword-grid-columns {
   display: grid;
-  grid-template-columns: repeat(5, minmax(130px, 1fr));
+  grid-template-columns: repeat(5, minmax(80px, 1fr));
   gap: 6px;
-  min-width: 674px;
+  min-width: 424px;
 }
 .keyword-grid-group {
   border: 1px solid var(--border);
@@ -556,8 +556,8 @@ input:focus-visible {
   overflow-wrap: anywhere;
 }
 .keyword-grid-group h3 {
-  min-height: 38px;
-  padding: 8px 5px;
+  min-height: 28px;
+  padding: 5px 3px;
   margin: 0;
   font-size: .78rem;
   text-align: center;
@@ -566,14 +566,14 @@ input:focus-visible {
 }
 .keyword-grid-group ul {
   margin: 0;
-  padding: 6px;
+  padding: 4px;
   list-style: none;
   display: grid;
-  gap: 6px;
+  gap: 4px;
 }
 .keyword-grid-group li {
-  min-height: 32px;
-  padding: 6px 4px;
+  min-height: 25px;
+  padding: 4px 2px;
   border: 1px solid var(--border);
   border-radius: 4px;
   font-size: .76rem;

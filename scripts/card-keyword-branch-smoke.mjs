@@ -155,9 +155,13 @@ try {
     host.scrollLeft = host.scrollWidth;
     const after = host.scrollLeft;
     if (host.scrollWidth <= host.clientWidth || after <= before) throw Error('Five columns cannot scroll horizontally');
+    if (host.scrollWidth > 470) throw Error('Compact grid width regression');
     if (image.getBoundingClientRect().width < 75) throw Error('Card artwork collapsed on mobile');
     const visibleText = [...host.querySelectorAll('li')].every(el => el.textContent.trim().length > 0);
     if (!visibleText) throw Error('Mobile keywords missing text');
+    const shortLabels = [...host.querySelectorAll('h3, li')];
+    if (shortLabels.some(el => [...el.textContent.trim()].length > 6)) throw Error('Keyword too long in browser');
+    if (shortLabels.some(el => el.getBoundingClientRect().height > 40)) throw Error('Keyword wraps visually');
     if (!one('#cardDetailDialog').open) throw Error('Mobile resize closed dialog');
     return {width: window.innerWidth, scrollWidth: host.scrollWidth, clientWidth: host.clientWidth, scrolledTo: after, artworkWidth: image.getBoundingClientRect().width, termsVisibleInDOM: visibleText};
   })()`);
