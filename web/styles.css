@@ -829,7 +829,7 @@ input:focus-visible {
 
 @media (max-width: 420px) {
   .card-detail-body {
-    grid-template-columns: minmax(0, 62%) minmax(0, 1fr);
+    grid-template-columns: minmax(0, 58%) minmax(0, 1fr);
     column-gap: 5px;
     padding: 6px;
   }
