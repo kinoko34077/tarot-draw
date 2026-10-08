@@ -148,8 +148,10 @@ try {
       one('#cardDetailKeywordGrid').getAttribute('aria-labelledby') !== heading.id) {
       throw Error('Keyword table and region not semantically labelled by visible heading');
     }
-    if (Math.abs(headerRect.top - visualRect.top) > 4 ||
-      tableRect.top < headerRect.bottom - 2 ||
+    if (!heading.closest('thead') || heading.closest('thead') !== one('#cardDetailKeywordRows thead') ||
+      one('#cardDetailKeywordRows thead th')?.colSpan !== 5 ||
+      Math.abs(headerRect.top - visualRect.top) > 4 ||
+      Math.abs(tableRect.top - headerRect.top) > 3 ||
       Math.abs(infoRect.top + infoRect.height / 2 - headingRect.top - headingRect.height / 2) > 9 ||
       infoRect.left < headingRect.right ||
       infoRect.right > gridRect.right + 3) {
@@ -166,6 +168,16 @@ try {
     if (!groupRows.every(row => row.querySelector('th').getBoundingClientRect().right <= row.querySelector('td').getBoundingClientRect().left + 2)) throw Error('Table heading is not left of its four terms');
     if (allCells.length !== 25 || !allCells.every(cell => getComputedStyle(cell).writingMode === 'vertical-rl' && getComputedStyle(cell).textOrientation === 'upright')) {
       throw Error('Headings and keyword cells must all use upright Japanese vertical writing');
+    }
+    const ruled = getComputedStyle(one('#cardDetailKeywordRows')).borderCollapse === 'collapse' &&
+      allCells.every(cell => getComputedStyle(cell).borderRightWidth !== '0px' && getComputedStyle(cell).borderBottomWidth !== '0px');
+    if (!ruled) throw Error('The five columns and five rows must have continuous visible rules');
+    const orientationPair = one('.detail-orientations');
+    const upright = one('#cardDetailUprightBlock').getBoundingClientRect();
+    const negative = one('#cardDetailReversedBlock').getBoundingClientRect();
+    if (!orientationPair || Math.abs(upright.top-negative.top)>3 || upright.left>=negative.left ||
+      Math.abs(one('#cardDetailTitle').getBoundingClientRect().top-one('#cardDetailOrientation').getBoundingClientRect().top)>12) {
+      throw Error('Card title and upright/reversed meaning comparison is not aligned horizontally');
     }
     if (parseFloat(getComputedStyle(allCells[0]).fontSize) < 17 ||
       allCells.some(cell => cell.scrollHeight > cell.clientHeight + 2 || cell.scrollWidth > cell.clientWidth + 2)) {
@@ -221,8 +233,9 @@ try {
   const mobile = await evaluate(`(() => {
     const one = q => document.querySelector(q);
     const host = one('#cardDetailKeywordGrid'), art = one('#cardDetailVisual img.detail-card-art');
-    const table = one('#cardDetailKeywordRows'), cells = [...table.querySelectorAll('th, td')];
-    if (!host || !art || table.querySelectorAll('tr').length !== 5 || cells.length !== 25) throw Error('Missing mobile semantic 5x5 table');
+    const table = one('#cardDetailKeywordRows'), cells = [...table.querySelectorAll('tbody th, tbody td')];
+    if (!host || !art || table.querySelectorAll('tbody tr').length !== 5 || cells.length !== 25 ||
+      table.querySelector('thead th')?.colSpan !== 5) throw Error('Missing 390px semantic 5x5 body and internal title');
     const a = art.getBoundingClientRect(), t = table.getBoundingClientRect();
     const heading = one('#cardDetailKeywordHeading'), h = heading.getBoundingClientRect();
     const header = one('.keyword-grid-heading-bar').getBoundingClientRect();
@@ -233,7 +246,7 @@ try {
       throw Error('Visible 390px heading or accessible table name missing');
     }
     if (a.right + 2 > t.left || Math.abs(a.top - header.top) > 4 ||
-      t.top < header.bottom - 2 || i.left < h.right ||
+      Math.abs(t.top - header.top) > 3 || i.left < h.right ||
       Math.abs((i.top+i.bottom)/2-(h.top+h.bottom)/2) > 9) {
       throw Error('390px keyword heading and info must be above table beside left artwork');
     }
@@ -437,7 +450,7 @@ try {
     const heading = headingEl.getBoundingClientRect();
     const header = document.querySelector('.keyword-grid-heading-bar').getBoundingClientRect();
     const info = document.querySelector('#cardDetailSourceInfo summary').getBoundingClientRect();
-    const cells = [...table.querySelectorAll('th, td')];
+    const cells = [...table.querySelectorAll('tbody th, tbody td')];
     const copyTop = document.querySelector('.card-detail-copy').getBoundingClientRect().top;
     return {viewportWidth:window.innerWidth,scrollWidth:host.scrollWidth,clientWidth:host.clientWidth,
       tableScrollWidth:table.scrollWidth,tableClientWidth:table.clientWidth,
@@ -446,7 +459,7 @@ try {
       headingVisible:headingEl.textContent.trim()==='キーワード'&&heading.width>0&&getComputedStyle(headingEl).visibility==='visible',
       headingTextFits:headingEl.scrollWidth<=headingEl.clientWidth+1,
       infoAdjacent:info.left>=heading.right&&Math.abs((info.top+info.bottom)/2-(heading.top+heading.bottom)/2)<=9,
-      tableBelowHeading:t.top>=header.bottom-2,
+      tableBelowHeading:Math.abs(t.top-header.top)<=3&&header.bottom <= table.querySelector('tbody tr').getBoundingClientRect().top+3,
       unusedBelowArt:Math.max(0,t.bottom-a.bottom),
       gapBeforeEssence:copyTop-Math.max(a.bottom,t.bottom),
       verticalCells:cells.filter(el=>getComputedStyle(el).writingMode==='vertical-rl').length,
