@@ -459,9 +459,12 @@ input:focus-visible {
 .danger-menu-item:disabled { opacity: .45; cursor: not-allowed; }
 
 .card-detail-dialog {
-  width: min(1040px, calc(100vw - 24px));
-  max-width: 1040px;
-  max-height: min(86vh, 760px);
+  width: min(1120px, calc(100vw - 16px));
+  max-width: 1120px;
+  height: min(94dvh, 960px);
+  max-height: calc(100dvh - 12px);
+  overflow-x: clip;
+  overflow-y: auto;
   border: 1px solid var(--border);
   border-radius: 8px;
   padding: 0;
@@ -474,12 +477,16 @@ input:focus-visible {
 }
 .card-detail-panel { min-width: 0; }
 .card-detail-header {
+  position: sticky;
+  top: 0;
+  z-index: 3;
   min-height: 54px;
-  padding: 9px 10px;
+  padding: 9px 12px;
   border-bottom: 1px solid var(--border);
   display: flex;
   align-items: flex-start;
   gap: 10px;
+  background: var(--surface);
 }
 .card-detail-header h2 {
   margin: 0;
@@ -496,6 +503,7 @@ input:focus-visible {
   margin-left: auto;
   width: 34px;
   min-height: 34px;
+  flex-shrink: 0;
   border: 1px solid var(--border);
   border-radius: 4px;
   background: var(--surface);
@@ -507,87 +515,141 @@ input:focus-visible {
 .detail-close:hover { background: var(--surface-soft); }
 .card-detail-body {
   display: grid;
-  grid-template-columns: 168px minmax(0, 1fr);
+  grid-template-columns: 204px minmax(0, 1fr);
   gap: 14px;
-  padding: 12px;
-  overflow-y: auto;
+  padding: 14px;
   min-width: 0;
 }
 .detail-visual-slot {
   display: flex;
   justify-content: center;
   align-items: flex-start;
+  min-width: 0;
 }
-.detail-card-visual {
-  width: 150px;
-  height: 257px;
-}
-.detail-card-art {
-  width: 150px;
-  height: 257px;
-}
+.detail-card-visual,
+.detail-card-art,
 .detail-custom-card-face {
-  width: 150px;
-  height: 257px;
+  width: 190px;
+  height: 326px;
 }
 .detail-art-fallback {
   color: var(--muted);
   font-size: .78rem;
 }
-/* Issue #26 W1: text-based prototype; no third-party concept-map image assets. */
+/* #30: transposed 5 keyword rows; no keyword-area horizontal scrolling. */
 .card-detail-keywords {
   min-width: 0;
   max-width: 100%;
-  overflow-x: auto;
-  overflow-anchor: none;
-  overscroll-behavior-inline: contain;
-  padding-bottom: 3px;
+  overflow-x: clip;
 }
-.keyword-grid-columns {
-  display: grid;
-  grid-template-columns: repeat(5, minmax(80px, 1fr));
+.keyword-grid-meta {
+  position: relative;
+  display: flex;
+  align-items: flex-start;
   gap: 6px;
-  min-width: 424px;
+  margin: 0 0 8px;
+}
+.keyword-grid-note {
+  flex: 1;
+  min-width: 0;
+  margin: 0;
+  font-size: .71rem;
+  line-height: 1.45;
+  color: var(--muted);
+}
+.keyword-source-disclosure {
+  position: relative;
+  flex: 0 0 auto;
+}
+.keyword-source-trigger {
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  border: 1px solid var(--border-strong);
+  border-radius: 50%;
+  color: var(--accent);
+  background: var(--surface);
+  font-weight: 700;
+  font-size: 1rem;
+  line-height: 1;
+  list-style: none;
+  cursor: pointer;
+}
+.keyword-source-trigger::-webkit-details-marker { display: none; }
+.keyword-source-trigger::marker { content: ''; }
+.keyword-source-trigger:hover { background: var(--surface-soft); }
+.keyword-source-trigger:focus-visible {
+  outline: 3px solid var(--focus);
+  outline-offset: 2px;
+}
+.keyword-source-popover {
+  position: absolute;
+  z-index: 4;
+  top: calc(100% + 6px);
+  right: 0;
+  width: min(300px, calc(100vw - 42px));
+  max-width: calc(100vw - 42px);
+  padding: 12px;
+  border: 1px solid var(--border-strong);
+  border-radius: 8px;
+  background: var(--surface);
+  color: inherit;
+  box-shadow: 0 8px 24px rgb(0 0 0 / 20%);
+  font-size: .78rem;
+  line-height: 1.55;
+}
+.keyword-source-popover p { margin: 6px 0; }
+.keyword-source-popover a { color: var(--accent); }
+.keyword-grid-rows {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 5px;
+  min-width: 0;
 }
 .keyword-grid-group {
-  border: 1px solid var(--border);
-  border-radius: 6px;
+  display: grid;
+  grid-template-columns: minmax(55px, 1fr) minmax(0, 4fr);
+  gap: 4px;
   min-width: 0;
-  overflow-wrap: anywhere;
 }
 .keyword-grid-group h3 {
-  min-height: 28px;
-  padding: 5px 3px;
+  display: grid;
+  place-items: center;
+  min-width: 0;
+  min-height: 34px;
   margin: 0;
-  font-size: .78rem;
-  text-align: center;
+  padding: 5px 3px;
+  border: 1px solid var(--border);
+  border-radius: 5px;
   background: var(--surface-soft);
-  border-bottom: 1px solid var(--border);
+  font-size: .8rem;
+  line-height: 1.2;
+  text-align: center;
+  overflow-wrap: anywhere;
 }
 .keyword-grid-group ul {
-  margin: 0;
-  padding: 4px;
-  list-style: none;
   display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 4px;
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  list-style: none;
 }
 .keyword-grid-group li {
-  min-height: 25px;
-  padding: 4px 2px;
+  display: grid;
+  place-items: center;
+  min-width: 0;
+  min-height: 34px;
+  padding: 5px 2px;
   border: 1px solid var(--border);
   border-radius: 4px;
-  font-size: .76rem;
-  line-height: 1.3;
+  font-size: .8rem;
+  line-height: 1.25;
   text-align: center;
+  overflow-wrap: anywhere;
 }
-.keyword-grid-source {
-  font-size: .7rem;
-  color: var(--muted);
-  margin: 6px 1px 0;
-  white-space: normal;
-}
-.keyword-grid-source a { color: inherit; }
-
 .card-detail-copy {
   grid-column: 1 / -1;
   display: grid;
@@ -614,6 +676,10 @@ input:focus-visible {
   margin: 0;
   font-size: .86rem;
   line-height: 1.55;
+}
+#cardDetailEssence {
+  font-size: .98rem;
+  line-height: 1.6;
 }
 
 .history-actions {
@@ -659,18 +725,34 @@ input:focus-visible {
     width: 64px;
     height: 110px;
   }
+  .card-detail-dialog {
+    width: calc(100vw - 8px);
+    height: calc(100dvh - 8px);
+    max-height: calc(100dvh - 8px);
+  }
+  .card-detail-body {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 8px;
+    padding: 9px;
+  }
   .detail-card-visual,
   .detail-card-art,
   .detail-custom-card-face {
-    width: 90px;
-    height: 154px;
+    width: 146px;
+    height: 250px;
   }
-  .card-detail-body {
-    grid-template-columns: 98px minmax(0, 1fr);
-    gap: 8px;
-    padding: 8px;
+  .detail-visual-slot { justify-content: center; }
+  .keyword-grid-group {
+    grid-template-columns: minmax(48px, 1fr) minmax(0, 4fr);
+    gap: 3px;
   }
-  .detail-visual-slot { justify-content: flex-start; }
+  .keyword-grid-group ul { gap: 3px; }
+  .keyword-grid-group h3,
+  .keyword-grid-group li {
+    min-height: 31px;
+    padding: 4px 1px;
+    font-size: .75rem;
+  }
   .art-credit { padding-inline: 8px; text-align: left; }
 }
 
