@@ -242,7 +242,90 @@ try {
     }
     return {records: ids.length, actualResultTriggers: triggers.length, standardDetails: standard, customDetails: custom};
   })()`);
-  console.log('KEYWORD_GRID_BROWSER=' + JSON.stringify({sample: picked, mobile, close, coverage}));
+  // Exercise native keyboard scrolling, a real CDP touch gesture and page zoom.
+  const keyboardTarget = await evaluate(`(() => {
+    const trigger = [...document.querySelectorAll('.card-detail-trigger')]
+      .find(button => button.querySelector('img.card-art'));
+    if (!trigger) throw Error('No standard result for input-mode check');
+    trigger.click();
+    const host = document.querySelector('#cardDetailKeywordGrid');
+    if (!host || host.classList.contains('hidden')) throw Error('Scrollable grid missing');
+    host.scrollLeft = 0;
+    host.focus();
+    const rect = host.getBoundingClientRect();
+    return {
+      x: Math.round(rect.right - 24),
+      y: Math.round(Math.min(rect.bottom - 30, rect.top + 86)),
+      focusable: document.activeElement === host,
+      clientWidth: host.clientWidth,
+      scrollWidth: host.scrollWidth
+    };
+  })()`);
+  if (!keyboardTarget.focusable) throw Error('Keyboard cannot focus the keyword scroller');
+  await cdp.call('Input.dispatchKeyEvent', {
+    type: 'rawKeyDown', key: 'ArrowRight', code: 'ArrowRight', windowsVirtualKeyCode: 39
+  });
+  await cdp.call('Input.dispatchKeyEvent', {
+    type: 'keyUp', key: 'ArrowRight', code: 'ArrowRight', windowsVirtualKeyCode: 39
+  });
+  await pause(400);
+  const keyboardScroll = await evaluate("document.querySelector('#cardDetailKeywordGrid').scrollLeft");
+  if (keyboardScroll <= 0) throw Error('Native ArrowRight did not scroll focused keywords');
+
+  await evaluate("document.querySelector('#cardDetailKeywordGrid').scrollLeft = 0");
+  await cdp.call('Emulation.setTouchEmulationEnabled', { enabled: true, maxTouchPoints: 1 });
+  const touch = (x, y) => ({x, y});
+  const startX = keyboardTarget.x;
+  const y = keyboardTarget.y;
+  await cdp.call('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [touch(startX, y)] });
+  for (let delta = 30; delta <= 180; delta += 30) {
+    await cdp.call('Input.dispatchTouchEvent', {
+      type: 'touchMove', touchPoints: [touch(startX - delta, y)]
+    });
+    await pause(30);
+  }
+  await cdp.call('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
+  await pause(300);
+  const touchScroll = await evaluate("document.querySelector('#cardDetailKeywordGrid').scrollLeft");
+  await cdp.call('Emulation.setTouchEmulationEnabled', { enabled: false });
+  if (touchScroll <= 0) throw Error('Actual touch swipe did not scroll keyword grid');
+
+  await cdp.call('Emulation.setPageScaleFactor', { pageScaleFactor: 2 });
+  await pause(100);
+  const zoom = await evaluate(`(() => ({
+    scale: window.visualViewport?.scale ?? 1,
+    scrollWidth: document.querySelector('#cardDetailKeywordGrid').scrollWidth,
+    clientWidth: document.querySelector('#cardDetailKeywordGrid').clientWidth,
+    detailOpen: document.querySelector('#cardDetailDialog').open
+  }))()`);
+  if (!zoom.detailOpen || zoom.scale < 1.9 || zoom.scrollWidth <= zoom.clientWidth) {
+    throw Error('200% mobile zoom obscured the keyword scroll area');
+  }
+  await cdp.call('Emulation.setPageScaleFactor', { pageScaleFactor: 1 });
+  await cdp.call('Emulation.setDeviceMetricsOverride', {
+    width: 320, height: 720, deviceScaleFactor: 1, mobile: true
+  });
+  await pause(100);
+  const narrow = await evaluate(`(() => {
+    const host = document.querySelector('#cardDetailKeywordGrid');
+    const visual = document.querySelector('#cardDetailVisual');
+    return {
+      viewportWidth: window.innerWidth,
+      clientWidth: host.clientWidth,
+      scrollWidth: host.scrollWidth,
+      cardWidth: visual.getBoundingClientRect().width,
+      groupCount: document.querySelectorAll('.keyword-grid-group').length
+    };
+  })()`);
+  if (narrow.viewportWidth !== 320 || narrow.scrollWidth <= narrow.clientWidth ||
+    narrow.cardWidth < 75 || narrow.groupCount !== 5) {
+    throw Error('320px reflow failed for artwork + five columns');
+  }
+  await evaluate("document.querySelector('#cardDetailClose').click()");
+  console.log('KEYWORD_GRID_BROWSER=' + JSON.stringify({
+    sample: picked, mobile, close, coverage,
+    inputModes: {keyboardScroll, touchScroll, zoom, narrow}
+  }));
   cdp.close();
   cdp = null;
 } finally {
