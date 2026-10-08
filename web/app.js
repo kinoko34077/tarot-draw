@@ -158,6 +158,9 @@ function openCardDetail(card, trigger) {
   }
 
   page.cardDetailDialog.showModal();
+  // The closed dialog has no layout; reset again after showModal to avoid restoring
+  // the previously opened card's horizontal position in Chrome/Safari.
+  page.cardDetailKeywordGrid.scrollLeft = 0;
 }
 
 page.cardDetailClose.addEventListener('click', closeCardDetail);
