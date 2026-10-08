@@ -12,6 +12,8 @@ const STATIC_FILES = new Map([
   ['/model.js', ['model.js', 'text/javascript; charset=utf-8']],
   ['/card-name-ruby.js', ['card-name-ruby.js', 'text/javascript; charset=utf-8']],
   ['/card-details.js', ['card-details.js', 'text/javascript; charset=utf-8']],
+  ['/card-keyword-grid.js', ['card-keyword-grid.js', 'text/javascript; charset=utf-8']],
+  ['/card-keyword-corpus.js', ['card-keyword-corpus.js', 'text/javascript; charset=utf-8']],
   ['/runtime-config.js', ['runtime-config.js', 'text/javascript; charset=utf-8']],
   ['/config.js', ['config.js', 'text/javascript; charset=utf-8']]
 ]);

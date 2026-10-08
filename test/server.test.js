@@ -126,3 +126,27 @@ test('local server serves generated static ruby module without external image as
     assert.match(content, /aozora-wasm 0\.5\.0/);
   });
 });
+
+test('local server serves the complete two-module 78-card keyword corpus', async () => {
+  await withServer(async base => {
+    const [app, keywords, corpus] = await Promise.all([
+      fetch(`${base}/app.js`),
+      fetch(`${base}/card-keyword-grid.js`),
+      fetch(`${base}/card-keyword-corpus.js`)
+    ]);
+    assert.equal(app.status, 200);
+    assert.equal(keywords.status, 200);
+    assert.equal(corpus.status, 200);
+    assert.ok((keywords.headers.get('content-type') ?? '').includes('text/javascript'));
+    assert.ok((corpus.headers.get('content-type') ?? '').includes('text/javascript'));
+    assert.ok((await app.text()).includes("from './card-keyword-grid.js'"));
+    const entry = await keywords.text();
+    assert.ok(entry.includes("from './card-keyword-corpus.js'"));
+    assert.ok(entry.includes('CARD_KEYWORD_GRIDS'));
+    assert.ok(entry.includes('keywordGridDraft'));
+    const expansion = await corpus.text();
+    assert.ok(expansion.includes('REMAINING_KEYWORD_GRIDS'));
+    assert.ok(expansion.includes("'major.magician'"));
+    assert.ok(expansion.includes("'minor.pentacles.king'"));
+  });
+});
