@@ -27,7 +27,7 @@ test('issue #26 five-card draft validates IDs, unique headings/terms and legible
         assert.ok(term.trim().length > 0, cardId + ': empty term');
         assert.equal(term, term.trim(), cardId + ': term whitespace');
         assert.ok(term.length <= 16, cardId + ': excessively long term ' + term);
-        assert.ok(!/[\\r\\n\\t]/.test(term), cardId + ': control whitespace');
+        assert.ok(!/[\r\n\t]/.test(term), cardId + ': control whitespace');
         assert.notEqual(term, group.heading, cardId + ': term duplicates heading');
         allTerms.push(term);
       }
