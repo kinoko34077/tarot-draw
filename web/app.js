@@ -892,6 +892,15 @@ function createReadingController(number) {
         }
       }
       refs.pilePanel.classList.add('hidden');
+    } catch (error) {
+      // Even unexpected response-processing errors may follow an already
+      // committed server draw, so do not restore an actionable Draw button.
+      state.drawOutcome = 'unknown';
+      state.phase = 'draw-uncertain';
+      refs.pilePanel.classList.add('hidden');
+      page.newReadingButton.classList.remove('hidden');
+      setTextStatus(refs.status,
+        `結果を安全に確定できませんでした。再抽選せず新しい占いからやり直してください。（${error.message}）`, 'error');
     } finally {
       state.pendingOperation = null;
       renderPiles();
