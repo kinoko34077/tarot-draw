@@ -374,6 +374,95 @@ async function expertTask() {
   };
 }
 
+// Machine-executed UI interactions: not a child or human usability study.
+async function axisWorkflowTask() {
+  const $ = q => document.querySelector(q);
+  const $ = q => [...document.querySelectorAll(q)];
+  $('#newReadingButton').click();
+  const reading = $('.reading-workbench').at(-1);
+  reading.scrollIntoView({ block: 'start', behavior: 'instant' });
+  const pick = q => reading.querySelector(q);
+  const columnNames = () => [...reading.querySelectorAll('.column-header .axis-inline-label')].map(el => el.textContent);
+  const rowNames = () => [...reading.querySelectorAll('.row-header .axis-inline-label')].map(el => el.textContent);
+  const rename = (kind, index, value) => {
+    const header = kind === 'row' ? '.row-header' : '.column-header';
+    const button = reading.querySelectorAll(header + ' .axis-inline-label')[index];
+    button.click();
+    const input = reading.querySelectorAll(header + ' .axis-inline-input')[index];
+    if (!input) throw Error('Editor missing for ' + kind + index);
+    input.value = value;
+    input.dispatchEvent(new KeyboardEvent('keydown', { bubbles: true, key: 'Enter' }));
+  };
+  ['甲','乙','丙'].forEach((name, index) => rename('column', index, name));
+  pick('.axis-add-row-header .axis-add-button').click();
+  ['先','後'].forEach((name, index) => rename('row', index, name));
+  const before = { columns: columnNames(), rows: rowNames() };
+  const grip = (kind,index) => reading.querySelectorAll((kind === 'row' ? '.row-header' : '.column-header') + ' .axis-menu-trigger')[index];
+  const actKey = (el, key) => el.dispatchEvent(new KeyboardEvent('keydown', { key, bubbles: true, cancelable: true }));
+  actKey(grip('column',0),'ArrowRight');
+  const keyboardColumn = columnNames();
+  pick('.axis-undo-button').click();
+  const keyboardUndo = columnNames();
+  pick('.axis-redo-button').click();
+  const keyboardRedo = columnNames();
+  pick('.axis-undo-button').click();
+  grip('column',0).click();
+  const menuLabels = [$('#moveAxisBeforeButton').textContent, $('#moveAxisAfterButton').textContent];
+  $('#moveAxisAfterButton').click();
+  const menuMove = columnNames();
+  pick('.axis-undo-button').click();
+  grip('column',1).click();
+  $('#deleteAxisButton').click();
+  const afterDelete = columnNames();
+  pick('.axis-undo-button').click();
+  const deleteUndo = columnNames();
+  actKey(grip('row',0),'ArrowDown');
+  const keyboardRow = rowNames();
+  pick('.axis-undo-button').click();
+  const rowUndo = rowNames();
+  return { before, keyboardColumn, keyboardUndo, keyboardRedo, menuLabels, menuMove,
+    afterDelete, deleteUndo, keyboardRow, rowUndo,
+    undoAvailable: !pick('.axis-undo-button').classList.contains('hidden'),
+    grip: Boolean(grip('row',0)) && Boolean(grip('column',0)) };
+}
+
+function axisPointerGeometry() {
+  const reading = [...document.querySelectorAll('.reading-workbench')].at(-1);
+  reading.scrollIntoView({ block:'start', behavior:'instant' });
+  const col = [...reading.querySelectorAll('.column-header')];
+  const grip = col[0].querySelector('.axis-menu-trigger').getBoundingClientRect();
+  const target = col[2].getBoundingClientRect();
+  const at = r => ({ x: Math.round(r.x + r.width/2), y: Math.round(r.y + r.height/2) });
+  return { from: at(grip), to: at(target), xViewport: innerWidth };
+}
+function axisPointerResult() {
+  const reading = [...document.querySelectorAll('.reading-workbench')].at(-1);
+  return { order: [...reading.querySelectorAll('.column-header .axis-inline-label')].map(el=>el.textContent),
+    dropIndicatorCount: reading.querySelectorAll('.axis-drop-target').length,
+    undoVisible: !reading.querySelector('.axis-undo-button').classList.contains('hidden') };
+}
+function axisResetAndShuffle() {
+  const reading = [...document.querySelectorAll('.reading-workbench')].at(-1);
+  reading.querySelector('.axis-undo-button').click();
+  const afterUndo = [...reading.querySelectorAll('.column-header .axis-inline-label')].map(el=>el.textContent);
+  reading.querySelector('.shuffle-button').click();
+  return { afterUndo };
+}
+async function axisAfterShuffle() {
+  const reading = [...document.querySelectorAll('.reading-workbench')].at(-1);
+  for (let i=0;i<120 && reading.querySelectorAll('.pile-button').length!==3;i++) await new Promise(r=>setTimeout(r,100));
+  const current = () => [...reading.querySelectorAll('.column-header .axis-inline-label')].map(el=>el.textContent);
+  const grip = reading.querySelector('.column-header .axis-menu-trigger');
+  const before = current();
+  grip.dispatchEvent(new KeyboardEvent('keydown',{key:'ArrowRight', bubbles:true, cancelable:true}));
+  const after = current();
+  reading.querySelector('.axis-undo-button').click();
+  const undo = current();
+  return { pileCount:reading.querySelectorAll('.pile-button').length, before, after, undo,
+    addButtonCount:reading.querySelectorAll('.axis-add-button').length,
+    canMoveAfterShuffle:before[0]!==after[0] };
+}
+
 try {
   server.listen(0, '127.0.0.1');
   await once(server, 'listening');
@@ -456,6 +545,47 @@ try {
     { renamed: expert.completedRename, parallel: expert.parallelLabelMatches, cardsUnchanged: expert.unchangedCardsAfterRename },
     'all true', expert.completedRename && expert.parallelLabelMatches && expert.unchangedCardsAfterRename);
 
+  // This is a third fresh reading; earlier novice/expert draw results remain intact.
+  const axis = await evaluate(axisWorkflowTask);
+  result('axis-edit-and-reorder', 'keyboard / menu / novice recovery scripted proxy', axis);
+  const eq=(a,b)=>JSON.stringify(a)===JSON.stringify(b);
+  check('axis-workflow', 'keyboard column move, undo, redo',
+    {moved:axis.keyboardColumn,undo:axis.keyboardUndo,redo:axis.keyboardRedo},
+    '乙甲丙 -> 甲乙丙 -> 乙甲丙',
+    eq(axis.keyboardColumn,['乙','甲','丙']) && eq(axis.keyboardUndo,['甲','乙','丙']) &&
+    eq(axis.keyboardRedo,['乙','甲','丙']));
+  check('axis-workflow', 'contextual menu movement', axis.menuMove,
+    ['乙','甲','丙'], eq(axis.menuMove,['乙','甲','丙']));
+  check('axis-workflow', 'delete row/column is undoable', {afterDelete:axis.afterDelete,undo:axis.deleteUndo},
+    '甲丙 -> 甲乙丙', eq(axis.afterDelete,['甲','丙']) && eq(axis.deleteUndo,['甲','乙','丙']));
+  check('axis-workflow', 'keyboard row move and undo', {moved:axis.keyboardRow,undo:axis.rowUndo},
+    '後先 -> 先後',eq(axis.keyboardRow,['後','先']) && eq(axis.rowUndo,['先','後']));
+  const pos = await evaluate(axisPointerGeometry);
+  for (const [type,point,buttons] of [
+    ['mouseMoved',pos.from,0],['mousePressed',pos.from,1],
+    ['mouseMoved',{x:pos.from.x+9,y:pos.from.y},1],
+    ['mouseMoved',pos.to,1],['mouseReleased',pos.to,0]]) {
+    await cdp.call('Input.dispatchMouseEvent',{ type, x:point.x, y:point.y,
+      button: type==='mousePressed'||type==='mouseReleased'?'left':'none', buttons,
+      clickCount:type==='mousePressed'?1:0 });
+  }
+  const drag = await evaluate(axisPointerResult);
+  result('axis-real-chrome-mouse-drag', 'actual CDP Input mouse and browser hit-test', {pos,drag});
+  check('axis-workflow', 'real Chrome mouse drag reorders column',drag.order,
+    ['乙','丙','甲'],eq(drag.order,['乙','丙','甲']));
+  check('axis-workflow', 'drag destination indicator clears after drop',drag.dropIndicatorCount,0,
+    drag.dropIndicatorCount===0);
+  const shuffleStart=await evaluate(axisResetAndShuffle);
+  const shuffle=await evaluate(axisAfterShuffle);
+  result('axis-post-shuffle', 'same fixed session scripted keyboard alternative', {shuffleStart,shuffle});
+  check('axis-workflow','undo dragged move restores original order',shuffleStart.afterUndo,
+    ['甲','乙','丙'],eq(shuffleStart.afterUndo,['甲','乙','丙']));
+  check('axis-workflow','reorder and undo after shuffle without new session',
+    {before:shuffle.before,after:shuffle.after,undo:shuffle.undo,piles:shuffle.pileCount},
+    '3 original piles / names moved and undone',
+    shuffle.pileCount===3 && eq(shuffle.before,['甲','乙','丙']) &&
+    eq(shuffle.after,['乙','甲','丙']) && eq(shuffle.undo,['甲','乙','丙']));
+  
   const failures = report.checks.filter(item => item.verdict === 'FAIL');
   report.summary = { passes: report.checks.length - failures.length, failures: failures.length,
     unverified: report.unverified.length, checks: report.checks.length };
@@ -475,4 +605,5 @@ try {
   // Chrome's child processes may still be flushing cache files immediately after kill.
   await rm(profile, { recursive: true, force: true, maxRetries: 12, retryDelay: 150 });
 }
-if (report.verdict === 'ERROR' || (mode === 'gate' && report.verdict !== 'PASS')) process.exitCode = 1;
+const acceptedAxisFailure = report.checks.some(item => item.scenario === 'axis-workflow' && item.verdict !== 'PASS');
+if (report.verdict === 'ERROR' || acceptedAxisFailure || (mode === 'gate' && report.verdict !== 'PASS')) process.exitCode = 1;
