@@ -30,6 +30,8 @@ jobs:
       - name: Verify five-card dialog in local Chromium (desktop/mobile)
         run: node scripts/card-keyword-branch-smoke.mjs
       - name: Collect machine-observed child-like/novice/expert UX evidence (baseline, existing failures classified)
+        env:
+          UX_HEAD_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
         run: node scripts/ux-persona-evidence.mjs --baseline
       - name: Upload persona-proxy quantitative evidence
         if: always()
