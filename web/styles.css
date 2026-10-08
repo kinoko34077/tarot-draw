@@ -531,13 +531,13 @@ input:focus-visible {
   align-items: flex-start;
   min-width: 0;
 }
-.detail-card-visual,
-.detail-custom-card-face {
+.detail-visual-slot .detail-card-visual,
+.detail-visual-slot .detail-custom-card-face {
   width: 100%;
   height: auto;
   aspect-ratio: 150 / 257;
 }
-.detail-card-art {
+.detail-card-visual img.detail-card-art {
   width: 100%;
   height: 100%;
   object-fit: contain;
