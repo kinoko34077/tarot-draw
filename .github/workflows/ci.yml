@@ -29,6 +29,15 @@ jobs:
         run: node scripts/ux-p0-race-smoke.mjs --expect-safe
       - name: Verify five-card dialog in local Chromium (desktop/mobile)
         run: node scripts/card-keyword-branch-smoke.mjs
+      - name: Collect machine-observed child-like/novice/expert UX evidence (baseline, existing failures classified)
+        run: node scripts/ux-persona-evidence.mjs --baseline
+      - name: Upload persona-proxy quantitative evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ux-persona-evidence
+          path: ux-persona-evidence.json
+          if-no-files-found: warn
       - name: Retain branch-only UI screenshots
         if: always()
         uses: actions/upload-artifact@v4
