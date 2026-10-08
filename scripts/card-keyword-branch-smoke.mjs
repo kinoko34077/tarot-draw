@@ -421,7 +421,8 @@ try {
       tableScrollWidth:table.scrollWidth,tableClientWidth:table.clientWidth,
       imageWidth:a.width,imageHeight:a.height,imageOnLeft:a.right+2<=t.left,
       topAligned:Math.abs(a.top-header.top)<=4,
-      headingVisible:headingEl.textContent.trim()==='キーワード'&&heading.width>=40,
+      headingVisible:headingEl.textContent.trim()==='キーワード'&&heading.width>0&&getComputedStyle(headingEl).visibility==='visible',
+      headingTextFits:headingEl.scrollWidth<=headingEl.clientWidth+1,
       infoAdjacent:info.left>=heading.right&&Math.abs((info.top+info.bottom)/2-(heading.top+heading.bottom)/2)<=9,
       tableBelowHeading:t.top>=header.bottom-2,
       unusedBelowArt:Math.max(0,t.bottom-a.bottom),
@@ -432,7 +433,7 @@ try {
   })()`);
   if (narrow.viewportWidth !== 320 || narrow.scrollWidth > narrow.clientWidth+1 ||
     narrow.tableScrollWidth > narrow.tableClientWidth+1 || narrow.imageWidth < 160 ||
-    !narrow.imageOnLeft || !narrow.topAligned || !narrow.headingVisible ||
+    !narrow.imageOnLeft || !narrow.topAligned || !narrow.headingVisible || !narrow.headingTextFits ||
     !narrow.infoAdjacent || !narrow.tableBelowHeading || narrow.unusedBelowArt > 80 ||
     narrow.gapBeforeEssence > 20 || narrow.verticalCells !== 25 || narrow.overflowCells !== 0) {
     throw Error('320px side-by-side vertical-table geometry failed: ' + JSON.stringify(narrow));
