@@ -539,6 +539,7 @@ input:focus-visible {
   min-width: 0;
   max-width: 100%;
   overflow-x: auto;
+  overflow-anchor: none;
   overscroll-behavior-inline: contain;
   padding-bottom: 3px;
 }
