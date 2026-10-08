@@ -66,6 +66,7 @@ async function evaluate(fn) {
 const report = {
   schema: 'tarot-ux-persona-evidence.v1',
   mode,
+  executable: CHROME_BIN,
   origin: 'real local Chromium + local Node API; synthetic scripted actions, NOT actual children, novices or experts',
   policy: ['03_Development_Specification_Principles.md §15', '利用者起点 UI-UX 設計原則', 'devflow#161/#176/#177', '.ai-guidelines#23'],
   commit: process.env.GITHUB_SHA || 'LOCAL_HEAD_UNSPECIFIED',
@@ -321,7 +322,11 @@ try {
   console.log('UX_PERSONA_EVIDENCE=' + JSON.stringify({ reportPath, mode, verdict: report.verdict, summary: report.summary }));
   cdp?.close();
   browser?.kill();
+  if (browser && browser.exitCode === null && browser.signalCode === null) {
+    await Promise.race([once(browser, 'exit'), sleep(1500)]);
+  }
   await new Promise(resolve => server.close(resolve));
-  await rm(profile, { recursive: true, force: true });
+  // Chrome's child processes may still be flushing cache files immediately after kill.
+  await rm(profile, { recursive: true, force: true, maxRetries: 12, retryDelay: 150 });
 }
 if (report.verdict === 'ERROR' || (mode === 'gate' && report.verdict !== 'PASS')) process.exitCode = 1;
