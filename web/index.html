@@ -34,7 +34,7 @@
   <dialog id="cardDetailDialog" class="card-detail-dialog" aria-labelledby="cardDetailTitle">
     <div class="card-detail-panel">
       <header class="card-detail-header">
-        <div>
+        <div class="card-detail-heading-line">
           <h2 id="cardDetailTitle"></h2>
           <p id="cardDetailOrientation" class="detail-orientation"></p>
         </div>
@@ -45,19 +45,25 @@
       <div class="card-detail-body">
         <div id="cardDetailVisual" class="detail-visual-slot"></div>
         <section id="cardDetailKeywordGrid" class="card-detail-keywords hidden" aria-labelledby="cardDetailKeywordHeading">
-          <div class="keyword-grid-heading-bar">
-            <h3 id="cardDetailKeywordHeading">キーワード</h3>
-            <details id="cardDetailSourceInfo" class="keyword-source-disclosure hidden">
-              <summary class="keyword-source-trigger" aria-label="キーワードの意味と出典を表示" title="キーワードの意味と出典"><span aria-hidden="true">i</span></summary>
-              <div class="keyword-source-popover">
-                <strong>キーワードについて</strong>
-                <p>正・逆位置の両面を含む、カード全体の関連語です。</p>
-                <p>出典：Tarotoo Tarot Dataset（MIT）。語句は独自編集。</p>
-                <a href="https://github.com/Tarotoo-com/tarotoo-tarot-dataset" target="_blank" rel="noopener noreferrer">出典・利用条件</a>
-              </div>
-            </details>
-          </div>
           <table id="cardDetailKeywordRows" class="keyword-grid-table" aria-labelledby="cardDetailKeywordHeading">
+            <thead>
+              <tr>
+                <th colspan="5" class="keyword-grid-title-cell">
+                  <div class="keyword-grid-heading-bar">
+                    <h3 id="cardDetailKeywordHeading">キーワード</h3>
+                    <details id="cardDetailSourceInfo" class="keyword-source-disclosure hidden">
+                      <summary class="keyword-source-trigger" aria-label="キーワードの意味と出典を表示" title="キーワードの意味と出典"><span aria-hidden="true">i</span></summary>
+                      <div class="keyword-source-popover">
+                        <strong>キーワードについて</strong>
+                        <p>正・逆位置の両面を含む、カード全体の関連語です。</p>
+                        <p>出典：Tarotoo Tarot Dataset（MIT）。語句は独自編集。</p>
+                        <a href="https://github.com/Tarotoo-com/tarotoo-tarot-dataset" target="_blank" rel="noopener noreferrer">出典・利用条件</a>
+                      </div>
+                    </details>
+                  </div>
+                </th>
+              </tr>
+            </thead>
             <tbody></tbody>
           </table>
         </section>
@@ -67,14 +73,16 @@
               <h3>本質</h3>
               <p id="cardDetailEssence"></p>
             </section>
-            <section id="cardDetailUprightBlock" class="detail-meaning" data-active="false">
-              <h3>正位置</h3>
-              <p id="cardDetailUpright"></p>
-            </section>
-            <section id="cardDetailReversedBlock" class="detail-meaning" data-active="false">
-              <h3>逆位置</h3>
-              <p id="cardDetailReversed"></p>
-            </section>
+            <div class="detail-orientations" role="group" aria-label="正位置と逆位置の意味を比較">
+              <section id="cardDetailUprightBlock" class="detail-meaning" data-active="false" aria-label="正位置">
+                <h3>正位置 <span class="detail-picked-label hidden">今回</span></h3>
+                <p id="cardDetailUpright"></p>
+              </section>
+              <section id="cardDetailReversedBlock" class="detail-meaning" data-active="false" aria-label="逆位置">
+                <h3>逆位置 <span class="detail-picked-label hidden">今回</span></h3>
+                <p id="cardDetailReversed"></p>
+              </section>
+            </div>
           </div>
           <section id="cardDetailCustom" class="detail-meaning hidden">
             <h3>独自カード</h3>
