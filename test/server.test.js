@@ -127,18 +127,26 @@ test('local server serves generated static ruby module without external image as
   });
 });
 
-test('local server serves the keyword grid module required by the detail dialog', async () => {
+test('local server serves the complete two-module 78-card keyword corpus', async () => {
   await withServer(async base => {
-    const [app, keywords] = await Promise.all([
+    const [app, keywords, corpus] = await Promise.all([
       fetch(`${base}/app.js`),
-      fetch(`${base}/card-keyword-grid.js`)
+      fetch(`${base}/card-keyword-grid.js`),
+      fetch(`${base}/card-keyword-corpus.js`)
     ]);
     assert.equal(app.status, 200);
     assert.equal(keywords.status, 200);
+    assert.equal(corpus.status, 200);
     assert.ok((keywords.headers.get('content-type') ?? '').includes('text/javascript'));
+    assert.ok((corpus.headers.get('content-type') ?? '').includes('text/javascript'));
     assert.ok((await app.text()).includes("from './card-keyword-grid.js'"));
-    const module = await keywords.text();
-    assert.ok(module.includes('KEYWORD_GRID_DRAFTS'));
-    assert.ok(module.includes('keywordGridDraft'));
+    const entry = await keywords.text();
+    assert.ok(entry.includes("from './card-keyword-corpus.js'"));
+    assert.ok(entry.includes('CARD_KEYWORD_GRIDS'));
+    assert.ok(entry.includes('keywordGridDraft'));
+    const expansion = await corpus.text();
+    assert.ok(expansion.includes('REMAINING_KEYWORD_GRIDS'));
+    assert.ok(expansion.includes("'major.magician'"));
+    assert.ok(expansion.includes("'minor.pentacles.king'"));
   });
 });
