@@ -155,7 +155,13 @@ try {
       Math.abs(infoRect.top + infoRect.height / 2 - headingRect.top - headingRect.height / 2) > 9 ||
       infoRect.left < headingRect.right ||
       infoRect.right > gridRect.right + 3) {
-      throw Error('Keyword title/info must sit together directly above the right-hand table');
+      throw Error('Keyword title/info should occupy the table heading cell and align with card: '+JSON.stringify({
+        headerTop:headerRect.top, imageTop:visualRect.top, tableTop:tableRect.top, headerBottom:headerRect.bottom,
+        infoCenter:(infoRect.top+infoRect.bottom)/2, titleCenter:(headingRect.top+headingRect.bottom)/2,
+        infoLeft:infoRect.left, titleRight:headingRect.right, infoRight:infoRect.right, gridRight:gridRect.right,
+        tableWidth:tableRect.width, imageWidth:visualRect.width,
+        insideThead:Boolean(heading.closest('thead')), titleColSpan:one('#cardDetailKeywordRows thead th')?.colSpan
+      }));
     }
     const copyTop = one('.card-detail-copy').getBoundingClientRect().top;
     if (gridRect.left < visualRect.right + 4 || Math.abs(gridRect.top - visualRect.top) > 4) {
