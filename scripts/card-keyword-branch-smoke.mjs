@@ -178,24 +178,29 @@ try {
   await pause(150);
   const mobile = await evaluate(`(() => {
     const one = q => document.querySelector(q);
-    const host = one('#cardDetailKeywordGrid');
-    const image = one('#cardDetailVisual');
-    const rows = [...host.querySelectorAll('.keyword-grid-group')];
-    if (!host || !image || rows.length !== 5) throw Error('Missing mobile portrait rows');
-    if (host.scrollWidth > host.clientWidth + 1) throw Error('Keyword area still overflows horizontally');
+    const host = one('#cardDetailKeywordGrid'), art = one('#cardDetailVisual img.detail-card-art');
+    const table = one('#cardDetailKeywordRows'), cells = [...table.querySelectorAll('th, td')];
+    if (!host || !art || table.querySelectorAll('tr').length !== 5 || cells.length !== 25) throw Error('Missing mobile semantic 5x5 table');
+    const a = art.getBoundingClientRect(), t = table.getBoundingClientRect();
+    if (a.right + 2 > t.left || Math.abs(a.top - t.top) > 4) throw Error('Card must be upper left with table immediately right');
+    if (a.width < 190) throw Error('390px artwork is not enlarged from 146px');
+    if (Math.abs(a.bottom - t.bottom) > 80) throw Error('Unused blank space under card at 390px');
+    const copyTop = one('.card-detail-copy').getBoundingClientRect().top;
+    if (copyTop - Math.max(a.bottom,t.bottom) > 20) throw Error('Wasted gap before Essence');
+    if (host.scrollWidth > host.clientWidth + 1 || table.scrollWidth > table.clientWidth + 1) throw Error('390px table overflows horizontally');
     host.scrollLeft = 999;
-    if (host.scrollLeft !== 0) throw Error('Keyword area is still horizontally scrollable');
-    const bounds = host.getBoundingClientRect();
-    if (rows.some(row => row.getBoundingClientRect().right > bounds.right + 1)) throw Error('Keyword row clipped on mobile');
-    if (image.querySelector('img')?.getBoundingClientRect().width < 130) throw Error('Mobile card art not enlarged');
-    if (image.getBoundingClientRect().top >= host.getBoundingClientRect().top) throw Error('Mobile card image not above keyword rows');
-    const visibleText = [...host.querySelectorAll('li')].every(el => el.textContent.trim().length > 0);
-    if (!visibleText) throw Error('Mobile keywords missing text');
-    const shortLabels = [...host.querySelectorAll('h3, li')];
-    if (shortLabels.some(el => [...el.textContent.trim()].length > 6)) throw Error('Keyword too long in browser');
-    if (shortLabels.some(el => el.getBoundingClientRect().height > 40)) throw Error('Keyword wraps visually');
-    if (!one('#cardDetailDialog').open) throw Error('Mobile resize closed dialog');
-    return {width: window.innerWidth, scrollWidth: host.scrollWidth, clientWidth: host.clientWidth, horizontalScrollLeft: host.scrollLeft, artworkWidth: image.querySelector('img')?.getBoundingClientRect().width, termsVisibleInDOM: visibleText};
+    if (host.scrollLeft !== 0) throw Error('Keyword area horizontally scrollable');
+    if (cells.some(cell => getComputedStyle(cell).writingMode !== 'vertical-rl' ||
+      getComputedStyle(cell).textOrientation !== 'upright' ||
+      cell.scrollHeight > cell.clientHeight + 2 || cell.scrollWidth > cell.clientWidth + 2)) {
+      throw Error('Vertical text rotated or clipped in table cells');
+    }
+    if (one('.keyword-grid-note')) throw Error('Scope explanation must only live inside info popup');
+    if (!one('#cardDetailDialog').open) throw Error('Detail dialog closed on resize');
+    return {width:window.innerWidth,scrollWidth:host.scrollWidth,clientWidth:host.clientWidth,
+      artworkWidth:a.width,artworkHeight:a.height,tableWidth:t.width,tableHeight:t.height,
+      imageTableGap:Math.abs(a.bottom-t.bottom),essenceGap:copyTop-Math.max(a.bottom,t.bottom),
+      verticalCells:cells.length};
   })()`);
   await screenshot('keyword-grid-mobile.png');
   const close = await evaluate(`(async () => {
@@ -248,7 +253,7 @@ try {
       if (!dialog.open) throw Error('Card detail failed to open in coverage iteration');
       if (hasImage) {
         const groups = host.querySelectorAll('.keyword-grid-group');
-        const terms = host.querySelectorAll('.keyword-grid-group li');
+        const terms = host.querySelectorAll('.keyword-grid-group td');
         if (host.classList.contains('hidden') || groups.length !== 5 || terms.length !== 20) {
           throw Error('Rendered grid missing on ' + trigger.getAttribute('aria-label'));
         }
@@ -328,7 +333,7 @@ try {
     const info = document.querySelector('#cardDetailSourceInfo');
     info.querySelector('summary').click();
     if (!info.open) throw Error('Click failed to reopen source popup');
-    document.querySelector('.keyword-grid-note').click();
+    document.querySelector('.keyword-grid-table td').click();
     return {dismissed: !info.open,dialogOpen: document.querySelector('#cardDetailDialog').open};
   })()`);
   if (!outside.dismissed || !outside.dialogOpen) throw Error('Click outside did not dismiss source popup');
