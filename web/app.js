@@ -100,8 +100,6 @@ function renderKeywordGrid(cardId) {
   const host = page.cardDetailKeywordGrid;
   const groups = cardId ? keywordGridDraft(cardId) : null;
   host.replaceChildren();
-  // Every newly opened card begins at its first keyword column, not the prior card's scroll position.
-  host.scrollLeft = 0;
   host.classList.toggle('hidden', !groups);
   if (!groups) return;
 
@@ -131,6 +129,8 @@ function renderKeywordGrid(cardId) {
   link.rel = 'noopener noreferrer';
   source.append(link);
   host.append(columns, source);
+  // Reset after replacement/reflow so each card opens on the first column.
+  host.scrollLeft = 0;
 }
 
 function openCardDetail(card, trigger) {
