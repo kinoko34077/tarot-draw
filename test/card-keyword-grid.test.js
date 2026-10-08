@@ -2,21 +2,37 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import { CARD_CATALOG } from '../src/cards.js';
-import { KEYWORD_GRID_DRAFTS, keywordGridDraft } from '../web/card-keyword-grid.js';
+import { CARD_KEYWORD_GRIDS, KEYWORD_GRID_DRAFTS, keywordGridDraft } from '../web/card-keyword-grid.js';
 
 const specimenIds = [
   'major.fool', 'major.death', 'major.devil',
   'minor.swords.3', 'minor.cups.ace'
 ];
 
-test('issue #26 five-card draft validates IDs, unique headings/terms and legible word lengths', () => {
+test('issue #26 sources all 78 standard cards exactly once; custom cards excluded', () => {
   assert.deepEqual(Object.keys(KEYWORD_GRID_DRAFTS).sort(), [...specimenIds].sort());
-  const ids = new Set(CARD_CATALOG.map(card => card.card_id));
-  for (const cardId of specimenIds) {
-    assert.ok(ids.has(cardId));
+  const standard = CARD_CATALOG.filter(card => card.arcana !== 'meta');
+  assert.equal(standard.length, 78);
+  assert.equal(Object.keys(CARD_KEYWORD_GRIDS).length, 78);
+  assert.deepEqual(
+    Object.keys(CARD_KEYWORD_GRIDS).sort(),
+    standard.map(card => card.card_id).sort()
+  );
+  assert.equal(Object.keys(CARD_KEYWORD_GRIDS).filter(id => id.startsWith('major.')).length, 22);
+  assert.equal(Object.keys(CARD_KEYWORD_GRIDS).filter(id => id.startsWith('minor.')).length, 56);
+  assert.equal(keywordGridDraft('meta.title'), null);
+  assert.equal(keywordGridDraft('meta.guarantee'), null);
+  assert.equal(keywordGridDraft('__proto__'), null);
+  assert.equal(keywordGridDraft('constructor'), null);
+});
+
+test('every standard card has five readable independent headings with four unique terms', () => {
+  for (const { card_id: cardId, arcana } of CARD_CATALOG.filter(card => card.arcana !== 'meta')) {
     const groups = keywordGridDraft(cardId);
+    assert.ok(groups, cardId);
     assert.equal(groups.length, 5, cardId);
-    assert.equal(new Set(groups.map(group => group.heading)).size, 5, cardId);
+    const headings = groups.map(group => group.heading);
+    assert.equal(new Set(headings).size, 5, cardId);
     const allTerms = [];
     for (const group of groups) {
       assert.ok(group.heading.trim());
@@ -33,16 +49,17 @@ test('issue #26 five-card draft validates IDs, unique headings/terms and legible
       }
     }
     assert.equal(new Set(allTerms).size, 20, cardId + ': duplicated terms across columns');
+    assert.ok(arcana === 'major' || arcana === 'minor');
   }
 });
 
-test('draft-only content does not invent reference data for the remaining cards or custom cards', () => {
-  assert.equal(keywordGridDraft('meta.title'), null);
-  assert.equal(keywordGridDraft('meta.guarantee'), null);
-  assert.equal(keywordGridDraft('major.magician'), null);
+test('lookup supplies a defensive copy and does not invent unknown data', () => {
+  assert.equal(keywordGridDraft('major.nonexistent'), null);
   const first = keywordGridDraft('major.fool');
   first[0].terms[0] = 'mutated';
+  first[0].heading = 'changed';
   assert.notEqual(keywordGridDraft('major.fool')[0].terms[0], 'mutated');
+  assert.notEqual(keywordGridDraft('major.fool')[0].heading, 'changed');
 });
 
 test('prototype is browser text, keeps RWS artwork and puts explanations below the grid', async () => {
