@@ -538,18 +538,29 @@ input:focus-visible {
   padding: 9px 12px;
   border-bottom: 1px solid var(--border);
   display: flex;
-  align-items: flex-start;
+  align-items: center;
   gap: 10px;
   background: var(--surface);
 }
+.card-detail-heading-line {
+  display: flex;
+  flex: 1 1 auto;
+  min-width: 0;
+  align-items: baseline;
+  gap: 8px;
+}
 .card-detail-header h2 {
   margin: 0;
+  min-width: 0;
+  overflow-wrap: anywhere;
   font-size: 1rem;
   line-height: 1.25;
 }
 .detail-orientation {
-  margin: 2px 0 0;
+  flex: 0 0 auto;
+  margin: 0;
   color: var(--muted);
+  white-space: nowrap;
   font-size: .8rem;
   font-weight: 650;
 }
@@ -613,10 +624,10 @@ input:focus-visible {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  flex: 0 0 auto;
   gap: 3px;
   min-height: 36px;
-  margin: 0 2px 2px;
+  padding: 0 3px;
+  margin: 0;
 }
 .keyword-grid-heading-bar h3 {
   min-width: 0;
@@ -630,21 +641,22 @@ input:focus-visible {
 .keyword-grid-table {
   flex: 1 1 auto;
   table-layout: fixed;
-  border-collapse: separate;
-  border-spacing: 4px;
+  border-collapse: collapse;
+  border-spacing: 0;
+  border: 1px solid var(--border-strong);
   width: 100%;
-  height: auto;
+  height: 100%;
   min-height: 0;
   min-width: 0;
 }
-.keyword-grid-table tr { height: 20%; }
+.keyword-grid-table tbody tr { height: auto; }
 .keyword-grid-table th,
 .keyword-grid-table td {
   box-sizing: border-box;
   width: 20%;
-  padding: 5px 2px;
-  border: 1px solid var(--border);
-  border-radius: 5px;
+  padding: 4px 1px;
+  border: 1px solid var(--border-strong);
+  border-radius: 0;
   writing-mode: vertical-rl;
   text-orientation: upright;
   white-space: nowrap;
@@ -655,13 +667,23 @@ input:focus-visible {
   font-weight: 500;
   line-height: 1.15;
 }
-.keyword-grid-table th {
+.keyword-grid-table tbody th {
   font-weight: 750;
   color: var(--accent);
   background: var(--surface-soft);
-  border-color: var(--border-strong);
 }
-.keyword-grid-table td { background: var(--surface); }
+.keyword-grid-table tbody td { background: var(--surface); }
+.keyword-grid-table thead th.keyword-grid-title-cell {
+  width: auto;
+  padding: 0 2px;
+  writing-mode: horizontal-tb;
+  text-orientation: mixed;
+  white-space: normal;
+  text-align: left;
+  color: inherit;
+  font-weight: 700;
+  background: var(--surface-soft);
+}
 .keyword-source-disclosure { position: relative; flex: 0 0 auto; }
 .keyword-source-trigger {
   display: grid;
@@ -709,6 +731,19 @@ input:focus-visible {
   gap: 8px;
 }
 #cardDetailReference { display: grid; gap: 7px; }
+.detail-orientations {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  align-items: stretch;
+  gap: 7px;
+}
+.detail-orientations > .detail-meaning { min-width: 0; }
+.detail-picked-label {
+  margin-left: 3px;
+  color: var(--accent);
+  font-size: .72em;
+  font-weight: 750;
+}
 .detail-meaning {
   border: 1px solid var(--border);
   border-radius: 5px;
@@ -721,6 +756,7 @@ input:focus-visible {
 }
 .detail-meaning h3 { margin: 0 0 3px; font-size: .76rem; color: var(--muted); }
 .detail-meaning[data-active="true"] h3 { color: var(--accent); }
+.detail-meaning[data-active="true"] { box-shadow: inset 3px 0 0 var(--accent); }
 .detail-meaning p { margin: 0; font-size: .86rem; line-height: 1.55; }
 #cardDetailEssence { font-size: .98rem; line-height: 1.6; }
 
@@ -785,7 +821,7 @@ input:focus-visible {
     font-size: clamp(.78rem, 2vw, .96rem);
     line-height: 1.03;
     padding: 2px 1px;
-    border-radius: 3px;
+    border-radius: 0;
   }
   .detail-visual-slot { justify-content: flex-start; }
   .art-credit { padding-inline: 8px; text-align: left; }
