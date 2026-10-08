@@ -223,9 +223,41 @@ try {
       throw new Error('Attachment-backed detail text is missing.');
     }
 
+    const keywordTable = one('#cardDetailKeywordRows');
+    const keywordBodyRows = [...keywordTable.querySelectorAll('tbody tr')];
+    const tableHeading = keywordTable.querySelector('thead th');
+    if (keywordBodyRows.length !== 5 ||
+        keywordBodyRows.some(row => row.children.length !== 5 || row.firstElementChild?.getAttribute('scope') !== 'row') ||
+        tableHeading?.colSpan !== 5 ||
+        !tableHeading.contains(one('#cardDetailKeywordHeading')) ||
+        !tableHeading.contains(one('#cardDetailSourceInfo')) ||
+        getComputedStyle(keywordTable).borderCollapse !== 'collapse') {
+      throw new Error('Published card detail lacks a single ruled semantic 5x5 table and integrated info heading.');
+    }
+    const allKeywordCells = keywordBodyRows.flatMap(row => [...row.children]);
+    if (!allKeywordCells.every(cell =>
+      getComputedStyle(cell).writingMode === 'vertical-rl' &&
+      parseFloat(getComputedStyle(cell).borderRightWidth) >= 1 &&
+      parseFloat(getComputedStyle(cell).borderBottomWidth) >= 1)) {
+      throw new Error('Published keyword cells have missing Japanese vertical writing or column/row ruling.');
+    }
+    const meaningUprightRect = one('#cardDetailUprightBlock').getBoundingClientRect();
+    const meaningReversedRect = one('#cardDetailReversedBlock').getBoundingClientRect();
+    const detailTitleRect = one('#cardDetailTitle').getBoundingClientRect();
+    const detailOrientationRect = one('#cardDetailOrientation').getBoundingClientRect();
+    if (Math.abs(meaningUprightRect.top - meaningReversedRect.top) > 3 ||
+        meaningUprightRect.left >= meaningReversedRect.left ||
+        Math.abs(detailTitleRect.top - detailOrientationRect.top) > 12) {
+      throw new Error('Published card detail title/orientation or upright/reversed meanings are not adjacent.');
+    }
+
     const active = one('.detail-meaning[data-active="true"]');
     const expectedActiveId = triggerOrientation === '逆位置' ? 'cardDetailReversedBlock' : 'cardDetailUprightBlock';
-    if (active?.id !== expectedActiveId) throw new Error('Actual orientation meaning is not emphasized.');
+    if (active?.id !== expectedActiveId ||
+        !active.getAttribute('aria-label')?.includes('今回の抽選結果') ||
+        active.querySelector('.detail-picked-label')?.classList.contains('hidden')) {
+      throw new Error('Actual orientation meaning lacks visible and assistive highlighting.');
+    }
 
     const detailImage = one('#cardDetailVisual img.card-art');
     if (!detailImage || !detailImage.src.includes('/assets/cards/detail/') || !detailImage.src.endsWith('.webp')) {

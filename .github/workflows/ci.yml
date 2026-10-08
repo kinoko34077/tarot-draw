@@ -10,7 +10,7 @@ permissions:
 jobs:
   test:
     runs-on: ubuntu-latest
-    timeout-minutes: 5
+    timeout-minutes: 8
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -25,6 +25,13 @@ jobs:
           CHROME_BIN="$(command -v google-chrome || command -v chromium || command -v chromium-browser || true)"
           test -n "$CHROME_BIN"
           echo "CHROME_BIN=$CHROME_BIN" >> "$GITHUB_ENV"
+      - name: Install Japanese font for legible browser UX evidence
+        shell: bash
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq fonts-noto-cjk
+          fc-cache -f
+          fc-match -f '%{family}\n' ':lang=ja' | grep -i 'Noto'
       - name: Characterize P0 delayed shuffle and draw races (mocked local API, not production)
         run: node scripts/ux-p0-race-smoke.mjs --expect-safe
       - name: Verify five-card dialog in local Chromium (desktop/mobile)
