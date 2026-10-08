@@ -248,6 +248,86 @@ async function expertTask() {
     pick('.axis-add-row-header .axis-add-button').click();
     actions++;
   }
+
+  // Test an actual grid, without replacing the user's name with a separate
+  // permanent field or asking a person to perform the manipulation.
+  const columnNames = () => [...reading.querySelectorAll('.primary-matrix .column-header .axis-inline-label')]
+    .map(label => label.textContent);
+  const rowNames = () => [...reading.querySelectorAll('.primary-matrix .row-header .axis-inline-label')]
+    .map(label => label.textContent);
+  const rename = (selector, name) => {
+    const control = pick(selector);
+    if (!control) throw Error('Heading missing: ' + selector);
+    control.click();
+    const input = control.parentElement?.querySelector('.axis-inline-input')
+      || pick('.axis-inline-input');
+    if (!input) throw Error('Same-surface editing did not open');
+    input.value = name;
+    input.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }));
+    actions++;
+  };
+  rename('.column-header .axis-inline-label', '甲');
+  rename('.column-header:nth-child(3) .axis-inline-label', '乙');
+  rename('.row-header .axis-inline-label', '上');
+  const keys = (selector, key) => {
+    const grip = pick(selector);
+    if (!grip) throw Error('Missing drag grip ' + selector);
+    grip.dispatchEvent(new KeyboardEvent('keydown', { key, bubbles: true, cancelable: true }));
+    actions++;
+  };
+
+  keys('.column-header .axis-menu-trigger', 'ArrowRight');
+  const keyboardColumnMoved = columnNames()[0] === '乙' && columnNames()[1] === '甲';
+  const undo = () => {
+    const button = pick('.axis-undo-button');
+    if (!button || button.classList.contains('hidden')) throw Error('Visible Undo absent');
+    button.click();
+    actions++;
+  };
+  const redo = () => {
+    const button = pick('.axis-redo-button');
+    if (!button || button.classList.contains('hidden')) throw Error('Visible Redo absent');
+    button.click();
+    actions++;
+  };
+  undo();
+  const undoRestored = columnNames()[0] === '甲' && columnNames()[1] === '乙';
+  redo();
+  const redoReapplied = columnNames()[0] === '乙' && columnNames()[1] === '甲';
+  undo();
+
+  keys('.row-header .axis-menu-trigger', 'ArrowDown');
+  const keyboardRowMoved = rowNames()[0] === '行2' && rowNames()[1] === '上';
+  undo();
+
+  // Scripted touch-pointer contract (NOT a physical touchscreen study).
+  const grip = pick('.column-header .axis-menu-trigger');
+  const destination = reading.querySelectorAll('.primary-matrix .column-header')[2];
+  const start = grip.getBoundingClientRect();
+  const end = destination.getBoundingClientRect();
+  const pointer = (type, x, y) => grip.dispatchEvent(new PointerEvent(type, {
+    bubbles: true, cancelable: true, pointerId: 71, isPrimary: true,
+    pointerType: 'touch', button: 0, buttons: type === 'pointerup' ? 0 : 1,
+    clientX: x, clientY: y
+  }));
+  pointer('pointerdown', start.x + start.width / 2, start.y + start.height / 2);
+  pointer('pointermove', end.x + end.width / 2, end.y + end.height / 2);
+  pointer('pointerup', end.x + end.width / 2, end.y + end.height / 2);
+  actions++;
+  const touchColumnMoved = columnNames()[2] === '甲';
+  if (touchColumnMoved) undo();
+
+  const rowGrip = reading.querySelectorAll('.primary-matrix .row-header .axis-menu-trigger')[2];
+  rowGrip.click();
+  actions++;
+  const deleteButton = document.querySelector('#deleteAxisButton');
+  if (!deleteButton || deleteButton.classList.contains('hidden')) throw Error('Delete was not exposed near the row');
+  deleteButton.click();
+  actions++;
+  const removedRow = reading.querySelectorAll('.primary-matrix .row-header').length === 2;
+  undo();
+  const deleteUndoRestored = reading.querySelectorAll('.primary-matrix .row-header').length === 3;
+
   pick('.shuffle-button').click();
   actions++;
   await poll(() => [...reading.querySelectorAll('.pile-button')].filter(el => !el.disabled).length >= 2, 'piles ready');
@@ -279,6 +359,8 @@ async function expertTask() {
     unchangedCardsAfterRename = JSON.stringify(cardsBefore) === JSON.stringify(cardsAfter);
   }
   return {
+    keyboardColumnMoved, keyboardRowMoved, undoRestored, redoReapplied,
+    touchColumnMoved, removedRow, deleteUndoRestored,
     completedRename, parallelLabelMatches, unchangedCardsAfterRename,
     actions,
     layout: { rows: reading.querySelectorAll('.primary-matrix .row-header').length,
@@ -353,6 +435,17 @@ try {
 
   const expert = await evaluate(expertTask);
   result('expert-27x2', 'repeat/expert scripted proxy', expert);
+  check('expert-27x2', 'arrow-key row/column reorder', 
+    { row: expert.keyboardRowMoved, column: expert.keyboardColumnMoved }, 'both true',
+    expert.keyboardRowMoved && expert.keyboardColumnMoved);
+  check('expert-27x2', 'structural Undo and Redo preserve semantic order',
+    { undo: expert.undoRestored, redo: expert.redoReapplied }, 'both true',
+    expert.undoRestored && expert.redoReapplied);
+  check('expert-27x2', 'scripted touch pointer drop moves a whole column', expert.touchColumnMoved,
+    true, expert.touchColumnMoved);
+  check('expert-27x2', 'row deletion Undo fully restores 3x9 geometry',
+    { removed: expert.removedRow, restored: expert.deleteUndoRestored }, 'both true',
+    expert.removedRow && expert.deleteUndoRestored);
   check('expert-27x2', '3x9 two independent piles', { layout: expert.layout, results: expert.results },
     '3x9, 27 primary +27 parallel', expert.layout.rows === 3 && expert.layout.columns === 9 &&
       expert.results.primary === 27 && expert.results.parallel === 27);
