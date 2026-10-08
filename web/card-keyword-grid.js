@@ -1,8 +1,10 @@
-// Issue #26 W1: independent Japanese editorial prototypes, informed by Tarotoo's MIT data.
+import { REMAINING_KEYWORD_GRIDS } from './card-keyword-corpus.js';
+
+// Issue #26: original Japanese keyword-grid content, informed by Tarotoo's MIT data.
 // Never reproduce the unlicensed attachment's 22-card 5x4 heading/term selection or diagrams.
 // Source: https://github.com/Tarotoo-com/tarotoo-tarot-dataset (MIT, © 2026 Tarotoo).
 // Field-level editorial rationale: docs/KEYWORD_W1_REVIEW.md.
-// These five records remain editorial DRAFTS; other 73 standard cards are not invented.
+// The original five prototypes are retained here; other 73 independently authored records live in card-keyword-corpus.js.
 export const KEYWORD_GRID_DRAFTS = Object.freeze({
   'major.fool': [
     ['始まりの局面', ['新たな道を選ぶ', '白紙の可能性', '経験の第一歩', '未知との出会い']],
@@ -41,8 +43,14 @@ export const KEYWORD_GRID_DRAFTS = Object.freeze({
   ]
 });
 
+// Exactly the standard 78 cards. Special Title/GUARANTEE cards have no divinatory meanings.
+export const CARD_KEYWORD_GRIDS = Object.freeze({
+  ...KEYWORD_GRID_DRAFTS,
+  ...REMAINING_KEYWORD_GRIDS
+});
+
 export function keywordGridDraft(cardId) {
-  const groups = KEYWORD_GRID_DRAFTS[cardId];
+  const groups = Object.hasOwn(CARD_KEYWORD_GRIDS, cardId) ? CARD_KEYWORD_GRIDS[cardId] : null;
   if (!groups) return null;
   return groups.map(([heading, terms]) => ({
     heading,
