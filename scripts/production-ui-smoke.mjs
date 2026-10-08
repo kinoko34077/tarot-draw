@@ -22,7 +22,8 @@ async function waitForTarget() {
       const response = await fetch(`http://127.0.0.1:${DEBUG_PORT}/json/list`);
       if (response.ok) {
         const targets = await response.json();
-        const page = targets.find(target => target.type === 'page');
+        const page = targets.find(target => target.type === 'page' &&
+          target.url.startsWith('https://kinoko34077.github.io/tarot-draw/'));
         if (page) return page;
       }
     } catch {}
@@ -104,6 +105,18 @@ try {
       if (!element) throw new Error('Missing element: ' + selector);
       element.click();
     };
+
+    // Connecting to Chrome or seeing the static HTML does not mean JS has
+    // mounted the reading. Observe the actual ready-to-use action, not a timer.
+    for (let attempt = 0; attempt < 150 && !one('.axis-add-header .axis-add-button'); attempt++) {
+      await sleep(100);
+    }
+    if (!one('.axis-add-header .axis-add-button')) {
+      throw new Error('Published UI did not render an editable reading: ' +
+        JSON.stringify({ url: location.href, readyState: document.readyState,
+          readingCount: all('.reading-workbench').length,
+          title: document.title, bodyStart: document.body?.textContent?.slice(0, 220) }));
+    }
 
     if (one('#rowCount') || one('#columnCount')) throw new Error('Stale numeric dimension controls are deployed.');
     if (!one('#readings') || !one('#axisMenu')) throw new Error('Expected #13 workspace is not deployed.');

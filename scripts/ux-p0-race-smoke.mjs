@@ -419,6 +419,10 @@ try {
 } finally {
   socket?.close();
   browser?.kill('SIGKILL');
+  if (browser && browser.exitCode === null && browser.signalCode === null) {
+    await Promise.race([once(browser, 'exit'), new Promise(resolve => setTimeout(resolve, 1500))]);
+  }
   server.close();
-  await rm(profile,{recursive:true,force:true});
+  // Child Chrome cache writers may outlive the parent signal very briefly.
+  await rm(profile,{recursive:true,force:true,maxRetries:12,retryDelay:150});
 }
