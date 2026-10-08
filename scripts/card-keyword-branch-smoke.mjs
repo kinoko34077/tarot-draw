@@ -151,6 +151,10 @@ try {
     if (allCells.length !== 25 || !allCells.every(cell => getComputedStyle(cell).writingMode === 'vertical-rl' && getComputedStyle(cell).textOrientation === 'upright')) {
       throw Error('Headings and keyword cells must all use upright Japanese vertical writing');
     }
+    if (parseFloat(getComputedStyle(allCells[0]).fontSize) < 17 ||
+      allCells.some(cell => cell.scrollHeight > cell.clientHeight + 2 || cell.scrollWidth > cell.clientWidth + 2)) {
+      throw Error('Desktop vertical words are too small or clipped in the enlarged table');
+    }
     if (Math.abs(visualRect.bottom - gridRect.bottom) > 70) throw Error('Dead space below enlarged card beside keyword table');
     if (copyTop - Math.max(visualRect.bottom, gridRect.bottom) > 24) throw Error('Unused gap between card/table and Essence');
     const dialog = one('#cardDetailDialog');
