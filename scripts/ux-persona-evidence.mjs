@@ -376,10 +376,10 @@ async function expertTask() {
 
 // Machine-executed UI interactions: not a child or human usability study.
 async function axisWorkflowTask() {
-  const $ = q => document.querySelector(q);
-  const $ = q => [...document.querySelectorAll(q)];
-  $('#newReadingButton').click();
-  const reading = $('.reading-workbench').at(-1);
+  const one = q => document.querySelector(q);
+  const all = q => [...document.querySelectorAll(q)];
+  one('#newReadingButton').click();
+  const reading = all('.reading-workbench').at(-1);
   reading.scrollIntoView({ block: 'start', behavior: 'instant' });
   const pick = q => reading.querySelector(q);
   const columnNames = () => [...reading.querySelectorAll('.column-header .axis-inline-label')].map(el => el.textContent);
@@ -409,12 +409,12 @@ async function axisWorkflowTask() {
   const keyboardRedo = columnNames();
   pick('.axis-undo-button').click();
   grip('column',0).click();
-  const menuLabels = [$('#moveAxisBeforeButton').textContent, $('#moveAxisAfterButton').textContent];
-  $('#moveAxisAfterButton').click();
+  const menuLabels = [one('#moveAxisBeforeButton').textContent, one('#moveAxisAfterButton').textContent];
+  one('#moveAxisAfterButton').click();
   const menuMove = columnNames();
   pick('.axis-undo-button').click();
   grip('column',1).click();
-  $('#deleteAxisButton').click();
+  one('#deleteAxisButton').click();
   const afterDelete = columnNames();
   pick('.axis-undo-button').click();
   const deleteUndo = columnNames();
