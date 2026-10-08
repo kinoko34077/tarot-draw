@@ -298,7 +298,10 @@ try {
         }
         standard += 1;
       } else {
-        if (!host.classList.contains('hidden')) throw Error('Custom card leaked standard keywords');
+        if (!host.classList.contains('hidden') ||
+          !document.querySelector('#cardDetailSourceInfo').classList.contains('hidden')) {
+          throw Error('Custom card must not show keywords, title or source info');
+        }
         custom += 1;
       }
       document.querySelector('#cardDetailClose').click();
@@ -431,10 +434,30 @@ try {
     narrow.gapBeforeEssence > 20 || narrow.verticalCells !== 25 || narrow.overflowCells !== 0) {
     throw Error('320px side-by-side vertical-table geometry failed: ' + JSON.stringify(narrow));
   }
+  const narrowPopup = await evaluate(`(() => {
+    const info = document.querySelector('#cardDetailSourceInfo');
+    const summary = info.querySelector('summary');
+    if (info.open || getComputedStyle(info).display === 'none') throw Error('Info should be available but initially closed');
+    summary.click();
+    const panel = info.querySelector('.keyword-source-popover');
+    const box = panel.getBoundingClientRect();
+    const spot = document.elementFromPoint(box.left+12, box.top+12);
+    const fits = box.left >= 0 && box.right <= innerWidth+1 && box.top >= 0 && box.bottom <= innerHeight+1;
+    const exposed = panel.contains(spot);
+    const named = summary.getAttribute('aria-label')?.includes('キーワード');
+    const open = info.open;
+    summary.click();
+    return {fits,exposed,named,open,closed:!info.open,clientWidth:innerWidth,
+      popupLeft:box.left,popupRight:box.right,touchWidth:summary.getBoundingClientRect().width};
+  })()`);
+  if (!narrowPopup.fits || !narrowPopup.exposed || !narrowPopup.named ||
+    !narrowPopup.open || !narrowPopup.closed || narrowPopup.touchWidth < 32) {
+    throw Error('320px source disclosure is inaccessible, detached or clipped: '+JSON.stringify(narrowPopup));
+  }
   await evaluate("document.querySelector('#cardDetailClose').click()");
   console.log('KEYWORD_GRID_BROWSER=' + JSON.stringify({
     sample: picked, mobile, close, coverage,
-    inputModes: {popup, escapePopup, outside, touchScroll, zoom, narrow}
+    inputModes: {popup, escapePopup, outside, touchScroll, zoom, narrow, narrowPopup}
   }));
   cdp.close();
   cdp = null;
