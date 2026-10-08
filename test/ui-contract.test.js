@@ -37,7 +37,10 @@ test('matrix uses direct plus controls and contextual axis deletion', async () =
   assert.ok(app.includes("button.textContent = '＋'"));
   assert.ok(app.includes('LONG_PRESS_MS = 520'));
   assert.ok(app.includes("target.addEventListener('contextmenu'"));
-  assert.ok(app.includes("menuButton.textContent = '⋮'"));
+  assert.ok(app.includes("menuButton.textContent = '⠿'"));
+  assert.ok(app.includes("menuButton.addEventListener('pointermove'"));
+  assert.ok(app.includes("menuButton.addEventListener('keydown'"));
+  assert.ok(app.includes('moveAxis(kind, index, index + 1)'));
   assert.ok(app.includes("removeAxisLabel(state.rowLabels, index)"));
   assert.ok(app.includes("removeAxisLabel(state.columnLabels, index)"));
 });
