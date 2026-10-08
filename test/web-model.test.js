@@ -7,6 +7,7 @@ import {
   cardDisplayText,
   customCardNotesForResults,
   formatReadingText,
+  moveAxisLabel,
   removeAxisLabel,
   rwsImageUrl
 } from '../web/model.js';
@@ -20,6 +21,16 @@ test('axis helpers append and remove without destroying unaffected labels', () =
   assert.deepEqual(removeAxisLabel(['A', 'B', 'C'], 1), ['A', 'C']);
   assert.deepEqual(removeAxisLabel(['only'], 0), ['only']);
   assert.deepEqual(removeAxisLabel(['A', 'B'], 99), ['A', 'B']);
+});
+
+test('axis reorder moves exactly one whole semantic label and rejects invalid bounds', () => {
+  const original = ['過去', '現在', '未来'];
+  assert.deepEqual(moveAxisLabel(original, 0, 2), ['現在', '未来', '過去']);
+  assert.deepEqual(moveAxisLabel(original, 2, 0), ['未来', '過去', '現在']);
+  assert.deepEqual(moveAxisLabel(original, 1, 1), original);
+  assert.deepEqual(moveAxisLabel(original, -1, 1), original);
+  assert.deepEqual(moveAxisLabel(original, 0, 3), original);
+  assert.deepEqual(original, ['過去', '現在', '未来']);
 });
 
 test('card display text is compact and uses major roman numerals where available', () => {
