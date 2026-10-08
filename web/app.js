@@ -142,8 +142,13 @@ function openCardDetail(card, trigger) {
     page.cardDetailEssence.textContent = detail.essence;
     page.cardDetailUpright.textContent = detail.upright;
     page.cardDetailReversed.textContent = detail.reversed;
-    page.cardDetailUprightBlock.dataset.active = String(card.orientation === 'upright');
-    page.cardDetailReversedBlock.dataset.active = String(card.orientation === 'reversed');
+    const isUpright = card.orientation === 'upright';
+    page.cardDetailUprightBlock.dataset.active = String(isUpright);
+    page.cardDetailReversedBlock.dataset.active = String(!isUpright);
+    page.cardDetailUprightBlock.setAttribute('aria-label', isUpright ? '正位置（今回の抽選結果）' : '正位置');
+    page.cardDetailReversedBlock.setAttribute('aria-label', isUpright ? '逆位置' : '逆位置（今回の抽選結果）');
+    page.cardDetailUprightBlock.querySelector('.detail-picked-label')?.classList.toggle('hidden', !isUpright);
+    page.cardDetailReversedBlock.querySelector('.detail-picked-label')?.classList.toggle('hidden', isUpright);
   } else {
     page.cardDetailReference.classList.add('hidden');
     page.cardDetailCustom.classList.remove('hidden');
