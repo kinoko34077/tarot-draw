@@ -6,6 +6,7 @@ import {
   CUSTOM_CARD_NOTES,
   formatReadingText,
   labelOrFallback,
+  moveAxisLabel,
   removeAxisLabel,
   rwsImageUrl
 } from './model.js';
@@ -336,7 +337,9 @@ function createReadingController(number) {
     primaryResult: null,
     parallelResult: null,
     pendingOperation: null,
-    drawOutcome: null
+    drawOutcome: null,
+    undoStack: [],
+    redoStack: []
   };
 
   const article = document.createElement('article');
@@ -372,6 +375,10 @@ function createReadingController(number) {
         <div class="matrix-heading">
           <h2 class="primary-title">配置</h2>
           <span class="primary-pile-label branch-meta"></span>
+          <div class="axis-history-actions">
+            <button class="axis-undo-button secondary hidden" type="button" title="直前の編集を元に戻す">戻す</button>
+            <button class="axis-redo-button secondary hidden" type="button" title="取り消した編集をやり直す">やり直す</button>
+          </div>
         </div>
         <div class="primary-matrix table-scroll"></div>
       </section>
@@ -400,6 +407,8 @@ function createReadingController(number) {
     selectionMessage: article.querySelector('.selection-message'),
     primaryTitle: article.querySelector('.primary-title'),
     primaryPileLabel: article.querySelector('.primary-pile-label'),
+    undoButton: article.querySelector('.axis-undo-button'),
+    redoButton: article.querySelector('.axis-redo-button'),
     primaryMatrix: article.querySelector('.primary-matrix'),
     parallelSection: article.querySelector('.parallel-section'),
     parallelPileLabel: article.querySelector('.parallel-pile-label'),
@@ -413,6 +422,7 @@ function createReadingController(number) {
     refs,
     addAxis,
     removeAxis,
+    moveAxis,
     render,
     focusQuestion
   };
@@ -424,9 +434,62 @@ function createReadingController(number) {
   refs.shuffleButton.addEventListener('click', shuffle);
   refs.drawButton.addEventListener('click', draw);
   refs.copyButton.addEventListener('click', copyReading);
+  refs.undoButton.addEventListener('click', undoAxis);
+  refs.redoButton.addEventListener('click', redoAxis);
 
   function focusQuestion() {
     refs.questionInput.focus();
+  }
+
+  function snapshotAxes() {
+    return { rowLabels: [...state.rowLabels], columnLabels: [...state.columnLabels] };
+  }
+
+  function recordAxisHistory() {
+    state.undoStack.push(snapshotAxes());
+    if (state.undoStack.length > 40) state.undoStack.shift();
+    state.redoStack.length = 0;
+  }
+
+  function applyAxes(snapshot) {
+    state.rowLabels = [...snapshot.rowLabels];
+    state.columnLabels = [...snapshot.columnLabels];
+  }
+
+  function canEditAxes() {
+    return !state.pendingOperation && (state.phase === 'editing' || state.phase === 'choosing');
+  }
+
+  function undoAxis() {
+    if (!canEditAxes() || !state.undoStack.length) return;
+    state.redoStack.push(snapshotAxes());
+    applyAxes(state.undoStack.pop());
+    render();
+    setTextStatus(refs.layoutMessage, '元に戻しました。');
+  }
+
+  function redoAxis() {
+    if (!canEditAxes() || !state.redoStack.length) return;
+    state.undoStack.push(snapshotAxes());
+    applyAxes(state.redoStack.pop());
+    render();
+    setTextStatus(refs.layoutMessage, 'やり直しました。');
+  }
+
+  function moveAxis(kind, from, to) {
+    if (!canEditAxes()) return false;
+    const stateKey = kind === 'row' ? 'rowLabels' : 'columnLabels';
+    const values = state[stateKey];
+    if (![from, to].every(index => Number.isInteger(index) && index >= 0 && index < values.length)) return false;
+    if (from === to) return false;
+    recordAxisHistory();
+    state[stateKey] = moveAxisLabel(values, from, to);
+    render();
+    const selector = kind === 'row' ? '.row-header' : '.column-header';
+    const target = refs.primaryMatrix.querySelectorAll(selector)[to]?.querySelector('.axis-menu-trigger');
+    target?.focus({ preventScroll: true });
+    setTextStatus(refs.layoutMessage, `${kind === 'row' ? '行' : '列'}の順番を変えました。`);
+    return true;
   }
 
   function addAxis(kind) {
@@ -437,12 +500,14 @@ function createReadingController(number) {
         setTextStatus(refs.layoutMessage, '1つの山は最大27枚です。これ以上行を追加できません。', 'error');
         return;
       }
+      recordAxisHistory();
       state.rowLabels = appendAxisLabel(state.rowLabels);
     } else {
       if (!canAddColumn(state)) {
         setTextStatus(refs.layoutMessage, '1つの山は最大27枚です。これ以上列を追加できません。', 'error');
         return;
       }
+      recordAxisHistory();
       state.columnLabels = appendAxisLabel(state.columnLabels);
     }
     render();
@@ -450,7 +515,9 @@ function createReadingController(number) {
 
   function removeAxis(kind, index) {
     if (state.phase !== 'editing' || state.pendingOperation) return;
-
+    const labels = kind === 'row' ? state.rowLabels : state.columnLabels;
+    if (labels.length <= 1 || index < 0 || index >= labels.length) return;
+    recordAxisHistory();
     if (kind === 'row') {
       state.rowLabels = removeAxisLabel(state.rowLabels, index);
     } else {
@@ -793,6 +860,9 @@ function createReadingController(number) {
 
   function renderLayoutState() {
     const count = requiredCards(state);
+    const canUndo = canEditAxes();
+    refs.undoButton.classList.toggle('hidden', !canUndo || state.undoStack.length === 0);
+    refs.redoButton.classList.toggle('hidden', !canUndo || state.redoStack.length === 0);
     refs.cardCount.textContent = `${count}枚`;
 
     if (state.phase === 'editing') {
@@ -838,6 +908,10 @@ function createReadingController(number) {
       state.primaryPile = null;
       state.parallelPile = null;
       state.phase = 'choosing';
+      // No size changes after shuffle: pre-shuffle structural snapshots must not
+      // be replayed into the fixed server session. New moves remain undoable.
+      state.undoStack.length = 0;
+      state.redoStack.length = 0;
       refs.pilePanel.classList.remove('hidden');
       setTextStatus(refs.selectionMessage, 'Primaryの山を選択してください。');
       setTextStatus(refs.status, '山を選択');
