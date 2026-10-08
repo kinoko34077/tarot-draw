@@ -6,6 +6,11 @@ on:
     paths:
       - 'web/**'
       - 'scripts/build-pages.mjs'
+      # Validation-only changes must still produce a Pages-completed event so
+      # the production smoke is not silently skipped after its own fix.
+      - 'scripts/production-ui-smoke.mjs'
+      - 'scripts/card-detail-production-smoke.mjs'
+      - '.github/workflows/production-ui-smoke.yml'
       - 'package.json'
       - '.github/workflows/pages.yml'
   workflow_dispatch:
