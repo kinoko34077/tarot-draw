@@ -1,11 +1,21 @@
-Source for independently edited Japanese keyword-grid *drafts* in `web/card-keyword-grid.js`:
+Provenance for 78 independently authored Japanese keyword-grid records in:
+  web/card-keyword-grid.js (five initial prototypes)
+  web/card-keyword-corpus.js (73 supplementary records)
 Tarotoo Tarot Card Meanings Dataset
 https://github.com/Tarotoo-com/tarotoo-tarot-dataset
+data/cards.json verified at commit 83202267973950eb5bf034f144b9405db9cb1e7e
 MIT License; Copyright (c) 2026 Tarotoo (tarotoo.com).
 
-These five draft records were newly worded in Japanese from Tarotoo's published English card meanings.
-They do not reproduce the Tarot Palette illustrations or the user-uploaded full keyword arrangement.
-Do not publish or copy the original full keyword-list attachment without independent rights/provenance confirmation.
+These 78 records are newly composed Japanese headings/terms informed by Tarotoo's
+licensed English descriptions (upright, reversed, love, career, mood, spiritual).
+They are independent editorial summaries; no original English dataset text is
+reproduced verbatim, and no runtime Tarotoo API is called.
+The user's likely-transcribed third-party original, its 5x4 terms and distinct
+selection/arrangement, and any third-party diagram images are NOT incorporated.
+See docs/KEYWORD_EDITORIAL_GUIDE.md and docs/KEYWORD_W2_PROVENANCE.md.
+Neither this notice nor the MIT permission grants rights in third-party content
+that Tarotoo may not own. The dataset's own origin/attribution was reviewed for
+the limited independently-composed interpretive text used here.
 
 --- ORIGINAL LICENSE TEXT ---
 MIT License
