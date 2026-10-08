@@ -9,7 +9,7 @@ const specimenIds = [
   'minor.swords.3', 'minor.cups.ace'
 ];
 
-test('issue #26 five-card prototype has exactly five distinct headings and four terms each', () => {
+test('issue #26 five-card draft validates IDs, unique headings/terms and legible word lengths', () => {
   assert.deepEqual(Object.keys(KEYWORD_GRID_DRAFTS).sort(), [...specimenIds].sort());
   const ids = new Set(CARD_CATALOG.map(card => card.card_id));
   for (const cardId of specimenIds) {
@@ -17,11 +17,22 @@ test('issue #26 five-card prototype has exactly five distinct headings and four 
     const groups = keywordGridDraft(cardId);
     assert.equal(groups.length, 5, cardId);
     assert.equal(new Set(groups.map(group => group.heading)).size, 5, cardId);
+    const allTerms = [];
     for (const group of groups) {
       assert.ok(group.heading.trim());
+      assert.equal(group.heading, group.heading.trim(), cardId + ': heading whitespace');
+      assert.ok(group.heading.length <= 14, cardId + ': excessively long heading');
       assert.equal(group.terms.length, 4, cardId + ':' + group.heading);
-      assert.ok(group.terms.every(term => term.trim().length > 0));
+      for (const term of group.terms) {
+        assert.ok(term.trim().length > 0, cardId + ': empty term');
+        assert.equal(term, term.trim(), cardId + ': term whitespace');
+        assert.ok(term.length <= 16, cardId + ': excessively long term ' + term);
+        assert.ok(!/[\\r\\n\\t]/.test(term), cardId + ': control whitespace');
+        assert.notEqual(term, group.heading, cardId + ': term duplicates heading');
+        allTerms.push(term);
+      }
     }
+    assert.equal(new Set(allTerms).size, 20, cardId + ': duplicated terms across columns');
   }
 });
 
