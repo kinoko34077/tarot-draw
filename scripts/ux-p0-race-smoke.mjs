@@ -453,9 +453,32 @@ try {
       piles()[1].click();piles()[0].click();
       const roles={main:piles()[1].getAttribute('aria-pressed'),parallel:piles()[0].getAttribute('aria-pressed')};
       const drawReady=!one('.draw-button').disabled;
+      // Regression: #70 previously returned early for a fully selected reading.
+      piles()[0].click();
+      const parallelClearedAfterDone=piles()[0].getAttribute('aria-pressed')==='false';
+      piles()[1].click();
+      const mainClearedAfterDone=piles().every(p=>p.getAttribute('aria-pressed')==='false');
+      piles()[1].click();piles()[0].click();
+      const drawEnabledAfterReselect=!one('.draw-button').disabled;
+      const right=()=>one('.heading-right-controls').getBoundingClientRect().right;
+      const initialRight=right();
+      __p0.deferDraw=false;
+      one('.draw-button').click();
+      for(let i=0;i<100 && one('.reading-status').textContent!=='抽選完了';i++)await sleep(20);
+      const completeRight=right();
+      one('.copy-button').click();
+      for(let i=0;i<30 && !one('.copy-feedback').textContent;i++)await sleep(20);
+      const afterCopyRight=right();
+      const statusRight=one('.reading-status').getBoundingClientRect().right;
+      const feedbackRight=one('.copy-feedback').getBoundingClientRect().right;
+      const controlsLeft=one('.heading-right-controls').getBoundingClientRect().left;
+      const stableControls=Math.abs(initialRight-completeRight)<1 && Math.abs(initialRight-afterCopyRight)<1;
       return {inlineQ,divider,footer,initialCount,afterAdd,afterBlankDelete,
         afterRefusedDelete,afterConfirmedDelete,confirmations,preview,reordered,ghostRemoved,
-        primarySelected,cleared,roles,drawReady};
+        primarySelected,cleared,roles,drawReady,parallelClearedAfterDone,
+        mainClearedAfterDone,drawEnabledAfterReselect,stableControls,
+        statusBeforeControls:statusRight<=controlsLeft+1,
+        feedbackBeforeControls:feedbackRight<=controlsLeft+1};
     })()`);
     assert.equal(ux70.inlineQ,true);
     assert.equal(ux70.divider,true);
@@ -475,6 +498,12 @@ try {
     assert.equal(ux70.roles.main,'true');
     assert.equal(ux70.roles.parallel,'true');
     assert.equal(ux70.drawReady,true);
+    assert.equal(ux70.parallelClearedAfterDone,true,'Selected Parallel must untoggle at ready/done');
+    assert.equal(ux70.mainClearedAfterDone,true,'Selected Main must untoggle at ready/done');
+    assert.equal(ux70.drawEnabledAfterReselect,true);
+    assert.equal(ux70.stableControls,true,'Fixed right controls must not move on status/copy feedback');
+    assert.equal(ux70.statusBeforeControls,true);
+    assert.equal(ux70.feedbackBeforeControls,true);
     report('UX70-FRONTEND-GESTURES',{status:'PASS',...ux70});
   }
   if (expectSafe) {
