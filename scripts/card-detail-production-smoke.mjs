@@ -184,9 +184,21 @@ try {
       await sleep(100);
     }
 
-    const cellWidths = all('.primary-matrix .reading-cell').map(cell => Math.round(cell.getBoundingClientRect().width));
+    const cellWidths = all('.primary-matrix .column-header').map(cell => cell.getBoundingClientRect().width);
     const maxCellWidth = Math.max(...cellWidths);
-    if (maxCellWidth > 112) throw new Error('Result column is wider than compact contract: ' + maxCellWidth);
+    const minCellWidth = Math.min(...cellWidths);
+    const scrollport = one('.primary-matrix');
+    const resultTable = scrollport.querySelector('.reading-table');
+    const resultScrolls = scrollport.scrollWidth > scrollport.clientWidth + 1;
+    if (minCellWidth < 95 || maxCellWidth-minCellWidth > 2) {
+      throw new Error('Data columns must be equal and at least 96px: ' + JSON.stringify(cellWidths));
+    }
+    if (!resultScrolls && Math.abs(resultTable.getBoundingClientRect().width-scrollport.clientWidth) > 2) {
+      throw new Error('Fit-width result must have no trailing empty strip.');
+    }
+    if (resultScrolls && Math.abs(minCellWidth-96) > 2) {
+      throw new Error('Overflowing result columns should retain the 96px minimum.');
+    }
 
     const firstTitle = one('.primary-matrix .card-title');
     const firstOrientation = one('.primary-matrix .card-orientation');
