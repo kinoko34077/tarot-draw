@@ -209,7 +209,32 @@ async function noviceTask() {
   const proseRev = $('#cardDetailReversedBlock')?.getBoundingClientRect();
   const title = $('#cardDetailTitle')?.getBoundingClientRect();
   const orientation = $('#cardDetailOrientation')?.getBoundingClientRect();
+  const colorCanvas = document.createElement('canvas');
+  colorCanvas.width = colorCanvas.height = 1;
+  const colorContext = colorCanvas.getContext('2d');
+  const sampleRGB = color => {
+    colorContext.fillStyle = color;
+    colorContext.fillRect(0, 0, 1, 1);
+    return [...colorContext.getImageData(0, 0, 1, 1).data].slice(0, 3);
+  };
+  const colorDistance = (x, y) => {
+    const a = sampleRGB(x), b = sampleRGB(y);
+    return Math.hypot(...a.map((v, i) => v - b[i]));
+  };
+  const baseSurface = getComputedStyle(document.documentElement).getPropertyValue('--surface').trim();
+  const termStyle = getComputedStyle(cells[1]);
+  const themeStyle = getComputedStyle(cells[0]);
+  const contrast = {
+    horizontal: colorDistance(termStyle.borderBottomColor, baseSurface),
+    vertical: colorDistance(termStyle.borderRightColor, baseSurface),
+    theme: colorDistance(themeStyle.borderRightColor, baseSurface)
+  };
   const key = {
+    borderContrast: contrast, 
+    guidesSubordinate: contrast.vertical >= 5 &&
+      contrast.horizontal >= contrast.vertical * 2.5 &&
+      contrast.theme >= contrast.vertical * 1.25 &&
+      contrast.horizontal >= contrast.theme * 1.25,
     groups: th.length,
     cols: cells.length,
     headerInsideTable: Boolean(head && head.querySelector('th')?.textContent.includes('キーワード')),
@@ -521,6 +546,9 @@ try {
   check('novice-detail', 'all vertical separators + row separators',
     { vertical: novice.keyword.internalVerticalLines, horizontal: novice.keyword.allHorizontalLines },
     'all true', novice.keyword.internalVerticalLines && novice.keyword.allHorizontalLines);
+  check('novice-detail', 'strong thematic horizontal rules, pale vertical reading guides',
+    novice.keyword.borderContrast,
+    'horizontal >= 2.5x vertical; theme divider between', novice.keyword.guidesSubordinate);
   check('novice-detail', 'single continuous table without tile spacing',
     { collapse: novice.keyword.borderCollapse, spacing: novice.keyword.cellSpacing },
     'collapse', novice.keyword.borderCollapse === 'collapse');
