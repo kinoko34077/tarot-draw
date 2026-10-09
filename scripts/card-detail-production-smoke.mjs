@@ -195,9 +195,12 @@ try {
     const orientationRect = firstOrientation.getBoundingClientRect();
     if (orientationRect.top < titleRect.bottom - 1) throw new Error('Title and orientation are not vertically separated.');
 
-    const rubyNames = all('.primary-matrix .card-title ruby');
+    const rubyNames = all('.primary-matrix .card-title .ruby-token');
     if (rubyNames.length === 0) throw new Error('Minor Arcana ruby titles were not rendered.');
-    const readings = all('.primary-matrix .card-title rt').map(rt => rt.textContent);
+    if (rubyNames.some(node => getComputedStyle(node.querySelector('.ruby-float')).position !== 'absolute')) {
+      throw new Error('Result ruby readings must float outside text layout.');
+    }
+    const readings = all('.primary-matrix .card-title .ruby-float').map(rt => rt.textContent);
     if (!readings.some(value => ['ワンド', 'カップ', 'ソード', 'ペンタクル'].includes(value))) {
       throw new Error('Expected Minor Arcana suit reading ruby.');
     }
@@ -211,14 +214,14 @@ try {
       throw new Error('Grid image is not using self-hosted WebP.');
     }
 
-    const triggerTitle = standardTrigger.querySelector('.card-title').textContent;
+    const triggerTitle = standardTrigger.querySelector('.card-title').getAttribute('aria-label');
     const triggerOrientation = standardTrigger.querySelector('.card-orientation').textContent;
 
     standardTrigger.click();
     await sleep(250);
     const dialog = one('#cardDetailDialog');
     if (!dialog.open) throw new Error('Detail dialog did not open.');
-    if (one('#cardDetailTitle').textContent !== triggerTitle) throw new Error('Detail title mismatch.');
+    if (one('#cardDetailTitle').getAttribute('aria-label') !== triggerTitle) throw new Error('Detail title mismatch.');
     if (!one('#cardDetailEssence').textContent || !one('#cardDetailUpright').textContent || !one('#cardDetailReversed').textContent) {
       throw new Error('Attachment-backed detail text is missing.');
     }
