@@ -965,7 +965,7 @@ input:focus-visible {
 }
 .column-header .axis-menu-trigger { align-self: center; }
 .row-header .axis-handle {
-  display: block; min-height: 124px; position: relative;
+  display: block; min-height: 122px; position: relative;
 }
 .row-header .axis-inline-label,
 .row-header .axis-readonly-label {
