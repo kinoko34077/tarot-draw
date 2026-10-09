@@ -348,7 +348,7 @@ try {
         input.dispatchEvent(new KeyboardEvent('keydown',{key:'Enter',bubbles:true}));
       };
       rename(row,'行見出しをかなり長くした場合');
-      rename(col,'とてもながいながい列の見出しの例');
+      rename(one('.column-header .axis-inline-label'),'とてもながいながい列の見出しの例');
       const rowLabel=one('.row-header .axis-inline-label');
       const colLabel=one('.column-header .axis-inline-label');
       const fit={
