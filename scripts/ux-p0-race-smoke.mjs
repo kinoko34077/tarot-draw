@@ -329,8 +329,8 @@ try {
     [55, 5, 11, 390, [27, 27, 1]],
     [80, 4, 20, 320, [27, 27, 26]]
   ]) {
-    await cdp.call('Emulation.setDeviceMetricsOverride', {width, height:857, deviceScaleFactor:1, mobile:false});
     await navigate();
+    await cdp.call('Emulation.setDeviceMetricsOverride', {width, height:857, deviceScaleFactor:1, mobile:false});
     const evidence = await evalInPage(`(async()=>{
       const sleep=ms=>new Promise(r=>setTimeout(r,ms));
       const one=q=>document.querySelector(q), all=q=>[...document.querySelectorAll(q)];
@@ -383,6 +383,7 @@ try {
       return {total:${total},rows:${rows},columns:${columns},width:innerWidth,
         originalWidth,fit,addDisabled,afterFirst,afterSecond,ready,mapped,parallel,status,history};
     })()`);
+    assert.equal(evidence.width, width, `${total} actual browser viewport must match requested width`);
     assert.equal(evidence.mapped, total, `${total} card draw complete`);
     assert.equal(evidence.parallel, 0, `${total} no implicit Parallel`);
     assert.equal(evidence.status, '抽選完了');
