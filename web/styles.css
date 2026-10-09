@@ -921,6 +921,119 @@ input:focus-visible {
   .keyword-grid-table { border-spacing: 2px; }
 }
 
+/* #70: compact, uniform reading workspace; per-reading actions share the matrix heading. */
+.reading-toolbar { min-height: 36px; padding: 3px 7px; gap: 10px; }
+.reading-index { flex: 0 0 auto; white-space: nowrap; }
+.question-field {
+  flex: 1 1 auto; min-width: 0; min-height: 30px;
+  border-left: 1px solid var(--border); border-bottom: 0;
+  padding: 1px 0 1px 9px; gap: 5px;
+}
+.question-input { min-height: 28px; padding: 2px 4px; }
+.matrix-heading { min-height: 34px; padding: 3px 6px; gap: 6px; flex-wrap: wrap; }
+.matrix-section + .matrix-section { border-top: 2px solid var(--border); }
+.matrix-heading h2 { font-size: .81rem; line-height: 1.3; }
+.axis-history-actions { margin-left: 0; }
+.axis-history-actions button { min-height: 28px; padding: 2px 5px; }
+.result-action-line {
+  margin-left: auto; min-width: 0; padding: 0; border: 0;
+  background: transparent; justify-content: flex-end; gap: 5px;
+}
+.result-action-line .reading-status {
+  min-height: 0; padding: 0; font-size: .74rem;
+  background: transparent; border: 0; white-space: normal; text-align: right;
+}
+.result-action-line .copy-button { min-height: 28px; padding: 2px 7px; }
+.copy-feedback { min-height: 0; }
+.copy-feedback:empty { display: none; }
+.corner-header, .row-header {
+  width: 62px; min-width: 62px; max-width: 62px;
+}
+.corner-header { padding: 3px; font-size: .7rem; }
+.column-header, .reading-cell {
+  width: 96px; min-width: 96px; max-width: 96px;
+}
+.column-header, .row-header { padding: 3px; }
+.column-header .axis-handle {
+  flex-direction: row; align-items: center; min-height: 34px; gap: 1px;
+}
+.column-header .axis-inline-label,
+.column-header .axis-readonly-label {
+  height: 34px; min-height: 34px; max-height: 34px;
+  display: flex; align-items: center; padding: 1px 2px; line-height: 1.15;
+}
+.column-header .axis-menu-trigger { align-self: center; }
+.row-header .axis-handle {
+  display: block; min-height: 124px; position: relative;
+}
+.row-header .axis-inline-label,
+.row-header .axis-readonly-label {
+  height: 122px; max-height: 122px; min-height: 122px;
+  padding: 3px 1px; font-size: inherit;
+}
+.row-header .axis-menu-trigger {
+  position: absolute; top: 0; right: 0;
+}
+.axis-menu-trigger {
+  width: 27px; min-width: 27px; min-height: 28px;
+  font-size: .85rem; touch-action: none; cursor: grab;
+}
+.axis-menu-trigger:active { cursor: grabbing; }
+.axis-inline-label, .axis-inline-input {
+  min-height: 28px; padding: 2px;
+}
+.axis-add-header { width: 65px; min-width: 65px; padding: 2px; }
+.axis-add-row-header { width: 62px; min-width: 62px; padding: 2px; }
+.axis-add-actions { display: flex; justify-content: center; align-items: center; gap: 2px; }
+.axis-add-button { width: 27px; min-width: 27px; min-height: 27px; padding: 0; }
+.axis-remove-button { color: var(--danger); }
+.axis-add-row-fill { height: 31px; }
+.reading-cell { min-height: 0; padding: 2px; }
+.card-result-block {
+  min-height: 148px; height: 148px; padding: 2px; gap: 2px;
+  grid-template-rows: 92px 47px; align-content: center;
+}
+.card-visual, .card-art, .custom-card-face { width: 54px; height: 92px; }
+.card-result-text {
+  height: 47px; min-height: 47px; max-width: 92px; gap: 0;
+  grid-template-rows: 33px 14px; align-content: center;
+}
+.card-title {
+  height: 33px; min-height: 33px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: .78rem; overflow-wrap: anywhere;
+}
+.card-orientation { font-size: .7rem; line-height: 14px; }
+.history-actions { padding: 6px 0 3px; gap: 6px; }
+.history-actions button { min-height: 32px; }
+
+/* Whole-axis move preview is visible even before the reorder is committed. */
+.reading-table .axis-dragging-source { background: var(--accent-soft); opacity: .4; }
+.reading-table .axis-drop-preview {
+  background: var(--accent-soft);
+  box-shadow: inset 3px 0 0 var(--accent);
+}
+.axis-drag-ghost {
+  position: fixed; z-index: 90; pointer-events: none;
+  min-width: 86px; max-width: min(240px, 50vw);
+  border: 2px solid var(--accent); border-radius: 5px;
+  background: var(--surface); color: inherit;
+  box-shadow: 0 9px 20px rgb(0 0 0 / 25%);
+  opacity: .94; padding: 4px 6px;
+  font-size: .73rem; line-height: 1.35;
+  overflow: hidden; text-overflow: ellipsis;
+}
+.axis-drag-ghost strong { display: block; margin-bottom: 2px; }
+.axis-drag-ghost span { display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+@media (max-width: 720px) {
+  .reading-toolbar { gap: 7px; }
+  .corner-header, .row-header { width: 62px; min-width: 62px; max-width: 62px; }
+  .column-header, .reading-cell { width: 96px; min-width: 96px; max-width: 96px; }
+  .card-result-block { height: 148px; min-height: 148px; }
+  .card-visual, .card-art, .custom-card-face { width: 54px; height: 92px; }
+  .result-action-line { flex: 1 0 auto; }
+}
+
 @media (prefers-reduced-motion: reduce) {
   * { scroll-behavior: auto !important; }
 }
