@@ -443,6 +443,18 @@ try {
       window.dispatchEvent(new PointerEvent('pointerup',{pointerId:23,button:0,bubbles:true,clientX:x,clientY:y}));
       const reordered=all('.column-header .axis-inline-label').map(e=>e.textContent);
       const ghostRemoved=!one('.axis-drag-ghost');
+      const columnControlsStacked=getComputedStyle(one('.axis-add-actions-column')).flexDirection==='column';
+      const rowControlsSideBySide=getComputedStyle(one('.axis-add-row-header .axis-add-actions')).flexDirection==='row';
+      const historyOutsideHeading=one('.axis-history-actions').previousElementSibling.classList.contains('primary-matrix');
+      const rowLabel=one('.row-header .axis-inline-label');
+      rowLabel.click();
+      const rowInput=one('.row-header .axis-inline-input');
+      rowInput.value='行12';
+      rowInput.dispatchEvent(new KeyboardEvent('keydown',{key:'Enter',bubbles:true}));
+      const verticalDigits=one('.row-header .axis-inline-label').textContent;
+      one('.row-header .axis-inline-label').click();
+      const editableRawDigits=one('.row-header .axis-inline-input').value;
+      one('.row-header .axis-inline-input').dispatchEvent(new KeyboardEvent('keydown',{key:'Escape',bubbles:true}));
       one('.shuffle-button').click();
       for(let i=0;i<100 && all('.pile-button').length!==3;i++)await sleep(20);
       const piles=()=>all('.pile-button');
@@ -453,9 +465,36 @@ try {
       piles()[1].click();piles()[0].click();
       const roles={main:piles()[1].getAttribute('aria-pressed'),parallel:piles()[0].getAttribute('aria-pressed')};
       const drawReady=!one('.draw-button').disabled;
+      // Regression: #70 previously returned early for a fully selected reading.
+      piles()[0].click();
+      const parallelClearedAfterDone=piles()[0].getAttribute('aria-pressed')==='false';
+      piles()[1].click();
+      const mainClearedAfterDone=piles().every(p=>p.getAttribute('aria-pressed')==='false');
+      piles()[1].click();piles()[0].click();
+      const drawEnabledAfterReselect=!one('.draw-button').disabled;
+      const right=()=>one('.heading-right-controls').getBoundingClientRect().right;
+      const initialRight=right();
+      __p0.deferDraw=false;
+      one('.draw-button').click();
+      for(let i=0;i<100 && one('.reading-status').textContent!=='抽選完了';i++)await sleep(20);
+      const completeRight=right();
+      one('.copy-button').click();
+      for(let i=0;i<30 && !one('.copy-feedback').textContent;i++)await sleep(20);
+      const afterCopyRight=right();
+      const statusRight=one('.reading-status').getBoundingClientRect().right;
+      const feedbackRight=one('.copy-feedback').getBoundingClientRect().right;
+      const controlsLeft=one('.heading-right-controls').getBoundingClientRect().left;
+      const stableControls=Math.abs(initialRight-completeRight)<1 && Math.abs(initialRight-afterCopyRight)<1;
+      const parallelDigits=one('.parallel-matrix .row-header .axis-readonly-label')?.textContent ?? '';
+      const copiedRawDigits=__p0.copiedText?.includes('行12') ?? false;
       return {inlineQ,divider,footer,initialCount,afterAdd,afterBlankDelete,
         afterRefusedDelete,afterConfirmedDelete,confirmations,preview,reordered,ghostRemoved,
-        primarySelected,cleared,roles,drawReady};
+        primarySelected,cleared,roles,drawReady,parallelClearedAfterDone,
+        mainClearedAfterDone,drawEnabledAfterReselect,stableControls,
+        columnControlsStacked,rowControlsSideBySide,historyOutsideHeading,
+        verticalDigits,editableRawDigits,parallelDigits,copiedRawDigits,
+        statusBeforeControls:statusRight<=controlsLeft+1,
+        feedbackBeforeControls:feedbackRight<=controlsLeft+1};
     })()`);
     assert.equal(ux70.inlineQ,true);
     assert.equal(ux70.divider,true);
@@ -475,6 +514,19 @@ try {
     assert.equal(ux70.roles.main,'true');
     assert.equal(ux70.roles.parallel,'true');
     assert.equal(ux70.drawReady,true);
+    assert.equal(ux70.parallelClearedAfterDone,true,'Selected Parallel must untoggle at ready/done');
+    assert.equal(ux70.mainClearedAfterDone,true,'Selected Main must untoggle at ready/done');
+    assert.equal(ux70.drawEnabledAfterReselect,true);
+    assert.equal(ux70.columnControlsStacked,true);
+    assert.equal(ux70.rowControlsSideBySide,true);
+    assert.equal(ux70.historyOutsideHeading,true);
+    assert.equal(ux70.verticalDigits,'行１２');
+    assert.equal(ux70.editableRawDigits,'行12');
+    assert.equal(ux70.parallelDigits,'行１２');
+    assert.equal(ux70.copiedRawDigits,true);
+    assert.equal(ux70.stableControls,true,'Fixed right controls must not move on status/copy feedback');
+    assert.equal(ux70.statusBeforeControls,true);
+    assert.equal(ux70.feedbackBeforeControls,true);
     report('UX70-FRONTEND-GESTURES',{status:'PASS',...ux70});
   }
   if (expectSafe) {
@@ -604,6 +656,11 @@ try {
       a[2].click();
       const drawingAfterC=one('.draw-button').disabled;
       const parallelBlocked=all('.pile-button').every(button => button.disabled || button.getAttribute('aria-pressed')==='true');
+      all('.pile-button')[2].click();
+      const thirdCleared=all('.pile-button')[2].getAttribute('aria-pressed')==='false';
+      const disabledAfterClear=one('.draw-button').disabled;
+      all('.pile-button')[2].click();
+      const restoredAfterRetap=!one('.draw-button').disabled;
       one('.draw-button').click();
       for(let i=0;i<160 && one('.reading-status').textContent!=='抽選完了';i++)await sleep(30);
       const cards=all('.primary-matrix .card-detail-trigger').length;
@@ -612,7 +669,7 @@ try {
       const ids=__p0.drawCalls.flatMap(call=>call.positions);
       const rowName=one('.primary-matrix .row-header');
       return {capLabel,eightyIsLimit,cueA,cueB,drawingAfterA,drawingAfterB,
-        drawingAfterC,parallelBlocked,cards,rows,heading,unique:new Set(ids).size,
+        drawingAfterC,parallelBlocked,thirdCleared,disabledAfterClear,restoredAfterRetap,cards,rows,heading,unique:new Set(ids).size,
         count:ids.length,piles:__p0.drawCalls.map(call=>call.pile),
         rowWidth:rowName.getBoundingClientRect().width,
         writingMode:getComputedStyle(rowName.querySelector('.axis-inline-label')).writingMode};
@@ -625,6 +682,9 @@ try {
     assert.equal(eighty.drawingAfterB,true);
     assert.equal(eighty.drawingAfterC,false);
     assert.equal(eighty.parallelBlocked,true);
+    assert.equal(eighty.thirdCleared,true);
+    assert.equal(eighty.disabledAfterClear,true);
+    assert.equal(eighty.restoredAfterRetap,true);
     assert.equal(eighty.cards,80);
     assert.equal(eighty.unique,80);
     assert.deepEqual(eighty.piles,['A','B','C']);

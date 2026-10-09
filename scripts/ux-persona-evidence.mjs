@@ -398,7 +398,7 @@ async function expertTask() {
     independentScrollRegions: Number(getComputedStyle(main).overflowX === 'auto') +
       Number(getComputedStyle(parallel).overflowX === 'auto'),
     copyAtTopToolbar: Boolean(pick('.reading-toolbar .copy-button:not(.hidden)')),
-    copyNearCompletion: Boolean(pick('.result-action-line .copy-button:not(.hidden)') &&
+    copyNearCompletion: Boolean(pick('.heading-right-controls .copy-button:not(.hidden)') &&
       pick('.result-action-line .reading-status')?.textContent === '抽選完了'),
     copyFeedbackReady: Boolean(pick('.result-action-line .copy-feedback'))
   };
