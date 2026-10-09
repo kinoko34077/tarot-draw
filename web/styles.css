@@ -265,16 +265,18 @@ input:focus-visible {
   position: sticky;
   left: 0;
   z-index: 5;
-  width: 180px;
-  min-width: 180px;
+  width: 76px;
+  min-width: 76px;
+  max-width: 76px;
   padding: 6px 8px;
   color: var(--muted);
   text-align: left;
   white-space: nowrap;
 }
 .column-header {
-  min-width: 108px;
   width: 108px;
+  min-width: 108px;
+  max-width: 108px;
   padding: 4px;
   vertical-align: top;
   text-align: left;
@@ -284,15 +286,16 @@ input:focus-visible {
   position: sticky;
   left: 0;
   z-index: 4;
-  width: 180px;
-  min-width: 180px;
+  width: 76px;
+  min-width: 76px;
+  max-width: 76px;
   padding: 5px 6px;
   text-align: left;
   vertical-align: top;
   box-shadow: 1px 0 0 var(--border);
 }
 
-.axis-editor { min-width: 0; }
+.axis-editor { min-width: 0; position: relative; }
 .axis-handle {
   min-height: 32px;
   display: flex;
@@ -320,6 +323,61 @@ input:focus-visible {
   overflow-wrap: anywhere;
 }
 .axis-inline-label { cursor: text; }
+.axis-inline-label,
+.axis-readonly-label {
+  white-space: nowrap;
+  overflow: hidden;
+  max-width: 100%;
+  text-overflow: clip;
+}
+.axis-readonly-label {
+  box-sizing: border-box;
+  display: block;
+  width: 100%;
+  font-weight: 600;
+}
+.column-header .axis-handle {
+  flex-direction: column;
+  align-items: stretch;
+}
+.column-header .axis-menu-trigger { align-self: flex-end; flex-shrink: 0; }
+.row-header .axis-handle {
+  flex-direction: column;
+  align-items: center;
+}
+.row-header .axis-inline-label,
+.row-header .axis-readonly-label {
+  writing-mode: vertical-rl;
+  text-orientation: mixed;
+  width: 100%;
+  height: 110px;
+  max-height: 110px;
+  min-height: 0;
+  padding: 3px 2px;
+  text-align: start;
+}
+.column-header .axis-inline-label,
+.column-header .axis-readonly-label {
+  max-height: 40px;
+  padding-inline: 2px;
+}
+.row-header .axis-inline-input {
+  position: absolute;
+  z-index: 7;
+  top: 0;
+  left: 0;
+  width: 180px;
+  max-width: none;
+  writing-mode: horizontal-tb;
+  background: var(--surface);
+  box-shadow: 0 2px 8px rgb(0 0 0 / 20%);
+}
+.row-header .axis-menu-trigger { flex-shrink: 0; }
+.reading-cell {
+  width: 108px;
+  min-width: 108px;
+  max-width: 108px;
+}
 .axis-inline-label:hover:not(:disabled) { border-color: var(--border); }
 .axis-inline-label:focus-visible { border-color: var(--accent); }
 .axis-inline-label:disabled { opacity: 1; cursor: default; }
@@ -813,13 +871,15 @@ input:focus-visible {
   .pile-status { flex-basis: 100%; margin-left: 0; text-align: left; }
   .corner-header,
   .row-header {
-    width: 150px;
-    min-width: 150px;
+    width: 76px;
+    min-width: 76px;
+    max-width: 76px;
   }
   .column-header,
   .reading-cell {
-    width: 102px;
-    min-width: 102px;
+    width: 108px;
+    min-width: 108px;
+    max-width: 108px;
   }
   .card-result-block { min-height: 140px; }
   .card-visual,
