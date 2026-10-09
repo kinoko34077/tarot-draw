@@ -341,8 +341,9 @@ try {
       const row=one('.row-header .axis-inline-label');
       const col=one('.column-header .axis-inline-label');
       const rename=(button,value)=>{
+        const host=button.parentElement;
         button.click();
-        const input=button.parentElement.querySelector('.axis-inline-input');
+        const input=host.querySelector('.axis-inline-input');
         input.value=value;
         input.dispatchEvent(new KeyboardEvent('keydown',{key:'Enter',bubbles:true}));
       };
