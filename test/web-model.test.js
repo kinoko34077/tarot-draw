@@ -11,6 +11,7 @@ import {
   PARALLEL_READING_NOTE,
   moveAxisLabel,
   removeAxisLabel,
+  planPileDraws,
   rwsImageUrl
 } from '../web/model.js';
 
@@ -221,4 +222,28 @@ test('Markdown escapes user labels and question without malformed columns or inj
   assert.match(text, /\| 現在\\\|未来 \| XIX 太陽 正位置 \| XVIII 月 逆位置 \|/);
   assert.equal(text.split('\n').filter(line => line.startsWith('| ')).length, 3);
   assert.ok(!text.includes('【独自カード説明】'));
+});
+
+test('26, 27, 28, 53, 54, 55 and 80 cells are partitioned once in chosen pile order', () => {
+  const piles = [{pile_id:'A',count:27},{pile_id:'B',count:27},{pile_id:'C',count:26}];
+  const cases = [
+    [26, ['C'], [26]],
+    [27, ['A'], [27]],
+    [28, ['C','A'], [26,2]],
+    [53, ['C','A'], [26,27]],
+    [54, ['A','B'], [27,27]],
+    [55, ['A','B','C'], [27,27,1]],
+    [80, ['A','B','C'], [27,27,26]]
+  ];
+  for (const [n, chosen, counts] of cases) {
+    const positions = buildPositionIds(1,n);
+    const batches = planPileDraws(chosen,piles,positions);
+    assert.deepEqual(batches.map(b=>b.pileId),chosen, `${n} chosen order`);
+    assert.deepEqual(batches.map(b=>b.positions.length),counts, `${n} exact capacity`);
+    assert.deepEqual(batches.flatMap(b=>b.positions),positions, `${n} row-major positions`);
+    assert.equal(new Set(batches.flatMap(b=>b.positions)).size,n);
+  }
+  assert.throws(()=>planPileDraws(['A'],piles,buildPositionIds(1,28)),/More piles/);
+  assert.throws(()=>planPileDraws(['A','A'],piles,buildPositionIds(1,28)),/repeat/);
+  assert.throws(()=>planPileDraws(['A','B','C'],piles,buildPositionIds(1,81)),/Invalid pile selection/);
 });
