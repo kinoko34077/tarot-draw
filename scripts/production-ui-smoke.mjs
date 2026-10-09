@@ -237,7 +237,7 @@ try {
     const beforeRenameCards = all('.primary-matrix .card-result-block')
       .concat(all('.parallel-matrix .card-result-block')).map(button => button.textContent);
     renameAxis(all('.primary-matrix .column-header .axis-inline-label')[0], '抽選後の訂正列');
-    if (all('.parallel-matrix .column-header')[0]?.textContent !== '抽選後の訂正列') {
+    if (all('.parallel-matrix .column-header .axis-inline-label')[0]?.textContent !== '抽選後の訂正列') {
       throw new Error('Edited heading was not updated on the parallel result.');
     }
     const afterRenameCards = all('.primary-matrix .card-result-block')
