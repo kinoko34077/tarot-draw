@@ -236,6 +236,39 @@ try {
       dialogHeight: dialog.getBoundingClientRect().height
     }};
   })()`);
+  // #72: real Minor Arcana result ruby floats rather than contributing
+  // separate inline/flex line boxes. The plain kana 「の」 shares the base baseline.
+  const rubyLayout = await evaluate(`(() => {
+    const titles = [...document.querySelectorAll('.card-title')];
+    const sample = titles.find(title => title.querySelector('.ruby-token') &&
+      [...title.childNodes].some(node => node.nodeType === Node.TEXT_NODE && node.textContent.includes('の')));
+    if (!sample) throw Error('No Minor Arcana title with ruby and plain kana was rendered');
+    const base = sample.querySelector('.ruby-base');
+    const reading = sample.querySelector('.ruby-float');
+    const kana = [...sample.childNodes].find(node => node.nodeType === Node.TEXT_NODE && node.textContent.includes('の'));
+    const range = document.createRange(); range.selectNodeContents(kana);
+    const kanabox = range.getBoundingClientRect();
+    const baseRange = document.createRange(); baseRange.selectNodeContents(base);
+    const basebox = baseRange.getBoundingClientRect();
+    const titleRect = sample.getBoundingClientRect();
+    return {
+      text:sample.textContent, titleHeight:sample.clientHeight,
+      baselineTopDelta: Math.abs(basebox.top-kanabox.top),
+      rubyFloatsAboveBase: reading.getBoundingClientRect().bottom <= basebox.top + 3,
+      readingPosition:getComputedStyle(reading).position,
+      tokenHeight: sample.querySelector('.ruby-token').getBoundingClientRect().height,
+      baseHeight:basebox.height, titleTop:titleRect.top
+    };
+  })()`);
+  if (rubyLayout.readingPosition !== 'absolute' ||
+      rubyLayout.titleHeight !== 33 ||
+      rubyLayout.baselineTopDelta > 2 ||
+      !rubyLayout.rubyFloatsAboveBase ||
+      rubyLayout.tokenHeight > rubyLayout.baseHeight + 3) {
+    throw Error('Ruby text changes normal base line geometry: '+JSON.stringify(rubyLayout));
+  }
+  console.log('UX72_RUBY_BASELINE='+JSON.stringify(rubyLayout));
+
   // UX-15 audit: record discoverability/feedback geometry even for features
   // outside the narrow #34 heading fix. Observations are not verdicts about users.
   const readingUx = await evaluate(`(() => {
