@@ -6,7 +6,9 @@ import {
   cardDisplayParts,
   cardDisplayText,
   customCardNotesForResults,
+  formatReadingMarkdown,
   formatReadingText,
+  PARALLEL_READING_NOTE,
   moveAxisLabel,
   removeAxisLabel,
   rwsImageUrl
@@ -154,4 +156,66 @@ test('Minor Arcana ruby display retains compact Japanese base and katakana readi
     cardDisplayText({ card_id: 'minor.pentacles.queen', name_ja: 'ペンタクルのクイーン', orientation: 'upright' }),
     '金貨（ペンタクル）の女王（クイーン） 正位置'
   );
+});
+
+test('Markdown is legible 2x2 GFM, preserves orientation, ruby and conditional custom-card notes', () => {
+  const primary = { positions: {
+    r0c0: { card_id: 'major.sun', name_ja: '太陽', orientation: 'upright' },
+    r0c1: { card_id: 'minor.wands.knight', name_ja: 'ワンドのナイト', orientation: 'reversed' },
+    r1c0: { card_id: 'meta.title', orientation: 'upright' },
+    r1c1: { card_id: 'major.world', name_ja: '世界', orientation: 'reversed' }
+  } };
+  const output = formatReadingMarkdown({
+    question: 'どちらの道？',
+    rowCount: 2, columnCount: 2, rowLabels: ['以前', 'これから'],
+    columnLabels: ['仕事', '創作'], primary, primaryPile: 'A'
+  });
+  assert.match(output, /^# タロット占い結果\n\n\*\*問い：\*\* どちらの道？/);
+  assert.match(output, /## メインリーディング（山A）/);
+  assert.match(output, /\| 項目 \| 仕事 \| 創作 \|\n\| --- \| --- \| --- \|/);
+  assert.match(output, /\| 以前 \| XIX 太陽 正位置 \| 杖（ワンド）の騎士（ナイト） 逆位置 \|/);
+  assert.match(output, /\| これから \| タイトルカード 正位置 \| XXI 世界 逆位置 \|/);
+  assert.match(output, /### 独自カードについて\n- タイトルカード:/);
+  assert.ok(!output.includes('### パラレルリーディングについて'));
+  assert.ok(!output.includes('GUARANTEE:'));
+  assert.ok(!output.includes('\t'));
+});
+
+test('Markdown paired results distinguish actual and alternate pile and explain the user-defined parallel method', () => {
+  const primary = { positions: { r0c0: { card_id: 'major.sun', name_ja: '太陽', orientation: 'upright' } } };
+  const parallel = { positions: { r0c0: { card_id: 'meta.guarantee', orientation: 'reversed' } } };
+  const data = {
+    question: '進む？', rowCount: 1, columnCount: 1,
+    rowLabels: ['可能性'], columnLabels: ['道A'],
+    primary, parallel, primaryPile: 'A', parallelPile: 'C'
+  };
+  const markdown = formatReadingMarkdown(data);
+  const tsv = formatReadingText(data);
+  assert.match(markdown, /## メインリーディング（山A）[\s\S]*?\| 可能性 \| XIX 太陽 正位置 \|/);
+  assert.match(markdown, /## パラレルリーディング（山C）[\s\S]*?\| 可能性 \| GUARANTEE 逆位置 \|/);
+  assert.match(markdown, /### パラレルリーディングについて\n\n/);
+  assert.ok(markdown.includes(PARALLEL_READING_NOTE));
+  assert.match(markdown, /### 独自カードについて[\s\S]*- GUARANTEE:/);
+  assert.match(tsv, /【Parallel】/);
+  assert.match(tsv, /【パラレルリーディング説明】\n/);
+  assert.ok(tsv.includes(PARALLEL_READING_NOTE));
+  assert.match(tsv, /【独自カード説明】[\s\S]*GUARANTEE:/);
+  assert.equal(formatReadingText({ ...data, parallel: null }).includes('【パラレルリーディング説明】'), false);
+});
+
+test('Markdown escapes user labels and question without malformed columns or injected headings', () => {
+  const text = formatReadingMarkdown({
+    question: '#今後 | [計画](x)\n注記',
+    rowCount: 1, columnCount: 2,
+    rowLabels: ['現在|未来'], columnLabels: ['方針\\比較', '**成果**\n次段'],
+    primary: { positions: {
+      r0c0: { card_id: 'major.sun', name_ja: '太陽', orientation: 'upright' },
+      r0c1: { card_id: 'major.moon', name_ja: '月', orientation: 'reversed' }
+    } }, parallel: null
+  });
+  assert.match(text, /\*\*問い：\*\* \\#今後 \\| \\[計画\\]/);
+  assert.match(text, /\| 項目 \| 方針\\\\比較 \| \\*\\*成果\\*\\* \/ 次段 \|/);
+  assert.match(text, /\| 現在\\\|未来 \| XIX 太陽 正位置 \| XVIII 月 逆位置 \|/);
+  assert.equal(text.split('\n').filter(line => line.startsWith('| ')).length, 3);
+  assert.ok(!text.includes('【独自カード説明】'));
 });
