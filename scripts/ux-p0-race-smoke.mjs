@@ -446,7 +446,7 @@ try {
           assert.ok(measured.widths.every(w=>w>96),`Desktop cells expand evenly`);
         } else if (columns===5) {
           assert.equal(measured.overflow,true,`Five columns scroll at ${width}`);
-          assert.ok(measured.widths.every(w>=95),`Minimum 96px data widths under overflow`);
+          assert.ok(measured.widths.every(w=>w>=95),`Minimum 96px data widths under overflow`);
         }
       }
       report('UX75-FLUID-'+width,{status:'PASS',...geom});
