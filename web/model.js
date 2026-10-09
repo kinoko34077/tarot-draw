@@ -76,32 +76,6 @@ export function planPileDraws(selectedPiles, pileCatalog, positions) {
   return batches;
 }
 
-/** Slice one displayed matrix across explicitly chosen shuffled piles, in order.
- * No pile crossing occurs without an explicit selection, no repeated pile.
- */
-export function planPileBatches(positions, pileIds, piles) {
-  if (!Array.isArray(positions) || positions.length < 1 || positions.length > 80 ||
-      new Set(positions).size !== positions.length ||
-      !Array.isArray(pileIds) || !pileIds.length ||
-      new Set(pileIds).size !== pileIds.length) {
-    throw new Error('配置または山の選択が不正です。');
-  }
-  const batches = [];
-  let offset = 0;
-  for (const pileId of pileIds) {
-    const available = piles.find(p => p.pile_id === pileId)?.count;
-    if (!Number.isInteger(available) || available < 1) {
-      throw new Error('山の枚数を確認できません。');
-    }
-    const slice = positions.slice(offset, offset + available);
-    if (!slice.length) throw new Error('不要な山が指定されています。');
-    batches.push({ pileId, positions: slice });
-    offset += slice.length;
-  }
-  if (offset < positions.length) throw new Error('選択された山の枚数が不足しています。');
-  return batches;
-}
-
 export function resizeLabels(labels, count) {
   return Array.from({ length: count }, (_, index) => labels[index] ?? '');
 }
