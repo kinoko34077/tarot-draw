@@ -984,7 +984,7 @@ function createReadingController(number) {
   function selectionStage() {
     if (!mainReady()) return 'main';
     if (state.parallelPiles.length && !parallelReady()) return 'parallel';
-    if (!state.parallelPiles.length && state.primaryPiles.length < 3) return 'parallel';
+    if (!state.parallelPiles.length && state.primaryPiles.length < 3 && requiredCards(state) <= 54) return 'parallel';
     return 'done';
   }
 
@@ -1005,35 +1005,9 @@ function createReadingController(number) {
   }
 
 
-  function capacity(ids) {
-    return ids.reduce((sum,id) => sum + (state.piles.find(p => p.pile_id === id)?.count ?? 0), 0);
-  }
-  function primaryReady() {
-    return state.primaryPiles.length > 0 && capacity(state.primaryPiles) >= requiredCards(state);
-  }
-  function parallelReady() {
-    return state.parallelPiles.length > 0 && capacity(state.parallelPiles) >= requiredCards(state);
-  }
-  function pileStage() {
-    if (!primaryReady()) return 'primary';
-    if (state.parallelPiles.length && !parallelReady()) return 'parallel';
-    if (state.parallelPiles.length) return 'done';
-    return state.primaryPiles.length < state.piles.length && requiredCards(state) <= 54 ? 'parallel' : 'done';
-  }
-  function pileHelp() {
-    const need = requiredCards(state), actual = capacity(state.primaryPiles), alternative = capacity(state.parallelPiles);
-    if (!state.primaryPiles.length) return 'メインの最初の山を選択してください。';
-    if (actual < need) return `メイン 山${state.primaryPiles.join(' → ')}：${actual}/${need}枚。枚数確保の為次の山を選択（あと${need-actual}枚）。`;
-    if (state.parallelPiles.length && alternative < need)
-      return `Parallel 山${state.parallelPiles.join(' → ')}：${alternative}/${need}枚。枚数確保の為次の山を選択（あと${need-alternative}枚）。`;
-    if (state.parallelPiles.length) return `メイン 山${state.primaryPiles.join(' → ')}／Parallel 山${state.parallelPiles.join(' → ')}：引けます。`;
-    if (pileStage() === 'parallel') return `メイン 山${state.primaryPiles.join(' → ')}：${need}枚確保。別の山を選ぶとParallel（任意）。`;
-    return `メイン 山${state.primaryPiles.join(' → ')}：${need}枚確保。Parallelは選択できません。`;
-  }
-
   function renderPiles() {
     if (!state.piles.length) { refs.pileOptions.replaceChildren(); return; }
-    const stage = pileStage(), chosen = stage === 'primary' ? state.primaryPiles : state.parallelPiles;
+    const stage = selectionStage(), chosen = stage === 'main' ? state.primaryPiles : state.parallelPiles;
     refs.pileOptions.replaceChildren(...state.piles.map(pile => {
       const id = pile.pile_id, main = state.primaryPiles.includes(id), other = state.parallelPiles.includes(id);
       const button = document.createElement('button');
@@ -1053,14 +1027,14 @@ function createReadingController(number) {
     }));
     refs.pileResetButton.disabled = Boolean(state.pendingOperation) ||
       !(state.primaryPiles.length || state.parallelPiles.length);
-    setTextStatus(refs.selectionMessage,pileHelp());
+    setTextStatus(refs.selectionMessage, pileHint());
   }
 
   function selectPile(pileId) {
     if (state.phase !== 'choosing' || state.pendingOperation) return;
-    const stage = pileStage();
+    const stage = selectionStage();
     if (stage === 'done') return;
-    const chosen = stage === 'primary' ? state.primaryPiles : state.parallelPiles;
+    const chosen = stage === 'main' ? state.primaryPiles : state.parallelPiles;
     if (chosen.includes(pileId) ||
       (stage === 'parallel' && !chosen.length && pileId === state.primaryPiles[0])) return;
     chosen.push(pileId);
@@ -1072,8 +1046,7 @@ function createReadingController(number) {
   function updateDrawAction() {
     const choosing = state.phase === 'choosing';
     refs.drawButton.classList.toggle('hidden',!choosing);
-    refs.drawButton.disabled = !choosing || Boolean(state.pendingOperation) || !primaryReady() ||
-      (state.parallelPiles.length > 0 && !parallelReady());
+    refs.drawButton.disabled = !choosing || Boolean(state.pendingOperation) || !mainReady() || !parallelReady();
   }
 
   function renderLayoutState() {
@@ -1163,17 +1136,8 @@ function createReadingController(number) {
     if (!pileIds.length || new Set(pileIds).size !== pileIds.length) {
       throw new Error('選択した山の順番が不正です。');
     }
-    let offset = 0;
-    const tasks = pileIds.map(pileId => {
-      const available = intent.piles.find(p => p.pile_id === pileId)?.count;
-      if (!Number.isInteger(available) || available < 1) {
-        throw new Error('山の枚数を確認できません。');
-      }
-      const batch = intent.positions.slice(offset, offset + available);
-      offset += batch.length;
-      return { pileId, batch };
-    }).filter(part => part.batch.length);
-    if (offset < intent.positions.length) throw new Error('選択された山の枚数が不足しています。');
+    const tasks = planPileDraws(pileIds, intent.piles, intent.positions)
+      .map(({ pileId, positions }) => ({ pileId, batch: positions }));
 
     // Every pile is a separate immutable backend branch from the same shuffled
     // snapshot. Never retry an unknown network outcome or silently change piles.
