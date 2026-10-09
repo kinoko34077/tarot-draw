@@ -641,16 +641,16 @@ function createReadingController(number) {
     menuButton.title = 'ドラッグして順番を変更／押して操作／矢印キーでも移動';
     menuButton.setAttribute('aria-label', axisName + (index + 1) + 'を移動・操作');
 
-    function updateParallelHeading() {
-      // The reading's server-drawn cards stay at their original position IDs.
-      // Renaming is only presentation metadata, including the other branch.
-      if (!state.parallelResult) return;
+    function syncOtherHeading() {
+      // Both branches show the SAME user-owned row/column metadata. Update the
+      // opposite branch in place to preserve scroll, focus and frozen card IDs.
       const selector = kind === 'row' ? '.row-header' : '.column-header';
-      const matching = refs.parallelMatrix.querySelectorAll(selector)[index];
-      const updated = matching?.querySelector('.axis-readonly-label');
-      if (updated) {
+      for (const matrix of [refs.primaryMatrix, refs.parallelMatrix]) {
+        const matching = matrix.querySelectorAll(selector)[index];
+        const updated = matching?.querySelector('.axis-inline-label, .axis-readonly-label');
+        if (!updated || updated === label) continue;
         updated.textContent = displayAxisLabel(state[stateKey], index, kind);
-        updated.title = updated.textContent;
+        updated.title = `${updated.textContent}（名前を編集）`;
         fitAxisText(updated);
       }
     }
@@ -678,7 +678,7 @@ function createReadingController(number) {
         label.title = `${label.textContent}（名前を編集）`;
         input.replaceWith(label);
         fitAxisText(label);
-        updateParallelHeading();
+        syncOtherHeading();
         renderLayoutState();
         if (restoreFocus) label.focus({ preventScroll: true });
       };
@@ -860,6 +860,23 @@ function createReadingController(number) {
     table.setAttribute('aria-label', label);
 
     const canEditStructure = state.phase === 'editing' && !state.pendingOperation;
+    // A fixed-layout table with flexible, equal-weight data columns fills the
+    // scrollport; its minimum is the legacy 96px cell width. Once the minimum
+    // exceeds the viewport, the matrix scrolls rather than shrinking cards.
+    const colgroup = document.createElement('colgroup');
+    const rowCol = document.createElement('col');
+    rowCol.style.width = '62px';
+    colgroup.append(rowCol);
+    for (let column = 0; column < state.columnLabels.length; column += 1) {
+      colgroup.append(document.createElement('col'));
+    }
+    if (canEditStructure) {
+      const actionsCol = document.createElement('col');
+      actionsCol.style.width = '32px';
+      colgroup.append(actionsCol);
+    }
+    table.append(colgroup);
+    table.style.minWidth = `${62 + state.columnLabels.length * 96 + (canEditStructure ? 32 : 0)}px`;
     const canReorder = canEditAxes();
     const thead = document.createElement('thead');
     const headerRow = document.createElement('tr');
@@ -1038,7 +1055,7 @@ function createReadingController(number) {
     refs.parallelPileLabel.textContent = state.parallelPiles.length ? `山 ${state.parallelPiles.join(' → ')}` : '';
     refs.parallelMatrix.replaceChildren(createMatrixTable({
       result: state.parallelResult,
-      editableHeaders: false,
+      editableHeaders: true,
       label: `Reading ${state.number} Parallel結果`
     }));
     fitMatrixAxes(refs.parallelMatrix);
