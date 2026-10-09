@@ -4,6 +4,7 @@ import {
   cardDisplayParts,
   cardDisplayText,
   CUSTOM_CARD_NOTES,
+  formatReadingMarkdown,
   formatReadingText,
   labelOrFallback,
   moveAxisLabel,
@@ -401,7 +402,8 @@ function createReadingController(number) {
 
     <div class="result-action-line">
       <p class="reading-status status" role="status" aria-live="polite"></p>
-      <button class="copy-button secondary hidden" type="button">結果をコピー</button>
+      <button class="copy-button secondary hidden" type="button" title="Markdown形式の表をコピー">結果をコピー（Markdown）</button>
+      <button class="tsv-copy-button secondary hidden" type="button" title="表計算用のタブ区切り形式でコピー" aria-label="結果をTSV形式でコピー">TSV</button>
       <span class="copy-feedback" role="status" aria-live="polite"></span>
     </div>
 
@@ -433,6 +435,7 @@ function createReadingController(number) {
   const refs = {
     cardCount: article.querySelector('.card-count'),
     copyButton: article.querySelector('.copy-button'),
+    tsvCopyButton: article.querySelector('.tsv-copy-button'),
     copyFeedback: article.querySelector('.copy-feedback'),
     shuffleButton: article.querySelector('.shuffle-button'),
     drawButton: article.querySelector('.draw-button'),
@@ -469,7 +472,8 @@ function createReadingController(number) {
   });
   refs.shuffleButton.addEventListener('click', shuffle);
   refs.drawButton.addEventListener('click', draw);
-  refs.copyButton.addEventListener('click', copyReading);
+  refs.copyButton.addEventListener('click', () => copyReading('markdown'));
+  refs.tsvCopyButton.addEventListener('click', () => copyReading('tsv'));
   refs.undoButton.addEventListener('click', undoAxis);
   refs.redoButton.addEventListener('click', redoAxis);
 
@@ -1008,6 +1012,7 @@ function createReadingController(number) {
     refs.shuffleButton.disabled = !runtime.apiAvailable || state.phase !== 'editing' || Boolean(state.pendingOperation);
     refs.shuffleButton.classList.toggle('hidden', state.phase !== 'editing');
     refs.copyButton.classList.toggle('hidden', state.phase !== 'completed');
+    refs.tsvCopyButton.classList.toggle('hidden', state.phase !== 'completed');
     refs.questionInput.readOnly = state.phase === 'completed' || state.phase === 'draw-uncertain' || Boolean(state.pendingOperation);
   }
 
@@ -1151,20 +1156,23 @@ function createReadingController(number) {
     }
   }
 
-  async function copyReading() {
-    const text = formatReadingText({
+  async function copyReading(format) {
+    const formatResult = format === 'tsv' ? formatReadingText : formatReadingMarkdown;
+    const text = formatResult({
       question: state.question,
       rowCount: state.rowLabels.length,
       columnCount: state.columnLabels.length,
       rowLabels: state.rowLabels,
       columnLabels: state.columnLabels,
       primary: state.primaryResult,
-      parallel: state.parallelResult
+      parallel: state.parallelResult,
+      primaryPile: state.primaryPile,
+      parallelPile: state.parallelPile
     });
 
     try {
       await copyText(text);
-      setTextStatus(refs.copyFeedback, 'コピーしました。');
+      setTextStatus(refs.copyFeedback, format === 'tsv' ? 'TSVをコピーしました。' : 'Markdownをコピーしました。');
     } catch (error) {
       setTextStatus(refs.copyFeedback, error.message, 'error');
     }
