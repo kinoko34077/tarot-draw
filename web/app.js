@@ -1014,7 +1014,7 @@ function createReadingController(number) {
       button.type = 'button'; button.className = 'pile-button';
       button.setAttribute('aria-pressed', String(main || other));
       button.disabled = Boolean(state.pendingOperation) || stage === 'done' || chosen.includes(id) ||
-        (stage === 'parallel' && !state.parallelPiles.length && id === state.primaryPiles[0]);
+        (stage === 'parallel' && !state.parallelPiles.length && state.primaryPiles.includes(id));
       const name = document.createElement('span'), amount = document.createElement('span'), role = document.createElement('span');
       name.className = 'pile-name'; name.textContent = `山 ${id}`;
       amount.className = 'pile-count'; amount.textContent = `${pile.count}枚`;
@@ -1036,7 +1036,7 @@ function createReadingController(number) {
     if (stage === 'done') return;
     const chosen = stage === 'main' ? state.primaryPiles : state.parallelPiles;
     if (chosen.includes(pileId) ||
-      (stage === 'parallel' && !chosen.length && pileId === state.primaryPiles[0])) return;
+      (stage === 'parallel' && !chosen.length && state.primaryPiles.includes(pileId))) return;
     chosen.push(pileId);
     state.primaryPile = state.primaryPiles[0] ?? null;
     state.parallelPile = state.parallelPiles[0] ?? null;
