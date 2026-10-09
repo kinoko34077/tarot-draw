@@ -633,6 +633,11 @@ try {
       a[2].click();
       const drawingAfterC=one('.draw-button').disabled;
       const parallelBlocked=all('.pile-button').every(button => button.disabled || button.getAttribute('aria-pressed')==='true');
+      all('.pile-button')[2].click();
+      const thirdCleared=all('.pile-button')[2].getAttribute('aria-pressed')==='false';
+      const disabledAfterClear=one('.draw-button').disabled;
+      all('.pile-button')[2].click();
+      const restoredAfterRetap=!one('.draw-button').disabled;
       one('.draw-button').click();
       for(let i=0;i<160 && one('.reading-status').textContent!=='抽選完了';i++)await sleep(30);
       const cards=all('.primary-matrix .card-detail-trigger').length;
@@ -641,7 +646,7 @@ try {
       const ids=__p0.drawCalls.flatMap(call=>call.positions);
       const rowName=one('.primary-matrix .row-header');
       return {capLabel,eightyIsLimit,cueA,cueB,drawingAfterA,drawingAfterB,
-        drawingAfterC,parallelBlocked,cards,rows,heading,unique:new Set(ids).size,
+        drawingAfterC,parallelBlocked,thirdCleared,disabledAfterClear,restoredAfterRetap,cards,rows,heading,unique:new Set(ids).size,
         count:ids.length,piles:__p0.drawCalls.map(call=>call.pile),
         rowWidth:rowName.getBoundingClientRect().width,
         writingMode:getComputedStyle(rowName.querySelector('.axis-inline-label')).writingMode};
@@ -654,6 +659,9 @@ try {
     assert.equal(eighty.drawingAfterB,true);
     assert.equal(eighty.drawingAfterC,false);
     assert.equal(eighty.parallelBlocked,true);
+    assert.equal(eighty.thirdCleared,true);
+    assert.equal(eighty.disabledAfterClear,true);
+    assert.equal(eighty.restoredAfterRetap,true);
     assert.equal(eighty.cards,80);
     assert.equal(eighty.unique,80);
     assert.deepEqual(eighty.piles,['A','B','C']);
