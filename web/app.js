@@ -670,21 +670,62 @@ function createReadingController(number) {
       let originX = 0;
       let originY = 0;
       let dragged = false;
-      let dropHeader = null;
-      const headerSelector = kind === 'row' ? '.row-header' : '.column-header';
-      const clearDrop = () => {
-        dropHeader?.classList.remove('axis-drop-target');
-        dropHeader = null;
+      const table = () => refs.primaryMatrix.querySelector('.reading-table');
+      const axisCells = axisIndex => {
+        const current = table();
+        if (!current) return [];
+        if (kind === 'row') return [...(current.tBodies[0]?.rows[axisIndex]?.cells ?? [])];
+        return [...current.querySelectorAll('thead tr, tbody tr:not(.axis-add-row)')]
+          .map(row => row.cells[axisIndex + 1]).filter(Boolean);
+      };
+      let ghost = null;
+      let hoveredIndex = -1;
+      const clearDragPreview = () => {
+        refs.primaryMatrix.querySelectorAll('.axis-dragging-source, .axis-drop-preview')
+          .forEach(cell => cell.classList.remove('axis-dragging-source', 'axis-drop-preview'));
+        ghost?.remove();
+        ghost = null;
+        hoveredIndex = -1;
       };
       const dropIndexAt = (x, y) => {
-        const hit = document.elementFromPoint(x, y)?.closest(headerSelector);
+        const hit = document.elementFromPoint(x, y);
         if (!hit || !refs.primaryMatrix.contains(hit)) return -1;
-        return [...refs.primaryMatrix.querySelectorAll(headerSelector)].indexOf(hit);
+        if (kind === 'row') {
+          const target = hit.closest('tbody tr:not(.axis-add-row)');
+          return target ? [...table().tBodies[0].rows].indexOf(target) : -1;
+        }
+        const cell = hit.closest('td, th');
+        const index = cell ? cell.cellIndex - 1 : -1;
+        return index >= 0 && index < state.columnLabels.length ? index : -1;
       };
-
-      // Track across the whole viewport, not only the pressed grip. Pointer
-      // capture can be lost in browser-automation, touch and cross-cell cases.
-      // Local-only pointerup left a stuck destination highlight.
+      const showDragPreview = (x, y) => {
+        if (!ghost) {
+          ghost = document.createElement('div');
+          ghost.className = 'axis-drag-ghost';
+          ghost.setAttribute('aria-hidden', 'true');
+          const heading = document.createElement('strong');
+          heading.textContent = `${axisName}${index + 1}を移動`;
+          ghost.append(heading);
+          axisCells(index).map(cell => cell.textContent?.trim()).filter(Boolean).slice(0, 4)
+            .forEach(value => {
+              const item = document.createElement('span');
+              item.textContent = value;
+              ghost.append(item);
+            });
+          document.body.append(ghost);
+        }
+        ghost.style.left = `${Math.max(4, Math.min(window.innerWidth - 150, x + 12))}px`;
+        ghost.style.top = `${Math.max(4, Math.min(window.innerHeight - 80, y + 12))}px`;
+        const destination = dropIndexAt(x, y);
+        if (destination === hoveredIndex) return;
+        refs.primaryMatrix.querySelectorAll('.axis-drop-preview')
+          .forEach(cell => cell.classList.remove('axis-drop-preview'));
+        hoveredIndex = destination;
+        axisCells(index).forEach(cell => cell.classList.add('axis-dragging-source'));
+        if (destination >= 0 && destination !== index) {
+          axisCells(destination).forEach(cell => cell.classList.add('axis-drop-preview'));
+        }
+      };
       const stopTracking = () => {
         window.removeEventListener('pointermove', onPointerMove, true);
         window.removeEventListener('pointerup', onPointerUp, true);
@@ -694,12 +735,7 @@ function createReadingController(number) {
         if (event.pointerId !== pointerId) return;
         if (!dragged && Math.hypot(event.clientX - originX, event.clientY - originY) < 7) return;
         dragged = true;
-        clearDrop();
-        const next = dropIndexAt(event.clientX, event.clientY);
-        if (next >= 0) {
-          dropHeader = refs.primaryMatrix.querySelectorAll(headerSelector)[next];
-          dropHeader?.classList.add('axis-drop-target');
-        }
+        showDragPreview(event.clientX, event.clientY);
       };
       const onPointerUp = event => {
         if (event.pointerId !== pointerId) return;
@@ -707,7 +743,7 @@ function createReadingController(number) {
         const to = didDrag ? dropIndexAt(event.clientX, event.clientY) : -1;
         stopTracking();
         pointerId = null;
-        clearDrop();
+        clearDragPreview();
         if (didDrag) {
           event.preventDefault();
           if (to >= 0) moveAxis(kind, index, to);
@@ -718,7 +754,7 @@ function createReadingController(number) {
         stopTracking();
         pointerId = null;
         dragged = false;
-        clearDrop();
+        clearDragPreview();
       };
       menuButton.addEventListener('pointerdown', event => {
         if (!canEditAxes() || event.button !== 0) return;
