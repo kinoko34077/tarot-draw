@@ -241,6 +241,30 @@ try {
       parseFloat(getComputedStyle(cell).borderBottomWidth) >= 1)) {
       throw new Error('Published keyword cells have missing Japanese vertical writing or column/row ruling.');
     }
+    // User requirement: strong horizontal thematic grouping, pale vertical
+    // tracking guides. Equal-contrast 25 cell outlines are a UX regression.
+    const ctx = document.createElement('canvas').getContext('2d');
+    ctx.canvas.width = ctx.canvas.height = 1;
+    const rgb = color => {
+      ctx.fillStyle = color;
+      ctx.fillRect(0, 0, 1, 1);
+      return [...ctx.getImageData(0, 0, 1, 1).data].slice(0, 3);
+    };
+    const delta = (a, b) => {
+      const x = rgb(a), y = rgb(b);
+      return Math.hypot(...x.map((v, i) => v - y[i]));
+    };
+    const surface = getComputedStyle(document.documentElement).getPropertyValue('--surface').trim();
+    const termCss = getComputedStyle(allKeywordCells[1]);
+    const themeCss = getComputedStyle(allKeywordCells[0]);
+    const H = delta(termCss.borderBottomColor, surface);
+    const V = delta(termCss.borderRightColor, surface);
+    const T = delta(themeCss.borderRightColor, surface);
+    if (V < 5 || H < 2.5 * V || T < 1.25 * V || H < 1.25 * T) {
+      throw new Error('Published borders have equal-weight cell boxes or invisible column guides: '+
+        JSON.stringify({horizontal:H, vertical:V, themeDivider:T}));
+    }
+
     const meaningUprightRect = one('#cardDetailUprightBlock').getBoundingClientRect();
     const meaningReversedRect = one('#cardDetailReversedBlock').getBoundingClientRect();
     const detailTitleRect = one('#cardDetailTitle').getBoundingClientRect();

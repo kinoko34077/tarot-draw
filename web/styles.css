@@ -639,11 +639,16 @@ input:focus-visible {
   white-space: nowrap;
 }
 .keyword-grid-table {
+  /* The horizontal rules group themes. Vertical rules merely guide reading;
+     giving every edge equal weight recreates 25 separate boxes. */
+  --keyword-column-guide: color-mix(in srgb, var(--border-strong) 22%, var(--surface));
+  --keyword-theme-guide: color-mix(in srgb, var(--border-strong) 45%, var(--surface));
   flex: 1 1 auto;
   table-layout: fixed;
   border-collapse: collapse;
   border-spacing: 0;
-  border: 1px solid var(--border-strong);
+  border: 0;
+  border-top: 1px solid var(--border-strong);
   width: 100%;
   height: 100%;
   min-height: 0;
@@ -655,7 +660,9 @@ input:focus-visible {
   box-sizing: border-box;
   width: 20%;
   padding: 4px 1px;
-  border: 1px solid var(--border-strong);
+  border: 0;
+  border-bottom: 1px solid var(--border-strong);
+  border-right: 1px solid var(--keyword-column-guide);
   border-radius: 0;
   writing-mode: vertical-rl;
   text-orientation: upright;
@@ -668,12 +675,15 @@ input:focus-visible {
   line-height: 1.15;
 }
 .keyword-grid-table tbody th {
+  border-right-color: var(--keyword-theme-guide);
   font-weight: 750;
   color: var(--accent);
   background: var(--surface-soft);
 }
 .keyword-grid-table tbody td { background: var(--surface); }
 .keyword-grid-table thead th.keyword-grid-title-cell {
+  border: 0;
+  border-bottom: 1px solid var(--border-strong);
   width: auto;
   padding: 0 2px;
   writing-mode: horizontal-tb;

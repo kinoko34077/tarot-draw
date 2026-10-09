@@ -178,6 +178,33 @@ try {
     const ruled = getComputedStyle(one('#cardDetailKeywordRows')).borderCollapse === 'collapse' &&
       allCells.every(cell => getComputedStyle(cell).borderRightWidth !== '0px' && getComputedStyle(cell).borderBottomWidth !== '0px');
     if (!ruled) throw Error('The five columns and five rows must have continuous visible rules');
+    // Browser-rendered color comparison, not merely presence of border widths.
+    // Pixel distances are measured from the actual surface, not from guessed CSS.
+    const ctx = document.createElement('canvas').getContext('2d');
+    ctx.canvas.width = ctx.canvas.height = 1;
+    const rgb = color => {
+      ctx.fillStyle = color;
+      ctx.fillRect(0, 0, 1, 1);
+      return [...ctx.getImageData(0, 0, 1, 1).data].slice(0, 3);
+    };
+    const distance = (a, b) => {
+      const x = rgb(a), y = rgb(b);
+      return Math.hypot(...x.map((value, i) => value - y[i]));
+    };
+    const background = getComputedStyle(document.documentElement).getPropertyValue('--surface').trim();
+    const termCss = getComputedStyle(allCells[1]);
+    const themeCss = getComputedStyle(allCells[0]);
+    const horizontalStrength = distance(termCss.borderBottomColor, background);
+    const columnStrength = distance(termCss.borderRightColor, background);
+    const themeDividerStrength = distance(themeCss.borderRightColor, background);
+    if (columnStrength < 5 || horizontalStrength < columnStrength * 2.5 ||
+        themeDividerStrength < columnStrength * 1.25 ||
+        horizontalStrength < themeDividerStrength * 1.25) {
+      throw Error('Border hierarchy is still a box grid or guides have disappeared: '+JSON.stringify({
+        horizontalStrength, columnStrength, themeDividerStrength,
+        horizontal:termCss.borderBottomColor, vertical:termCss.borderRightColor, theme:themeCss.borderRightColor
+      }));
+    }
     const orientationPair = one('.detail-orientations');
     const upright = one('#cardDetailUprightBlock').getBoundingClientRect();
     const negative = one('#cardDetailReversedBlock').getBoundingClientRect();

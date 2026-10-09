@@ -115,6 +115,12 @@ test('detail reference uses adjacent enlarged artwork and a vertical writing tab
   assert.ok(css.includes('table-layout: fixed'));
   assert.ok(css.includes('border-collapse: collapse'));
   assert.ok(css.includes('border-spacing: 0'));
+  assert.ok(css.includes('--keyword-column-guide: color-mix(in srgb, var(--border-strong) 22%, var(--surface))'));
+  assert.ok(css.includes('--keyword-theme-guide: color-mix(in srgb, var(--border-strong) 45%, var(--surface))'));
+  assert.ok(css.includes('border-bottom: 1px solid var(--border-strong)'));
+  assert.ok(css.includes('border-right: 1px solid var(--keyword-column-guide)'));
+  assert.ok(css.includes('border-right-color: var(--keyword-theme-guide)'));
+  assert.ok(!css.includes('padding: 4px 1px;\n  border: 1px solid var(--border-strong)'), 'old all-edges box grid must not return');
   assert.ok(css.includes('.keyword-grid-table thead th.keyword-grid-title-cell'));
   assert.ok(css.includes('border: 1px solid var(--border-strong)'));
   assert.ok(!css.includes('border-radius: 5px;\n  writing-mode: vertical-rl;'));
