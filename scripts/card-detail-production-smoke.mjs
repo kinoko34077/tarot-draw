@@ -265,6 +265,21 @@ try {
         JSON.stringify({horizontal:H, vertical:V, themeDivider:T}));
     }
 
+    // Horizontal boundary is an actual painted overlay above both vertical
+    // junctions, not merely an equally prioritized collapsed CSS border.
+    if (!allKeywordCells.every(cell => {
+      const overlay = getComputedStyle(cell, '::after');
+      return overlay.content !== 'none' &&
+        overlay.position === 'absolute' &&
+        overlay.height === '1px' &&
+        overlay.bottom === '-1px' &&
+        overlay.pointerEvents === 'none' &&
+        Number(overlay.zIndex) > 0 &&
+        delta(overlay.backgroundColor, termCss.borderBottomColor) < 0.1;
+    })) {
+      throw new Error('Published horizontal rules must overlay pale vertical intersections.');
+    }
+
     const meaningUprightRect = one('#cardDetailUprightBlock').getBoundingClientRect();
     const meaningReversedRect = one('#cardDetailReversedBlock').getBoundingClientRect();
     const detailTitleRect = one('#cardDetailTitle').getBoundingClientRect();
