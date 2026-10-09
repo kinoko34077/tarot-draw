@@ -71,7 +71,7 @@ async function evaluate(fn) {
 
 async function waitForAppReady() {
   for (let attempt = 0; attempt < 100; attempt++) {
-    if (await evaluate(() => Boolean(document.querySelector('.shuffle-button')))) return;
+    if (await evaluate(() => Boolean(document.querySelector('.reading-workbench .axis-add-header .axis-add-button')))) return;
     await sleep(100);
   }
   throw Error('Application did not render its first reading after the browser connected');
