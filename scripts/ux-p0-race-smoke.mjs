@@ -274,10 +274,7 @@ try {
     one('.copy-button').click();
     for(let i=0;i<20 && !__p0.copiedText;i++)await sleep(20);
     const copied=__p0.copiedText;
-    __p0.copiedText=null;
-    one('.tsv-copy-button').click();
-    for(let i=0;i<20 && !__p0.copiedText;i++)await sleep(20);
-    const oldTsv=__p0.copiedText;
+
     const button=all('.card-detail-trigger')[0];
     const visibleCue=/詳細/.test(button.textContent);
     button.click();
@@ -290,7 +287,7 @@ try {
       copiedParallel:copied?.includes('## パラレルリーディング（山B）'),
       copiedMarkdown:copied?.includes('| --- |') && copied?.includes('### パラレルリーディングについて'),
       copiedMarkdownHasNoTabs:!copied?.includes('\\t'),
-      copiedTsv:oldTsv?.includes('【Parallel】') && oldTsv?.includes('【パラレルリーディング説明】') && oldTsv?.includes('\\t'),
+      tsvActionRemoved:!one('.tsv-copy-button'),
       visibleCue,detail};
   })()`);
   assert.deepEqual(ready.dims,{rows:3,columns:9});
@@ -300,7 +297,7 @@ try {
   assert.equal(ready.copiedParallel,true);
   assert.equal(ready.copiedMarkdown,true);
   assert.equal(ready.copiedMarkdownHasNoTabs,true);
-  assert.equal(ready.copiedTsv,true);
+  assert.equal(ready.tsvActionRemoved,true);
   assert.equal(ready.detail.open,true);
   assert.equal(ready.detail.keywords,25);
   report('NORMAL-27X2',{status:'PASS',...ready});
@@ -532,7 +529,7 @@ try {
       const drawingAfterB=one('.draw-button').disabled;
       a[2].click();
       const drawingAfterC=one('.draw-button').disabled;
-      const parallelBlocked=all('.pile-button').every(button => button.disabled);
+      const parallelBlocked=all('.pile-button').every(button => button.disabled || button.getAttribute('aria-pressed')==='true');
       one('.draw-button').click();
       for(let i=0;i<160 && one('.reading-status').textContent!=='抽選完了';i++)await sleep(30);
       const cards=all('.primary-matrix .card-detail-trigger').length;
