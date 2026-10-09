@@ -142,7 +142,7 @@ test('bulk copy supports the user-facing 3x6 table shape without flattening', ()
   assert.equal(lines[6].split('\t').length, 7);
 });
 
-test('Minor Arcana ruby display retains compact Japanese base and katakana reading in plain copy', () => {
+test('on-screen Minor Arcana ruby remains, while copied card labels omit phonetic readings', () => {
   const knight = { card_id: 'minor.wands.knight', name_ja: 'ワンドのナイト', orientation: 'reversed' };
   const parts = cardDisplayParts(knight);
   assert.equal(parts.title, '杖の騎士');
@@ -150,15 +150,15 @@ test('Minor Arcana ruby display retains compact Japanese base and katakana readi
   assert.match(parts.titleHtml, /<ruby>杖/);
   assert.match(parts.titleHtml, /<rt>ワンド<\/rt>/);
   assert.match(parts.titleHtml, /<rt>ナイト<\/rt>/);
-  assert.equal(cardDisplayText(knight), '杖（ワンド）の騎士（ナイト） 逆位置');
+  assert.equal(cardDisplayText(knight), '杖の騎士 逆位置');
 
   assert.equal(
     cardDisplayText({ card_id: 'minor.pentacles.queen', name_ja: 'ペンタクルのクイーン', orientation: 'upright' }),
-    '金貨（ペンタクル）の女王（クイーン） 正位置'
+    '金貨の女王 正位置'
   );
 });
 
-test('Markdown is legible 2x2 GFM, preserves orientation, ruby and conditional custom-card notes', () => {
+test('Markdown is legible 2x2 GFM, preserves orientation and conditional custom-card notes without ruby', () => {
   const primary = { positions: {
     r0c0: { card_id: 'major.sun', name_ja: '太陽', orientation: 'upright' },
     r0c1: { card_id: 'minor.wands.knight', name_ja: 'ワンドのナイト', orientation: 'reversed' },
@@ -173,7 +173,7 @@ test('Markdown is legible 2x2 GFM, preserves orientation, ruby and conditional c
   assert.match(output, /^# タロット占い結果\n\n\*\*問い：\*\* どちらの道？/);
   assert.match(output, /## メインリーディング（山A）/);
   assert.match(output, /\| 項目 \| 仕事 \| 創作 \|\n\| --- \| --- \| --- \|/);
-  assert.match(output, /\| 以前 \| XIX 太陽 正位置 \| 杖（ワンド）の騎士（ナイト） 逆位置 \|/);
+  assert.match(output, /\| 以前 \| XIX 太陽 正位置 \| 杖の騎士 逆位置 \|/);
   assert.match(output, /\| これから \| タイトルカード 正位置 \| XXI 世界 逆位置 \|/);
   assert.match(output, /### 独自カードについて\n- タイトルカード:/);
   assert.ok(!output.includes('### パラレルリーディングについて'));
