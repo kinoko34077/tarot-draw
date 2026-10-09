@@ -664,6 +664,7 @@ input:focus-visible {
   border-bottom: 1px solid var(--border-strong);
   border-right: 1px solid var(--keyword-column-guide);
   border-radius: 0;
+  position: relative;
   writing-mode: vertical-rl;
   text-orientation: upright;
   white-space: nowrap;
@@ -681,6 +682,20 @@ input:focus-visible {
   background: var(--surface-soft);
 }
 .keyword-grid-table tbody td { background: var(--surface); }
+/* Painted above the pale vertical boundaries at every cell junction.
+   Keep the native border-bottom as the semantic/table fallback. */
+.keyword-grid-table tbody th::after,
+.keyword-grid-table tbody td::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: -1px;
+  bottom: -1px;
+  height: 1px;
+  background: var(--border-strong);
+  z-index: 2;
+  pointer-events: none;
+}
 .keyword-grid-table thead th.keyword-grid-title-cell {
   border: 0;
   border-bottom: 1px solid var(--border-strong);
