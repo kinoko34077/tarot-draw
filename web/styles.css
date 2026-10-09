@@ -1035,6 +1035,56 @@ input:focus-visible {
   .result-action-line { flex: 1 0 auto; }
 }
 
+/* #72: status text precedes a fixed-position right control group. */
+.matrix-heading { flex-wrap: nowrap; gap: 5px; }
+.matrix-heading .branch-meta { flex: 0 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.matrix-heading .result-action-line {
+  flex: 1 1 0; min-width: 0; margin-left: auto;
+  display: flex; flex-wrap: nowrap; justify-content: flex-end; gap: 5px;
+  overflow: hidden;
+}
+.result-action-line .reading-status,
+.result-action-line .copy-feedback {
+  flex: 0 1 auto; min-width: 0; max-width: 100%;
+  overflow: hidden; white-space: nowrap; text-overflow: ellipsis;
+}
+.heading-right-controls {
+  display: flex; flex: 0 0 auto; align-items: center;
+  justify-content: flex-end; gap: 6px;
+}
+.heading-right-controls .copy-button { width: 94px; min-height: 28px; padding: 2px 5px; font-size: .76rem; }
+/* Reserve the copy slot in all phases, so the count doesn't jump on completion. */
+.heading-right-controls .copy-button.hidden {
+  display: inline-block !important; visibility: hidden; pointer-events: none;
+}
+.matrix-section .axis-history-actions {
+  margin: 0; padding: 3px 6px; min-height: 32px;
+  display: flex; justify-content: flex-start; gap: 4px;
+  background: var(--surface-soft); border-top: 1px solid var(--border);
+}
+/* The two column buttons stack; row buttons intentionally stay side-by-side. */
+.axis-add-actions-column { flex-direction: column; gap: 2px; }
+.reading-table .column-header, .reading-table .axis-add-header { height: 65px; }
+.column-header .axis-handle { min-height: 57px; }
+.column-header .axis-inline-label, .column-header .axis-readonly-label {
+  height: 57px; min-height: 57px; max-height: 57px;
+}
+/* Ruby-base and ordinary kana share one line box and baseline.
+   Readings float outside normal flow; no browser ruby layout box contributes
+   to line height, including for isolated kana 「の」. */
+.card-title { display: block; align-content: center; text-align: center; line-height: 1.25; }
+.card-title .ruby-token {
+  display: inline-block; position: relative;
+  vertical-align: baseline; line-height: inherit; white-space: nowrap;
+}
+.card-title .ruby-base { display: inline; line-height: inherit; }
+.card-title .ruby-float {
+  position: absolute; bottom: calc(100% - 1px); left: 50%;
+  transform: translateX(-50%); font-size: .48em; line-height: 1;
+  font-weight: 500; color: var(--muted); white-space: nowrap;
+  user-select: none; pointer-events: none;
+}
+
 @media (prefers-reduced-motion: reduce) {
   * { scroll-behavior: auto !important; }
 }
