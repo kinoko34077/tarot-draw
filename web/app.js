@@ -1123,6 +1123,37 @@ function createReadingController(number) {
     return result;
   }
 
+  async function drawPileSequence(intent, pileIds) {
+    if (!pileIds.length || new Set(pileIds).size !== pileIds.length) {
+      throw new Error('選択した山の順番が不正です。');
+    }
+    let offset = 0;
+    const tasks = pileIds.map(pileId => {
+      const available = intent.piles.find(p => p.pile_id === pileId)?.count;
+      if (!Number.isInteger(available) || available < 1) {
+        throw new Error('山の枚数を確認できません。');
+      }
+      const batch = intent.positions.slice(offset, offset + available);
+      offset += batch.length;
+      return { pileId, batch };
+    }).filter(part => part.batch.length);
+    if (offset < intent.positions.length) throw new Error('選択された山の枚数が不足しています。');
+
+    // Every pile is a separate immutable backend branch from the same shuffled
+    // snapshot. Never retry an unknown network outcome or silently change piles.
+    const outcomes = await Promise.allSettled(tasks.map(part =>
+      createBranchAndDraw(intent.sessionId, part.pileId, part.batch)));
+    if (outcomes.some(outcome => outcome.status === 'rejected')) {
+      throw new Error('複数の山の一部の抽選結果が不明です。二重抽選を避けるため再試行しません。');
+    }
+    const positions = Object.assign({}, ...outcomes.map(outcome => outcome.value.positions));
+    if (Object.keys(positions).length !== intent.positions.length ||
+        intent.positions.some(id => !positions[id])) {
+      throw new Error('複数の山を結合した結果が完全ではありません。');
+    }
+    return { pile_id: pileIds[0], piles: [...pileIds], positions };
+  }
+
   function snapshotDrawIntent() {
     return Object.freeze({
       sessionId: state.sessionId,
@@ -1131,13 +1162,16 @@ function createReadingController(number) {
       columnLabels: Object.freeze([...state.columnLabels]),
       primaryPile: state.primaryPile,
       parallelPile: state.parallelPile,
+      primaryPiles: Object.freeze([...state.primaryPiles]),
+      parallelPiles: Object.freeze([...state.parallelPiles]),
+      piles: Object.freeze(state.piles.map(p => Object.freeze({ pile_id: p.pile_id, count: p.count }))),
       positions: Object.freeze(buildPositionIds(state.rowLabels.length, state.columnLabels.length))
     });
   }
 
   async function draw() {
-    if (state.phase !== 'choosing' || !state.primaryPile || !state.sessionId ||
-        state.pendingOperation || state.drawOutcome) return;
+    if (state.phase !== 'choosing' || !mainReady() || !parallelReady() ||
+        !state.sessionId || state.pendingOperation || state.drawOutcome) return;
 
     const intent = snapshotDrawIntent();
     state.pendingOperation = 'draw';
@@ -1147,9 +1181,9 @@ function createReadingController(number) {
 
     try {
       const outcomes = await Promise.allSettled([
-        createBranchAndDraw(intent.sessionId, intent.primaryPile, intent.positions),
-        intent.parallelPile
-          ? createBranchAndDraw(intent.sessionId, intent.parallelPile, intent.positions)
+        drawPileSequence(intent, intent.primaryPiles),
+        intent.parallelPiles.length
+          ? drawPileSequence(intent, intent.parallelPiles)
           : Promise.resolve(null)
       ]);
       const primary = outcomes[0].status === 'fulfilled' ? outcomes[0].value : null;
@@ -1163,6 +1197,8 @@ function createReadingController(number) {
       state.columnLabels = [...intent.columnLabels];
       state.primaryPile = intent.primaryPile;
       state.parallelPile = intent.parallelPile;
+      state.primaryPiles = [...intent.primaryPiles];
+      state.parallelPiles = [...intent.parallelPiles];
       state.primaryResult = primary;
       state.parallelResult = parallel;
 
@@ -1171,8 +1207,8 @@ function createReadingController(number) {
         // retry or replacement random draw is safe without a server receipt.
         state.drawOutcome = 'unknown';
         state.phase = 'draw-uncertain';
-        const got = [primary && `Primary 山${intent.primaryPile}`,
-          parallel && `Parallel 山${intent.parallelPile}`].filter(Boolean).join('・');
+        const got = [primary && `Primary 山${intent.primaryPiles.join(' → ')}`,
+          parallel && `Parallel 山${intent.parallelPiles.join(' → ')}`].filter(Boolean).join('・');
         setTextStatus(refs.status, got
           ? `${got} の結果は取得できました。ほかの抽選は確定状況が不明です。二重抽選を避けるため、この占いの再試行を停止しました。`
           : '抽選結果を確認できませんでした。サーバー側で確定済みの可能性があるため、同じ抽選の再試行は停止しました。', 'error');
@@ -1215,8 +1251,8 @@ function createReadingController(number) {
       columnLabels: state.columnLabels,
       primary: state.primaryResult,
       parallel: state.parallelResult,
-      primaryPile: state.primaryPile,
-      parallelPile: state.parallelPile
+      primaryPile: state.primaryPiles.join(' → '),
+      parallelPile: state.parallelPiles.join(' → ')
     });
 
     try {
