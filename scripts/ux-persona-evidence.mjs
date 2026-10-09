@@ -347,20 +347,23 @@ async function expertTask() {
   actions++;
   const deleteButton = document.querySelector('#deleteAxisButton');
   if (!deleteButton || deleteButton.classList.contains('hidden')) throw Error('Delete was not exposed near the row');
+  const originalConfirm = window.confirm;
+  window.confirm = () => true;
   deleteButton.click();
+  window.confirm = originalConfirm;
   actions++;
   const removedRow = reading.querySelectorAll('.primary-matrix .row-header').length === 2;
   undo();
   const deleteUndoRestored = reading.querySelectorAll('.primary-matrix .row-header').length === 3;
 
-  pick('.shuffle-button').click();
+  document.querySelector('.shuffle-button').click();
   actions++;
   await poll(() => [...reading.querySelectorAll('.pile-button')].filter(el => !el.disabled).length >= 2, 'piles ready');
   const piles = [...reading.querySelectorAll('.pile-button')].filter(el => !el.disabled);
   piles[0].click();
   piles[1].click();
   actions += 2;
-  pick('.draw-button').click();
+  document.querySelector('.draw-button').click();
   actions++;
   await poll(() => pick('.reading-status')?.textContent === '抽選完了', 'two-pile draw');
   const main = pick('.primary-matrix');
@@ -441,7 +444,10 @@ async function axisWorkflowTask() {
   const menuMove = columnNames();
   pick('.axis-undo-button').click();
   grip('column',1).click();
+  const originalConfirm = window.confirm;
+  window.confirm = () => true;
   one('#deleteAxisButton').click();
+  window.confirm = originalConfirm;
   const afterDelete = columnNames();
   pick('.axis-undo-button').click();
   const deleteUndo = columnNames();
@@ -630,6 +636,7 @@ try {
 } catch (error) {
   report.verdict = 'ERROR';
   report.runtimeError = String(error?.stack || error);
+  console.error('UX_PERSONA_RUNTIME_ERROR=' + report.runtimeError);
 } finally {
   await writeFile(reportPath, JSON.stringify(report, null, 2) + '\n');
   console.log('UX_PERSONA_EVIDENCE=' + JSON.stringify({ reportPath, mode, verdict: report.verdict, summary: report.summary }));
