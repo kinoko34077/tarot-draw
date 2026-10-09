@@ -356,6 +356,23 @@ function bindAxisContextMenu(target, controller, kind, index, trigger) {
   });
 }
 
+// Keep row/column widths fixed: shrink long names inside the existing area.
+// The full label remains available via title and the accessible DOM text.
+function fitAxisText(node) {
+  if (!node?.isConnected) return;
+  for (let size = 13; size >= 5.5; size -= 0.5) {
+    node.style.fontSize = `${size}px`;
+    if (node.scrollWidth <= node.clientWidth + 1 &&
+        node.scrollHeight <= node.clientHeight + 1) break;
+  }
+}
+
+function fitMatrixAxes(root) {
+  for (const node of root.querySelectorAll('.axis-inline-label, .axis-readonly-label')) {
+    fitAxisText(node);
+  }
+}
+
 function createReadingController(number) {
   const state = {
     number,
@@ -594,7 +611,7 @@ function createReadingController(number) {
     label.className = 'axis-inline-label';
     label.textContent = labelOrFallback(state[stateKey], index, kind);
     label.setAttribute('aria-label', axisName + (index + 1) + 'の名前を編集');
-    label.title = '名前を編集';
+    label.title = `${label.textContent}（名前を編集）`;
     label.disabled = Boolean(state.pendingOperation) || state.phase === 'draw-uncertain';
 
     const menuButton = document.createElement('button');
@@ -610,7 +627,12 @@ function createReadingController(number) {
       if (!state.parallelResult) return;
       const selector = kind === 'row' ? '.row-header' : '.column-header';
       const matching = refs.parallelMatrix.querySelectorAll(selector)[index];
-      if (matching) matching.textContent = labelOrFallback(state[stateKey], index, kind);
+      const updated = matching?.querySelector('.axis-readonly-label');
+      if (updated) {
+        updated.textContent = labelOrFallback(state[stateKey], index, kind);
+        updated.title = updated.textContent;
+        fitAxisText(updated);
+      }
     }
 
     function beginEdit() {
@@ -633,7 +655,9 @@ function createReadingController(number) {
         if (commit && values[index] !== previousValue && canEditAxes()) recordAxisHistory();
         state[stateKey] = values;
         label.textContent = labelOrFallback(values, index, kind);
+        label.title = `${label.textContent}（名前を編集）`;
         input.replaceWith(label);
+        fitAxisText(label);
         updateParallelHeading();
         renderLayoutState();
         if (restoreFocus) label.focus({ preventScroll: true });
@@ -801,7 +825,11 @@ function createReadingController(number) {
         if (canReorder) bindAxisContextMenu(editor.handle, controller, 'column', column, editor.menuButton);
         if (!canReorder) editor.menuButton.classList.add('hidden');
       } else {
-        th.textContent = labelOrFallback(state.columnLabels, column, 'column');
+        const text = document.createElement('span');
+        text.className = 'axis-readonly-label';
+        text.textContent = labelOrFallback(state.columnLabels, column, 'column');
+        text.title = text.textContent;
+        th.append(text);
       }
       headerRow.append(th);
     }
@@ -839,7 +867,11 @@ function createReadingController(number) {
         if (canReorder) bindAxisContextMenu(editor.handle, controller, 'row', row, editor.menuButton);
         if (!canReorder) editor.menuButton.classList.add('hidden');
       } else {
-        rowHeader.textContent = labelOrFallback(state.rowLabels, row, 'row');
+        const text = document.createElement('span');
+        text.className = 'axis-readonly-label';
+        text.textContent = labelOrFallback(state.rowLabels, row, 'row');
+        text.title = text.textContent;
+        rowHeader.append(text);
       }
       tr.append(rowHeader);
 
@@ -913,6 +945,7 @@ function createReadingController(number) {
     }));
     refs.primaryMatrix.scrollLeft = left;
     refs.primaryMatrix.scrollTop = top;
+    fitMatrixAxes(refs.primaryMatrix);
   }
 
   function renderParallelMatrix() {
@@ -930,6 +963,7 @@ function createReadingController(number) {
       editableHeaders: false,
       label: `Reading ${state.number} Parallel結果`
     }));
+    fitMatrixAxes(refs.parallelMatrix);
   }
 
   function capacityOf(pileIds) {
