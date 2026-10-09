@@ -443,6 +443,18 @@ try {
       window.dispatchEvent(new PointerEvent('pointerup',{pointerId:23,button:0,bubbles:true,clientX:x,clientY:y}));
       const reordered=all('.column-header .axis-inline-label').map(e=>e.textContent);
       const ghostRemoved=!one('.axis-drag-ghost');
+      const columnControlsStacked=getComputedStyle(one('.axis-add-actions-column')).flexDirection==='column';
+      const rowControlsSideBySide=getComputedStyle(one('.axis-add-row-header .axis-add-actions')).flexDirection==='row';
+      const historyOutsideHeading=one('.axis-history-actions').previousElementSibling.classList.contains('primary-matrix');
+      const rowLabel=one('.row-header .axis-inline-label');
+      rowLabel.click();
+      const rowInput=one('.row-header .axis-inline-input');
+      rowInput.value='行12';
+      rowInput.dispatchEvent(new KeyboardEvent('keydown',{key:'Enter',bubbles:true}));
+      const verticalDigits=one('.row-header .axis-inline-label').textContent;
+      one('.row-header .axis-inline-label').click();
+      const editableRawDigits=one('.row-header .axis-inline-input').value;
+      one('.row-header .axis-inline-input').dispatchEvent(new KeyboardEvent('keydown',{key:'Escape',bubbles:true}));
       one('.shuffle-button').click();
       for(let i=0;i<100 && all('.pile-button').length!==3;i++)await sleep(20);
       const piles=()=>all('.pile-button');
@@ -473,10 +485,14 @@ try {
       const feedbackRight=one('.copy-feedback').getBoundingClientRect().right;
       const controlsLeft=one('.heading-right-controls').getBoundingClientRect().left;
       const stableControls=Math.abs(initialRight-completeRight)<1 && Math.abs(initialRight-afterCopyRight)<1;
+      const parallelDigits=one('.parallel-matrix .row-header .axis-readonly-label')?.textContent ?? '';
+      const copiedRawDigits=__p0.copiedText?.includes('行12') ?? false;
       return {inlineQ,divider,footer,initialCount,afterAdd,afterBlankDelete,
         afterRefusedDelete,afterConfirmedDelete,confirmations,preview,reordered,ghostRemoved,
         primarySelected,cleared,roles,drawReady,parallelClearedAfterDone,
         mainClearedAfterDone,drawEnabledAfterReselect,stableControls,
+        columnControlsStacked,rowControlsSideBySide,historyOutsideHeading,
+        verticalDigits,editableRawDigits,parallelDigits,copiedRawDigits,
         statusBeforeControls:statusRight<=controlsLeft+1,
         feedbackBeforeControls:feedbackRight<=controlsLeft+1};
     })()`);
@@ -501,6 +517,13 @@ try {
     assert.equal(ux70.parallelClearedAfterDone,true,'Selected Parallel must untoggle at ready/done');
     assert.equal(ux70.mainClearedAfterDone,true,'Selected Main must untoggle at ready/done');
     assert.equal(ux70.drawEnabledAfterReselect,true);
+    assert.equal(ux70.columnControlsStacked,true);
+    assert.equal(ux70.rowControlsSideBySide,true);
+    assert.equal(ux70.historyOutsideHeading,true);
+    assert.equal(ux70.verticalDigits,'行１２');
+    assert.equal(ux70.editableRawDigits,'行12');
+    assert.equal(ux70.parallelDigits,'行１２');
+    assert.equal(ux70.copiedRawDigits,true);
     assert.equal(ux70.stableControls,true,'Fixed right controls must not move on status/copy feedback');
     assert.equal(ux70.statusBeforeControls,true);
     assert.equal(ux70.feedbackBeforeControls,true);
