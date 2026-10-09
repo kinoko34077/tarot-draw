@@ -483,7 +483,7 @@ function createReadingController(number) {
     state.primaryPile = null;
     state.parallelPile = null;
     render();
-    setTextStatus(refs.selectionMessage, 'メインの最初の山を選択してください。');
+    setTextStatus(refs.selectionMessage, 'メインの山を選択してください。');
   });
   refs.copyButton.addEventListener('click', () => copyReading('markdown'));
   refs.tsvCopyButton.addEventListener('click', () => copyReading('tsv'));
@@ -902,7 +902,7 @@ function createReadingController(number) {
   function renderPrimaryMatrix() {
     const completed = state.phase === 'completed' || state.phase === 'draw-uncertain';
     refs.primaryTitle.textContent = completed ? 'Primary' : '配置';
-    refs.primaryPileLabel.textContent = state.primaryPile ? `山 ${state.primaryPile}` : '';
+    refs.primaryPileLabel.textContent = state.primaryPiles.length ? `山 ${state.primaryPiles.join(' → ')}` : '';
     const left = refs.primaryMatrix.scrollLeft;
     const top = refs.primaryMatrix.scrollTop;
     refs.primaryMatrix.replaceChildren(createMatrixTable({
@@ -931,78 +931,114 @@ function createReadingController(number) {
     }));
   }
 
+  function capacityOf(pileIds) {
+    return pileIds.reduce((sum, id) =>
+      sum + (state.piles.find(pile => pile.pile_id === id)?.count ?? 0), 0);
+  }
+
+  function mainReady() {
+    return state.primaryPiles.length > 0 &&
+      capacityOf(state.primaryPiles) >= requiredCards(state);
+  }
+
+  function parallelReady() {
+    return state.parallelPiles.length === 0 ||
+      capacityOf(state.parallelPiles) >= requiredCards(state);
+  }
+
+  function selectionStage() {
+    if (!mainReady()) return 'main';
+    if (state.parallelPiles.length && !parallelReady()) return 'parallel';
+    if (!state.parallelPiles.length && state.primaryPiles.length < 3) return 'parallel';
+    return 'done';
+  }
+
+  function pileHint() {
+    const needed = requiredCards(state);
+    const mainCount = capacityOf(state.primaryPiles);
+    const parallelCount = capacityOf(state.parallelPiles);
+    if (!state.primaryPiles.length) return 'メインの山を選択してください。';
+    if (mainCount < needed) {
+      return `メインの山 ${state.primaryPiles.join(' → ')}（${mainCount}/${needed}枚）。枚数確保の為次の山を選択（あと${needed - mainCount}枚）。`;
+    }
+    if (state.parallelPiles.length && parallelCount < needed) {
+      return `Parallelの山 ${state.parallelPiles.join(' → ')}（${parallelCount}/${needed}枚）。枚数確保の為次の山を選択（あと${needed - parallelCount}枚）。`;
+    }
+    if (state.parallelPiles.length) return `メイン ${state.primaryPiles.join(' → ')} / Parallel ${state.parallelPiles.join(' → ')}：引けます。`;
+    if (state.primaryPiles.length === 3) return `メイン ${state.primaryPiles.join(' → ')}：${needed}枚確保。3山すべて使うためParallelは選べません。`;
+    return `メイン ${state.primaryPiles.join(' → ')}：${needed}枚確保。追加で別の山を選ぶとParallel（任意）。`;
+  }
+
   function renderPiles() {
-    if (state.piles.length === 0) {
+    if (!state.piles.length) {
       refs.pileOptions.replaceChildren();
       return;
     }
-
-    const count = requiredCards(state);
+    const stage = selectionStage();
     refs.pileOptions.replaceChildren(...state.piles.map(pile => {
       const button = document.createElement('button');
       button.type = 'button';
       button.className = 'pile-button';
 
-      const selected = pile.pile_id === state.primaryPile || pile.pile_id === state.parallelPile;
+      const mainIndex = state.primaryPiles.indexOf(pile.pile_id);
+      const parallelIndex = state.parallelPiles.indexOf(pile.pile_id);
+      const selected = mainIndex !== -1 || parallelIndex !== -1;
       button.setAttribute('aria-pressed', String(selected));
-      button.disabled = pile.count < count || Boolean(state.pendingOperation);
+      // Main can only continue with an unused pile. Once Main is full,
+      // Parallel's first selection must be another (hypothetical) pile.
+      // Later Parallel continuation may use a Main pile from its own
+      // independent branch snapshot without duplicating cards in either path.
+      const canAppend = stage === 'main'
+        ? mainIndex === -1
+        : stage === 'parallel'
+          ? parallelIndex === -1 && (state.parallelPiles.length > 0 || mainIndex === -1)
+          : false;
+      button.disabled = !canAppend || Boolean(state.pendingOperation);
 
       const name = document.createElement('span');
       name.className = 'pile-name';
       name.textContent = `山 ${pile.pile_id}`;
-
-      const meta = document.createElement('span');
-      meta.className = 'pile-count';
-      meta.textContent = `${pile.count}枚`;
-
+      const count = document.createElement('span');
+      count.className = 'pile-count';
+      count.textContent = `${pile.count}枚`;
       const role = document.createElement('span');
       role.className = 'pile-role';
-      role.textContent = pile.pile_id === state.primaryPile
-        ? 'Primary'
-        : pile.pile_id === state.parallelPile
-          ? 'Parallel'
-          : button.disabled
-            ? '不足'
-            : '';
-
+      role.textContent = mainIndex !== -1
+        ? `メイン${mainIndex + 1}`
+        : parallelIndex !== -1 ? `Parallel${parallelIndex + 1}` : '';
       button.setAttribute('aria-label', `山${pile.pile_id} ${pile.count}枚 ${role.textContent || '未選択'}`);
-      button.append(name, meta, role);
+      button.append(name, count, role);
       button.addEventListener('click', () => selectPile(pile.pile_id));
       return button;
     }));
+    refs.pileResetButton.disabled = Boolean(state.pendingOperation);
   }
 
   function selectPile(pileId) {
     if (state.phase !== 'choosing' || state.pendingOperation) return;
-
-    if (pileId === state.primaryPile) {
-      state.primaryPile = null;
-      state.parallelPile = null;
-    } else if (pileId === state.parallelPile) {
-      state.parallelPile = null;
-    } else if (!state.primaryPile) {
-      state.primaryPile = pileId;
+    const pile = state.piles.find(p => p.pile_id === pileId);
+    if (!pile) return;
+    const stage = selectionStage();
+    if (stage === 'main' && !state.primaryPiles.includes(pileId)) {
+      state.primaryPiles.push(pileId);
+      state.primaryPile = state.primaryPiles[0];
+    } else if (stage === 'parallel' && !state.parallelPiles.includes(pileId) &&
+        (state.parallelPiles.length > 0 || !state.primaryPiles.includes(pileId))) {
+      state.parallelPiles.push(pileId);
+      state.parallelPile = state.parallelPiles[0];
     } else {
-      state.parallelPile = pileId;
+      return;
     }
-
     renderPiles();
-    render();
     updateDrawAction();
-
-    if (!state.primaryPile) {
-      setTextStatus(refs.selectionMessage, 'メインの最初の山を選択してください。');
-    } else if (!state.parallelPile) {
-      setTextStatus(refs.selectionMessage, `Primary: ${state.primaryPile} · 2つ目を選ぶとParallel`);
-    } else {
-      setTextStatus(refs.selectionMessage, `Primary: ${state.primaryPile} / Parallel: ${state.parallelPile}`);
-    }
+    setTextStatus(refs.selectionMessage, pileHint());
   }
 
   function updateDrawAction() {
     const choosing = state.phase === 'choosing';
     refs.drawButton.classList.toggle('hidden', !choosing);
-    refs.drawButton.disabled = !state.primaryPile || !choosing || Boolean(state.pendingOperation);
+    refs.drawButton.disabled = !choosing || !mainReady() || !parallelReady() ||
+      Boolean(state.pendingOperation);
   }
 
   function renderLayoutState() {
@@ -1061,7 +1097,7 @@ function createReadingController(number) {
       state.undoStack.length = 0;
       state.redoStack.length = 0;
       refs.pilePanel.classList.remove('hidden');
-      setTextStatus(refs.selectionMessage, 'メインの最初の山を選択してください。');
+      setTextStatus(refs.selectionMessage, 'メインの山を選択してください。');
       setTextStatus(refs.status, '山を選択');
     } catch (error) {
       setTextStatus(refs.status, `シャッフル結果を確認できませんでした。未完成の山は使用しません。${error.message}`, 'error');
