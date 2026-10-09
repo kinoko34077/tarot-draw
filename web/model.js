@@ -112,7 +112,9 @@ export function cardDisplayParts(card) {
 
 export function cardDisplayText(card) {
   const parts = cardDisplayParts(card);
-  return parts.orientation ? `${parts.plainTitle} ${parts.orientation}` : parts.plainTitle;
+  // Export compact visible Japanese names without phonetic parenthetical ruby.
+  // On-screen ruby HTML and the underlying card identity remain unchanged.
+  return parts.orientation ? `${parts.title} ${parts.orientation}` : parts.title;
 }
 
 export function rwsImageUrl(card, width = 128) {
