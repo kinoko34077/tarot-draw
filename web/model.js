@@ -44,6 +44,38 @@ export function buildPositionIds(rowCount, columnCount) {
   return ids;
 }
 
+
+/**
+ * Assign row-major positions to explicitly selected piles, exhausting each
+ * in order. This partitions ONE authoritative shuffle, without drawing a
+ * card twice within the resulting reading.
+ */
+export function planPileDraws(selectedPiles, pileCatalog, positions) {
+  if (!Array.isArray(selectedPiles) || !Array.isArray(pileCatalog) ||
+      !Array.isArray(positions) || selectedPiles.length === 0 ||
+      positions.length === 0 || positions.length > 80) {
+    throw new RangeError('Invalid pile selection or position count.');
+  }
+  if (new Set(selectedPiles).size !== selectedPiles.length ||
+      new Set(positions).size !== positions.length) {
+    throw new RangeError('Piles and positions must not repeat within a reading.');
+  }
+  const counts = new Map(pileCatalog.map(p => [p.pile_id, p.count]));
+  if (selectedPiles.some(id => !counts.has(id))) throw new RangeError('Unknown pile.');
+  let offset = 0;
+  const batches = [];
+  for (const pileId of selectedPiles) {
+    if (offset === positions.length) break;
+    const available = counts.get(pileId);
+    if (!Number.isSafeInteger(available) || available < 1) throw new RangeError('Invalid pile size.');
+    const portion = positions.slice(offset, offset + available);
+    if (portion.length) batches.push({ pileId, positions: portion });
+    offset += portion.length;
+  }
+  if (offset !== positions.length) throw new RangeError('More piles are required to cover the reading.');
+  return batches;
+}
+
 export function resizeLabels(labels, count) {
   return Array.from({ length: count }, (_, index) => labels[index] ?? '');
 }
@@ -112,7 +144,9 @@ export function cardDisplayParts(card) {
 
 export function cardDisplayText(card) {
   const parts = cardDisplayParts(card);
-  return parts.orientation ? `${parts.plainTitle} ${parts.orientation}` : parts.plainTitle;
+  // Export compact visible Japanese names without phonetic parenthetical ruby.
+  // On-screen ruby HTML and the underlying card identity remain unchanged.
+  return parts.orientation ? `${parts.title} ${parts.orientation}` : parts.title;
 }
 
 export function rwsImageUrl(card, width = 128) {

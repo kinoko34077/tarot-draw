@@ -8,6 +8,7 @@ import {
   formatReadingText,
   labelOrFallback,
   moveAxisLabel,
+  planPileDraws,
   removeAxisLabel,
   rwsImageUrl
 } from './model.js';
@@ -198,11 +199,11 @@ function requiredCards(state) {
 }
 
 function canAddRow(state) {
-  return (state.rowLabels.length + 1) * state.columnLabels.length <= 27;
+  return (state.rowLabels.length + 1) * state.columnLabels.length <= 80;
 }
 
 function canAddColumn(state) {
-  return state.rowLabels.length * (state.columnLabels.length + 1) <= 27;
+  return state.rowLabels.length * (state.columnLabels.length + 1) <= 80;
 }
 
 async function api(path, options = {}) {
@@ -355,6 +356,23 @@ function bindAxisContextMenu(target, controller, kind, index, trigger) {
   });
 }
 
+// Keep row/column widths fixed: shrink long names inside the existing area.
+// The full label remains available via title and the accessible DOM text.
+function fitAxisText(node) {
+  if (!node?.isConnected) return;
+  for (let size = 13; size >= 5.5; size -= 0.5) {
+    node.style.fontSize = `${size}px`;
+    if (node.scrollWidth <= node.clientWidth + 1 &&
+        node.scrollHeight <= node.clientHeight + 1) break;
+  }
+}
+
+function fitMatrixAxes(root) {
+  for (const node of root.querySelectorAll('.axis-inline-label, .axis-readonly-label')) {
+    fitAxisText(node);
+  }
+}
+
 function createReadingController(number) {
   const state = {
     number,
@@ -366,6 +384,8 @@ function createReadingController(number) {
     piles: [],
     primaryPile: null,
     parallelPile: null,
+    primaryPiles: [],
+    parallelPiles: [],
     primaryResult: null,
     parallelResult: null,
     pendingOperation: null,
@@ -397,7 +417,8 @@ function createReadingController(number) {
     <div class="pile-panel hidden" aria-label="山選択">
       <span class="pile-label">山</span>
       <div class="pile-options"></div>
-      <p class="selection-message helper pile-status" role="status"></p>
+      <p class="selection-message helper pile-status" role="status" aria-live="polite"></p>
+      <button class="pile-reset-button secondary" type="button">山を選び直す</button>
     </div>
 
     <div class="result-action-line">
@@ -444,6 +465,7 @@ function createReadingController(number) {
     pilePanel: article.querySelector('.pile-panel'),
     pileOptions: article.querySelector('.pile-options'),
     selectionMessage: article.querySelector('.selection-message'),
+    pileResetButton: article.querySelector('.pile-reset-button'),
     primaryTitle: article.querySelector('.primary-title'),
     primaryPileLabel: article.querySelector('.primary-pile-label'),
     undoButton: article.querySelector('.axis-undo-button'),
@@ -472,6 +494,15 @@ function createReadingController(number) {
   });
   refs.shuffleButton.addEventListener('click', shuffle);
   refs.drawButton.addEventListener('click', draw);
+  refs.pileResetButton.addEventListener('click', () => {
+    if (state.phase !== 'choosing' || state.pendingOperation) return;
+    state.primaryPiles = [];
+    state.parallelPiles = [];
+    state.primaryPile = null;
+    state.parallelPile = null;
+    render();
+    setTextStatus(refs.selectionMessage, 'メインの山を選択してください。');
+  });
   refs.copyButton.addEventListener('click', () => copyReading('markdown'));
   refs.tsvCopyButton.addEventListener('click', () => copyReading('tsv'));
   refs.undoButton.addEventListener('click', undoAxis);
@@ -537,14 +568,14 @@ function createReadingController(number) {
 
     if (kind === 'row') {
       if (!canAddRow(state)) {
-        setTextStatus(refs.layoutMessage, '1つの山は最大27枚です。これ以上行を追加できません。', 'error');
+        setTextStatus(refs.layoutMessage, '配置は最大80枚です。これ以上行を追加できません。', 'error');
         return;
       }
       recordAxisHistory();
       state.rowLabels = appendAxisLabel(state.rowLabels);
     } else {
       if (!canAddColumn(state)) {
-        setTextStatus(refs.layoutMessage, '1つの山は最大27枚です。これ以上列を追加できません。', 'error');
+        setTextStatus(refs.layoutMessage, '配置は最大80枚です。これ以上列を追加できません。', 'error');
         return;
       }
       recordAxisHistory();
@@ -580,7 +611,7 @@ function createReadingController(number) {
     label.className = 'axis-inline-label';
     label.textContent = labelOrFallback(state[stateKey], index, kind);
     label.setAttribute('aria-label', axisName + (index + 1) + 'の名前を編集');
-    label.title = '名前を編集';
+    label.title = `${label.textContent}（名前を編集）`;
     label.disabled = Boolean(state.pendingOperation) || state.phase === 'draw-uncertain';
 
     const menuButton = document.createElement('button');
@@ -596,7 +627,12 @@ function createReadingController(number) {
       if (!state.parallelResult) return;
       const selector = kind === 'row' ? '.row-header' : '.column-header';
       const matching = refs.parallelMatrix.querySelectorAll(selector)[index];
-      if (matching) matching.textContent = labelOrFallback(state[stateKey], index, kind);
+      const updated = matching?.querySelector('.axis-readonly-label');
+      if (updated) {
+        updated.textContent = labelOrFallback(state[stateKey], index, kind);
+        updated.title = updated.textContent;
+        fitAxisText(updated);
+      }
     }
 
     function beginEdit() {
@@ -619,7 +655,9 @@ function createReadingController(number) {
         if (commit && values[index] !== previousValue && canEditAxes()) recordAxisHistory();
         state[stateKey] = values;
         label.textContent = labelOrFallback(values, index, kind);
+        label.title = `${label.textContent}（名前を編集）`;
         input.replaceWith(label);
+        fitAxisText(label);
         updateParallelHeading();
         renderLayoutState();
         if (restoreFocus) label.focus({ preventScroll: true });
@@ -787,7 +825,11 @@ function createReadingController(number) {
         if (canReorder) bindAxisContextMenu(editor.handle, controller, 'column', column, editor.menuButton);
         if (!canReorder) editor.menuButton.classList.add('hidden');
       } else {
-        th.textContent = labelOrFallback(state.columnLabels, column, 'column');
+        const text = document.createElement('span');
+        text.className = 'axis-readonly-label';
+        text.textContent = labelOrFallback(state.columnLabels, column, 'column');
+        text.title = text.textContent;
+        th.append(text);
       }
       headerRow.append(th);
     }
@@ -825,7 +867,11 @@ function createReadingController(number) {
         if (canReorder) bindAxisContextMenu(editor.handle, controller, 'row', row, editor.menuButton);
         if (!canReorder) editor.menuButton.classList.add('hidden');
       } else {
-        rowHeader.textContent = labelOrFallback(state.rowLabels, row, 'row');
+        const text = document.createElement('span');
+        text.className = 'axis-readonly-label';
+        text.textContent = labelOrFallback(state.rowLabels, row, 'row');
+        text.title = text.textContent;
+        rowHeader.append(text);
       }
       tr.append(rowHeader);
 
@@ -889,7 +935,7 @@ function createReadingController(number) {
   function renderPrimaryMatrix() {
     const completed = state.phase === 'completed' || state.phase === 'draw-uncertain';
     refs.primaryTitle.textContent = completed ? 'Primary' : '配置';
-    refs.primaryPileLabel.textContent = state.primaryPile ? `山 ${state.primaryPile}` : '';
+    refs.primaryPileLabel.textContent = state.primaryPiles.length ? `山 ${state.primaryPiles.join(' → ')}` : '';
     const left = refs.primaryMatrix.scrollLeft;
     const top = refs.primaryMatrix.scrollTop;
     refs.primaryMatrix.replaceChildren(createMatrixTable({
@@ -899,6 +945,7 @@ function createReadingController(number) {
     }));
     refs.primaryMatrix.scrollLeft = left;
     refs.primaryMatrix.scrollTop = top;
+    fitMatrixAxes(refs.primaryMatrix);
   }
 
   function renderParallelMatrix() {
@@ -910,86 +957,96 @@ function createReadingController(number) {
     }
 
     refs.parallelSection.classList.remove('hidden');
-    refs.parallelPileLabel.textContent = state.parallelPile ? `山 ${state.parallelPile}` : '';
+    refs.parallelPileLabel.textContent = state.parallelPiles.length ? `山 ${state.parallelPiles.join(' → ')}` : '';
     refs.parallelMatrix.replaceChildren(createMatrixTable({
       result: state.parallelResult,
       editableHeaders: false,
       label: `Reading ${state.number} Parallel結果`
     }));
+    fitMatrixAxes(refs.parallelMatrix);
   }
 
-  function renderPiles() {
-    if (state.piles.length === 0) {
-      refs.pileOptions.replaceChildren();
-      return;
+  function capacityOf(pileIds) {
+    return pileIds.reduce((sum, id) =>
+      sum + (state.piles.find(pile => pile.pile_id === id)?.count ?? 0), 0);
+  }
+
+  function mainReady() {
+    return state.primaryPiles.length > 0 &&
+      capacityOf(state.primaryPiles) >= requiredCards(state);
+  }
+
+  function parallelReady() {
+    return state.parallelPiles.length === 0 ||
+      capacityOf(state.parallelPiles) >= requiredCards(state);
+  }
+
+  function selectionStage() {
+    if (!mainReady()) return 'main';
+    if (state.parallelPiles.length && !parallelReady()) return 'parallel';
+    if (!state.parallelPiles.length && state.primaryPiles.length < 3 && requiredCards(state) <= 54) return 'parallel';
+    return 'done';
+  }
+
+  function pileHint() {
+    const needed = requiredCards(state);
+    const mainCount = capacityOf(state.primaryPiles);
+    const parallelCount = capacityOf(state.parallelPiles);
+    if (!state.primaryPiles.length) return 'メインの山を選択してください。';
+    if (mainCount < needed) {
+      return `メインの山 ${state.primaryPiles.join(' → ')}（${mainCount}/${needed}枚）。枚数確保の為次の山を選択（あと${needed - mainCount}枚）。`;
     }
+    if (state.parallelPiles.length && parallelCount < needed) {
+      return `Parallelの山 ${state.parallelPiles.join(' → ')}（${parallelCount}/${needed}枚）。枚数確保の為次の山を選択（あと${needed - parallelCount}枚）。`;
+    }
+    if (state.parallelPiles.length) return `メイン ${state.primaryPiles.join(' → ')} / Parallel ${state.parallelPiles.join(' → ')}：引けます。`;
+    if (state.primaryPiles.length === 3) return `メイン ${state.primaryPiles.join(' → ')}：${needed}枚確保。3山すべて使うためParallelは選べません。`;
+    return `メイン ${state.primaryPiles.join(' → ')}：${needed}枚確保。追加で別の山を選ぶとParallel（任意）。`;
+  }
 
-    const count = requiredCards(state);
+
+  function renderPiles() {
+    if (!state.piles.length) { refs.pileOptions.replaceChildren(); return; }
+    const stage = selectionStage(), chosen = stage === 'main' ? state.primaryPiles : state.parallelPiles;
     refs.pileOptions.replaceChildren(...state.piles.map(pile => {
+      const id = pile.pile_id, main = state.primaryPiles.includes(id), other = state.parallelPiles.includes(id);
       const button = document.createElement('button');
-      button.type = 'button';
-      button.className = 'pile-button';
-
-      const selected = pile.pile_id === state.primaryPile || pile.pile_id === state.parallelPile;
-      button.setAttribute('aria-pressed', String(selected));
-      button.disabled = pile.count < count || Boolean(state.pendingOperation);
-
-      const name = document.createElement('span');
-      name.className = 'pile-name';
-      name.textContent = `山 ${pile.pile_id}`;
-
-      const meta = document.createElement('span');
-      meta.className = 'pile-count';
-      meta.textContent = `${pile.count}枚`;
-
-      const role = document.createElement('span');
+      button.type = 'button'; button.className = 'pile-button';
+      button.setAttribute('aria-pressed', String(main || other));
+      button.disabled = Boolean(state.pendingOperation) || stage === 'done' || chosen.includes(id) ||
+        (stage === 'parallel' && !state.parallelPiles.length && state.primaryPiles.includes(id));
+      const name = document.createElement('span'), amount = document.createElement('span'), role = document.createElement('span');
+      name.className = 'pile-name'; name.textContent = `山 ${id}`;
+      amount.className = 'pile-count'; amount.textContent = `${pile.count}枚`;
       role.className = 'pile-role';
-      role.textContent = pile.pile_id === state.primaryPile
-        ? 'Primary'
-        : pile.pile_id === state.parallelPile
-          ? 'Parallel'
-          : button.disabled
-            ? '不足'
-            : '';
-
-      button.setAttribute('aria-label', `山${pile.pile_id} ${pile.count}枚 ${role.textContent || '未選択'}`);
-      button.append(name, meta, role);
-      button.addEventListener('click', () => selectPile(pile.pile_id));
+      role.textContent = main && other ? 'メイン・Parallel' : main ? 'メイン' : other ? 'Parallel' : '';
+      button.setAttribute('aria-label', `山${id} ${pile.count}枚 ${role.textContent || '未選択'}`);
+      button.append(name,amount,role);
+      button.addEventListener('click', () => selectPile(id));
       return button;
     }));
+    refs.pileResetButton.disabled = Boolean(state.pendingOperation) ||
+      !(state.primaryPiles.length || state.parallelPiles.length);
+    setTextStatus(refs.selectionMessage, pileHint());
   }
 
   function selectPile(pileId) {
     if (state.phase !== 'choosing' || state.pendingOperation) return;
-
-    if (pileId === state.primaryPile) {
-      state.primaryPile = null;
-      state.parallelPile = null;
-    } else if (pileId === state.parallelPile) {
-      state.parallelPile = null;
-    } else if (!state.primaryPile) {
-      state.primaryPile = pileId;
-    } else {
-      state.parallelPile = pileId;
-    }
-
-    renderPiles();
+    const stage = selectionStage();
+    if (stage === 'done') return;
+    const chosen = stage === 'main' ? state.primaryPiles : state.parallelPiles;
+    if (chosen.includes(pileId) ||
+      (stage === 'parallel' && !chosen.length && state.primaryPiles.includes(pileId))) return;
+    chosen.push(pileId);
+    state.primaryPile = state.primaryPiles[0] ?? null;
+    state.parallelPile = state.parallelPiles[0] ?? null;
     render();
-    updateDrawAction();
-
-    if (!state.primaryPile) {
-      setTextStatus(refs.selectionMessage, 'Primaryの山を選択してください。');
-    } else if (!state.parallelPile) {
-      setTextStatus(refs.selectionMessage, `Primary: ${state.primaryPile} · 2つ目を選ぶとParallel`);
-    } else {
-      setTextStatus(refs.selectionMessage, `Primary: ${state.primaryPile} / Parallel: ${state.parallelPile}`);
-    }
   }
 
   function updateDrawAction() {
     const choosing = state.phase === 'choosing';
-    refs.drawButton.classList.toggle('hidden', !choosing);
-    refs.drawButton.disabled = !state.primaryPile || !choosing || Boolean(state.pendingOperation);
+    refs.drawButton.classList.toggle('hidden',!choosing);
+    refs.drawButton.disabled = !choosing || Boolean(state.pendingOperation) || !mainReady() || !parallelReady();
   }
 
   function renderLayoutState() {
@@ -1000,9 +1057,7 @@ function createReadingController(number) {
     refs.cardCount.textContent = `${state.rowLabels.length}行 × ${state.columnLabels.length}列 · ${count}枚`;
 
     if (state.phase === 'editing') {
-      if (count === 27) {
-        setTextStatus(refs.layoutMessage, '27枚配置では26枚のC山は選べません。');
-      } else if (!canAddRow(state) && !canAddColumn(state)) {
+      if (!canAddRow(state) && !canAddColumn(state)) {
         setTextStatus(refs.layoutMessage, 'この配置ではこれ以上行・列を追加できません。');
       } else {
         setTextStatus(refs.layoutMessage, '');
@@ -1020,6 +1075,7 @@ function createReadingController(number) {
     renderLayoutState();
     renderPrimaryMatrix();
     renderParallelMatrix();
+    renderPiles();
     updateDrawAction();
   }
 
@@ -1042,13 +1098,15 @@ function createReadingController(number) {
       state.piles = split.piles;
       state.primaryPile = null;
       state.parallelPile = null;
+      state.primaryPiles = [];
+      state.parallelPiles = [];
       state.phase = 'choosing';
       // No size changes after shuffle: pre-shuffle structural snapshots must not
       // be replayed into the fixed server session. New moves remain undoable.
       state.undoStack.length = 0;
       state.redoStack.length = 0;
       refs.pilePanel.classList.remove('hidden');
-      setTextStatus(refs.selectionMessage, 'Primaryの山を選択してください。');
+      setTextStatus(refs.selectionMessage, 'メインの山を選択してください。');
       setTextStatus(refs.status, '山を選択');
     } catch (error) {
       setTextStatus(refs.status, `シャッフル結果を確認できませんでした。未完成の山は使用しません。${error.message}`, 'error');
@@ -1074,6 +1132,28 @@ function createReadingController(number) {
     return result;
   }
 
+  async function drawPileSequence(intent, pileIds) {
+    if (!pileIds.length || new Set(pileIds).size !== pileIds.length) {
+      throw new Error('選択した山の順番が不正です。');
+    }
+    const tasks = planPileDraws(pileIds, intent.piles, intent.positions)
+      .map(({ pileId, positions }) => ({ pileId, batch: positions }));
+
+    // Every pile is a separate immutable backend branch from the same shuffled
+    // snapshot. Never retry an unknown network outcome or silently change piles.
+    const outcomes = await Promise.allSettled(tasks.map(part =>
+      createBranchAndDraw(intent.sessionId, part.pileId, part.batch)));
+    if (outcomes.some(outcome => outcome.status === 'rejected')) {
+      throw new Error('複数の山の一部の抽選結果が不明です。二重抽選を避けるため再試行しません。');
+    }
+    const positions = Object.assign({}, ...outcomes.map(outcome => outcome.value.positions));
+    if (Object.keys(positions).length !== intent.positions.length ||
+        intent.positions.some(id => !positions[id])) {
+      throw new Error('複数の山を結合した結果が完全ではありません。');
+    }
+    return { pile_id: pileIds[0], piles: [...pileIds], positions };
+  }
+
   function snapshotDrawIntent() {
     return Object.freeze({
       sessionId: state.sessionId,
@@ -1082,13 +1162,16 @@ function createReadingController(number) {
       columnLabels: Object.freeze([...state.columnLabels]),
       primaryPile: state.primaryPile,
       parallelPile: state.parallelPile,
+      primaryPiles: Object.freeze([...state.primaryPiles]),
+      parallelPiles: Object.freeze([...state.parallelPiles]),
+      piles: Object.freeze(state.piles.map(p => Object.freeze({ pile_id: p.pile_id, count: p.count }))),
       positions: Object.freeze(buildPositionIds(state.rowLabels.length, state.columnLabels.length))
     });
   }
 
   async function draw() {
-    if (state.phase !== 'choosing' || !state.primaryPile || !state.sessionId ||
-        state.pendingOperation || state.drawOutcome) return;
+    if (state.phase !== 'choosing' || !mainReady() || !parallelReady() ||
+        !state.sessionId || state.pendingOperation || state.drawOutcome) return;
 
     const intent = snapshotDrawIntent();
     state.pendingOperation = 'draw';
@@ -1098,9 +1181,9 @@ function createReadingController(number) {
 
     try {
       const outcomes = await Promise.allSettled([
-        createBranchAndDraw(intent.sessionId, intent.primaryPile, intent.positions),
-        intent.parallelPile
-          ? createBranchAndDraw(intent.sessionId, intent.parallelPile, intent.positions)
+        drawPileSequence(intent, intent.primaryPiles),
+        intent.parallelPiles.length
+          ? drawPileSequence(intent, intent.parallelPiles)
           : Promise.resolve(null)
       ]);
       const primary = outcomes[0].status === 'fulfilled' ? outcomes[0].value : null;
@@ -1114,6 +1197,8 @@ function createReadingController(number) {
       state.columnLabels = [...intent.columnLabels];
       state.primaryPile = intent.primaryPile;
       state.parallelPile = intent.parallelPile;
+      state.primaryPiles = [...intent.primaryPiles];
+      state.parallelPiles = [...intent.parallelPiles];
       state.primaryResult = primary;
       state.parallelResult = parallel;
 
@@ -1122,8 +1207,8 @@ function createReadingController(number) {
         // retry or replacement random draw is safe without a server receipt.
         state.drawOutcome = 'unknown';
         state.phase = 'draw-uncertain';
-        const got = [primary && `Primary 山${intent.primaryPile}`,
-          parallel && `Parallel 山${intent.parallelPile}`].filter(Boolean).join('・');
+        const got = [primary && `Primary 山${intent.primaryPiles.join(' → ')}`,
+          parallel && `Parallel 山${intent.parallelPiles.join(' → ')}`].filter(Boolean).join('・');
         setTextStatus(refs.status, got
           ? `${got} の結果は取得できました。ほかの抽選は確定状況が不明です。二重抽選を避けるため、この占いの再試行を停止しました。`
           : '抽選結果を確認できませんでした。サーバー側で確定済みの可能性があるため、同じ抽選の再試行は停止しました。', 'error');
@@ -1166,8 +1251,8 @@ function createReadingController(number) {
       columnLabels: state.columnLabels,
       primary: state.primaryResult,
       parallel: state.parallelResult,
-      primaryPile: state.primaryPile,
-      parallelPile: state.parallelPile
+      primaryPile: state.primaryPiles.join(' → '),
+      parallelPile: state.parallelPiles.join(' → ')
     });
 
     try {

@@ -322,6 +322,90 @@ try {
     })()`);
     report('VIEWPORT-'+width,{status:'MEASURED',...geometry});
   }
+  // The latest explicit user requirement: select additional Main piles to cover
+  // the matrix BEFORE an optional Parallel pile, through all 80 cards.
+  for (const [total, rows, columns, width, expectedSlices] of [
+    [28, 2, 14, 1440, [27, 1]],
+    [55, 5, 11, 390, [27, 27, 1]],
+    [80, 4, 20, 320, [27, 27, 26]]
+  ]) {
+    await navigate();
+    await cdp.call('Emulation.setDeviceMetricsOverride', {width, height:857, deviceScaleFactor:1, mobile:false});
+    const evidence = await evalInPage(`(async()=>{
+      const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+      const one=q=>document.querySelector(q), all=q=>[...document.querySelectorAll(q)];
+      __p0.deferDraw=false;
+      for(let i=3;i<${columns};i++) one('.axis-add-header .axis-add-button').click();
+      for(let i=1;i<${rows};i++) one('.axis-add-row-header .axis-add-button').click();
+      const originalWidth=one('.row-header').getBoundingClientRect().width;
+      const row=one('.row-header .axis-inline-label');
+      const col=one('.column-header .axis-inline-label');
+      const rename=(button,value)=>{
+        const host=button.parentElement;
+        button.click();
+        const input=host.querySelector('.axis-inline-input');
+        input.value=value;
+        input.dispatchEvent(new KeyboardEvent('keydown',{key:'Enter',bubbles:true}));
+      };
+      rename(row,'行見出しをかなり長くした場合');
+      rename(one('.column-header .axis-inline-label'),'とてもながいながい列の見出しの例');
+      const rowLabel=one('.row-header .axis-inline-label');
+      const colLabel=one('.column-header .axis-inline-label');
+      const fit={
+        rowVertical:getComputedStyle(rowLabel).writingMode==='vertical-rl',
+        rowWidth:one('.row-header').getBoundingClientRect().width,
+        columnWidth:one('.column-header').getBoundingClientRect().width,
+        rowFont:parseFloat(getComputedStyle(rowLabel).fontSize),
+        columnFont:parseFloat(getComputedStyle(colLabel).fontSize),
+        rowFits:rowLabel.scrollHeight<=rowLabel.clientHeight+1 && rowLabel.scrollWidth<=rowLabel.clientWidth+1,
+        columnFits:colLabel.scrollWidth<=colLabel.clientWidth+1,
+        titlePreserved:rowLabel.title.includes('行見出しをかなり長くした場合') &&
+          colLabel.title.includes('とてもながいながい列の見出しの例')
+      };
+      const addDisabled=one('.axis-add-header .axis-add-button').disabled &&
+        one('.axis-add-row-header .axis-add-button').disabled;
+      one('.shuffle-button').click();
+      for(let i=0;i<100 && all('.pile-button').length!==3;i++)await sleep(20);
+      one('.pile-button:nth-child(1)').click();
+      const afterFirst={disabled:one('.draw-button').disabled,hint:one('.selection-message').textContent};
+      one('.pile-button:nth-child(2)').click();
+      const afterSecond={disabled:one('.draw-button').disabled,hint:one('.selection-message').textContent};
+      if(${total}>54) one('.pile-button:nth-child(3)').click();
+      const ready={drawEnabled:!one('.draw-button').disabled,
+        canSelectParallel:all('.pile-button').some(b=>!b.disabled),
+        hint:one('.selection-message').textContent};
+      one('.draw-button').click();
+      for(let i=0;i<300 && !one('.reading-status').textContent.includes('抽選完了');i++)await sleep(20);
+      const mapped=all('.primary-matrix .card-result-block').length;
+      const history=__p0.drawCalls.map(b=>({pile:b.pile,count:b.positions.length}));
+      const parallel=all('.parallel-matrix .card-result-block').length;
+      const status=one('.reading-status').textContent;
+      return {total:${total},rows:${rows},columns:${columns},width:innerWidth,
+        originalWidth,fit,addDisabled,afterFirst,afterSecond,ready,mapped,parallel,status,history};
+    })()`);
+    assert.equal(evidence.width, width, `${total} actual browser viewport must match requested width`);
+    assert.equal(evidence.mapped, total, `${total} card draw complete`);
+    assert.equal(evidence.parallel, 0, `${total} no implicit Parallel`);
+    assert.equal(evidence.status, '抽選完了');
+    assert.equal(evidence.afterFirst.disabled, true);
+    assert.ok(evidence.afterFirst.hint.includes('枚数確保の為次の山を選択'));
+    assert.equal(evidence.ready.drawEnabled, true);
+    assert.deepEqual(evidence.history.map(b=>b.count),expectedSlices);
+    assert.deepEqual(evidence.history.map(b=>b.pile),expectedSlices.map((_,i)=>['A','B','C'][i]));
+    assert.equal(evidence.fit.rowVertical, true);
+    assert.ok(evidence.fit.rowWidth <= 80, `row label excessively wide at ${width}`);
+    assert.ok(evidence.fit.columnWidth <= 112, `column label excessively wide at ${width}`);
+    assert.equal(evidence.fit.rowFits,true,`row label must fit at ${width}`);
+    assert.equal(evidence.fit.columnFits,true,`column label must fit at ${width}`);
+    assert.ok(evidence.fit.rowFont < 13 && evidence.fit.columnFont < 13);
+    assert.equal(evidence.fit.titlePreserved,true);
+    if(total === 80) {
+      assert.equal(evidence.addDisabled,true,'no 81st card through Add');
+      assert.equal(evidence.ready.canSelectParallel,false,'80 card Main uses all three piles');
+    }
+    report('MULTIPILE-'+total,{status:'PASS',...evidence});
+  }
+
   if (expectSafe) {
     // One branch may have committed while the other has an unknown transport result.
     await navigate();
@@ -423,6 +507,59 @@ try {
     assert.equal(limited.before,1);
     assert.equal(limited.after,1);
     report('RATE-LIMITED-NO-RETRY',{status:'PASS',...limited});
+  }
+  if (expectSafe) {
+    // Full 80-card journey: no automatic pile crossover, no Parallel when
+    // all three main piles are needed, and stable row-major merged positions.
+    await navigate();
+    const eighty = await evalInPage(`(async () => {
+      const sleep = ms => new Promise(resolve => setTimeout(resolve,ms));
+      const one = q => document.querySelector(q);
+      const all = q => [...document.querySelectorAll(q)];
+      __p0.deferDraw = false;
+      for (let i=3;i<80;i++) one('.axis-add-header .axis-add-button').click();
+      const capLabel = one('.layout-count').textContent;
+      const eightyIsLimit = one('.axis-add-header .axis-add-button').disabled &&
+        one('.axis-add-row-header .axis-add-button').disabled;
+      one('.shuffle-button').click();
+      for (let i=0;i<120 && all('.pile-button').length!==3;i++)await sleep(20);
+      const a=all('.pile-button');
+      a[0].click();
+      const cueA=one('.selection-message').textContent;
+      const drawingAfterA=one('.draw-button').disabled;
+      a[1].click();
+      const cueB=one('.selection-message').textContent;
+      const drawingAfterB=one('.draw-button').disabled;
+      a[2].click();
+      const drawingAfterC=one('.draw-button').disabled;
+      const parallelBlocked=all('.pile-button').every(button => button.disabled);
+      one('.draw-button').click();
+      for(let i=0;i<160 && one('.reading-status').textContent!=='抽選完了';i++)await sleep(30);
+      const cards=all('.primary-matrix .card-detail-trigger').length;
+      const rows=all('.primary-matrix .reading-table tbody tr').length;
+      const heading=one('.primary-pile-label').textContent;
+      const ids=__p0.drawCalls.flatMap(call=>call.positions);
+      const rowName=one('.primary-matrix .row-header');
+      return {capLabel,eightyIsLimit,cueA,cueB,drawingAfterA,drawingAfterB,
+        drawingAfterC,parallelBlocked,cards,rows,heading,unique:new Set(ids).size,
+        count:ids.length,piles:__p0.drawCalls.map(call=>call.pile),
+        rowWidth:rowName.getBoundingClientRect().width,
+        writingMode:getComputedStyle(rowName.querySelector('.axis-inline-label')).writingMode};
+    })()`);
+    assert.match(eighty.capLabel,/80枚/);
+    assert.equal(eighty.eightyIsLimit,true);
+    assert.match(eighty.cueA,/枚数確保の為次の山を選択/);
+    assert.match(eighty.cueB,/枚数確保の為次の山を選択/);
+    assert.equal(eighty.drawingAfterA,true);
+    assert.equal(eighty.drawingAfterB,true);
+    assert.equal(eighty.drawingAfterC,false);
+    assert.equal(eighty.parallelBlocked,true);
+    assert.equal(eighty.cards,80);
+    assert.equal(eighty.unique,80);
+    assert.deepEqual(eighty.piles,['A','B','C']);
+    assert.ok(eighty.rowWidth<=80);
+    assert.equal(eighty.writingMode,'vertical-rl');
+    report('MULTIPILE-80-FULL-JOURNEY',{status:'PASS',...eighty});
   }
   console.log(expectSafe ? 'P1 corrected controlled tests successful' :
     'P0 controlled baseline successful (known defects intentionally reproduced; not P1 acceptance)');

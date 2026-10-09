@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { TarotStore } from '../src/store.js';
+import { buildPositionIds, planPileDraws } from '../web/model.js';
 
 function makeStore() {
   let random = 0;
@@ -63,4 +64,23 @@ test('orientation stays attached to the shuffled card across draws', () => {
   const replay = store.draw(b.branch_id, ['one']).positions.one;
   assert.equal(first.card_id, replay.card_id);
   assert.equal(first.orientation, replay.orientation);
+});
+
+test('80-card user-selected multi-pile plan consumes each oriented card exactly once', () => {
+  const store = makeStore();
+  const session = store.createSession();
+  const split = store.shuffleSession(session.session_id);
+  const positions = buildPositionIds(4,20);
+  const plan = planPileDraws(['A','B','C'], split.piles, positions);
+  const resolved = {};
+  for (const part of plan) {
+    const branch = store.createBranch(session.session_id, part.pileId);
+    const batch = store.draw(branch.branch_id, part.positions);
+    assert.equal(batch.remaining, 0);
+    Object.assign(resolved, batch.positions);
+  }
+  assert.deepEqual(Object.keys(resolved), positions);
+  assert.equal(new Set(Object.values(resolved).map(card => card.card_id)).size, 80);
+  assert.ok(Object.values(resolved).every(card =>
+    card.orientation === 'upright' || card.orientation === 'reversed'));
 });

@@ -11,6 +11,7 @@ import {
   PARALLEL_READING_NOTE,
   moveAxisLabel,
   removeAxisLabel,
+  planPileDraws,
   rwsImageUrl
 } from '../web/model.js';
 
@@ -142,7 +143,7 @@ test('bulk copy supports the user-facing 3x6 table shape without flattening', ()
   assert.equal(lines[6].split('\t').length, 7);
 });
 
-test('Minor Arcana ruby display retains compact Japanese base and katakana reading in plain copy', () => {
+test('on-screen Minor Arcana ruby remains, while copied card labels omit phonetic readings', () => {
   const knight = { card_id: 'minor.wands.knight', name_ja: 'ワンドのナイト', orientation: 'reversed' };
   const parts = cardDisplayParts(knight);
   assert.equal(parts.title, '杖の騎士');
@@ -150,15 +151,15 @@ test('Minor Arcana ruby display retains compact Japanese base and katakana readi
   assert.match(parts.titleHtml, /<ruby>杖/);
   assert.match(parts.titleHtml, /<rt>ワンド<\/rt>/);
   assert.match(parts.titleHtml, /<rt>ナイト<\/rt>/);
-  assert.equal(cardDisplayText(knight), '杖（ワンド）の騎士（ナイト） 逆位置');
+  assert.equal(cardDisplayText(knight), '杖の騎士 逆位置');
 
   assert.equal(
     cardDisplayText({ card_id: 'minor.pentacles.queen', name_ja: 'ペンタクルのクイーン', orientation: 'upright' }),
-    '金貨（ペンタクル）の女王（クイーン） 正位置'
+    '金貨の女王 正位置'
   );
 });
 
-test('Markdown is legible 2x2 GFM, preserves orientation, ruby and conditional custom-card notes', () => {
+test('Markdown is legible 2x2 GFM, preserves orientation and conditional custom-card notes without ruby', () => {
   const primary = { positions: {
     r0c0: { card_id: 'major.sun', name_ja: '太陽', orientation: 'upright' },
     r0c1: { card_id: 'minor.wands.knight', name_ja: 'ワンドのナイト', orientation: 'reversed' },
@@ -173,7 +174,7 @@ test('Markdown is legible 2x2 GFM, preserves orientation, ruby and conditional c
   assert.match(output, /^# タロット占い結果\n\n\*\*問い：\*\* どちらの道？/);
   assert.match(output, /## メインリーディング（山A）/);
   assert.match(output, /\| 項目 \| 仕事 \| 創作 \|\n\| --- \| --- \| --- \|/);
-  assert.match(output, /\| 以前 \| XIX 太陽 正位置 \| 杖（ワンド）の騎士（ナイト） 逆位置 \|/);
+  assert.match(output, /\| 以前 \| XIX 太陽 正位置 \| 杖の騎士 逆位置 \|/);
   assert.match(output, /\| これから \| タイトルカード 正位置 \| XXI 世界 逆位置 \|/);
   assert.match(output, /### 独自カードについて\n- タイトルカード:/);
   assert.ok(!output.includes('### パラレルリーディングについて'));
@@ -221,4 +222,28 @@ test('Markdown escapes user labels and question without malformed columns or inj
   assert.match(text, /\| 現在\\\|未来 \| XIX 太陽 正位置 \| XVIII 月 逆位置 \|/);
   assert.equal(text.split('\n').filter(line => line.startsWith('| ')).length, 3);
   assert.ok(!text.includes('【独自カード説明】'));
+});
+
+test('26, 27, 28, 53, 54, 55 and 80 cells are partitioned once in chosen pile order', () => {
+  const piles = [{pile_id:'A',count:27},{pile_id:'B',count:27},{pile_id:'C',count:26}];
+  const cases = [
+    [26, ['C'], [26]],
+    [27, ['A'], [27]],
+    [28, ['C','A'], [26,2]],
+    [53, ['C','A'], [26,27]],
+    [54, ['A','B'], [27,27]],
+    [55, ['A','B','C'], [27,27,1]],
+    [80, ['A','B','C'], [27,27,26]]
+  ];
+  for (const [n, chosen, counts] of cases) {
+    const positions = buildPositionIds(1,n);
+    const batches = planPileDraws(chosen,piles,positions);
+    assert.deepEqual(batches.map(b=>b.pileId),chosen, `${n} chosen order`);
+    assert.deepEqual(batches.map(b=>b.positions.length),counts, `${n} exact capacity`);
+    assert.deepEqual(batches.flatMap(b=>b.positions),positions, `${n} row-major positions`);
+    assert.equal(new Set(batches.flatMap(b=>b.positions)).size,n);
+  }
+  assert.throws(()=>planPileDraws(['A'],piles,buildPositionIds(1,28)),/More piles/);
+  assert.throws(()=>planPileDraws(['A','A'],piles,buildPositionIds(1,28)),/repeat/);
+  assert.throws(()=>planPileDraws(['A','B','C'],piles,buildPositionIds(1,81)),/Invalid pile selection/);
 });
