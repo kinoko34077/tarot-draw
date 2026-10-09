@@ -268,14 +268,34 @@ try {
     const distance = Math.abs(completion.getBoundingClientRect().top - copyAction.getBoundingClientRect().top);
     if (distance > 16) throw new Error('Copy button and completion are not on the same row: ' + distance);
     click('.copy-button');
-    for (let i = 0; i < 40 && !one('.copy-feedback').textContent.includes('コピー'); i += 1) await sleep(80);
-    if (!one('.copy-feedback').textContent.includes('コピー')) throw new Error('Nearby copy feedback did not appear.');
+    for (let i = 0; i < 40 && !one('.copy-feedback').textContent.includes('Markdownをコピー') ; i += 1) await sleep(80);
+    if (!one('.copy-feedback').textContent.includes('Markdownをコピー')) {
+      throw new Error('Nearby Markdown copy feedback did not appear.');
+    }
     if (one('.reading-status').textContent !== '抽選完了') throw new Error('Copy changed the draw completion state.');
+    let markdown = '';
+    try { markdown = await navigator.clipboard.readText(); } catch {}
+    if (markdown && (!markdown.startsWith('# タロット占い結果') ||
+        !markdown.includes('**問い：** ' + question) ||
+        !markdown.includes('## メインリーディング（山') ||
+        !markdown.includes('## パラレルリーディング（山') ||
+        !markdown.includes('### パラレルリーディングについて') ||
+        !markdown.includes('| --- |') || markdown.includes('\\t'))) {
+      throw new Error('Markdown clipboard lost question, parallel meaning, headings, table geometry or uses TSV.');
+    }
 
+    const tsvButton = one('.tsv-copy-button');
+    if (!tsvButton || tsvButton.classList.contains('hidden')) throw new Error('Spreadsheet TSV compatibility affordance missing.');
+    tsvButton.click();
+    for (let i = 0; i < 40 && !one('.copy-feedback').textContent.includes('TSVをコピー'); i += 1) await sleep(80);
+    if (!one('.copy-feedback').textContent.includes('TSVをコピー')) throw new Error('TSV copy feedback missing.');
     let clipboard = '';
     try { clipboard = await navigator.clipboard.readText(); } catch {}
-    if (clipboard && (!clipboard.startsWith('Q. ' + question) || !clipboard.includes('\\t'))) {
-      throw new Error('Clipboard output did not preserve question/TSV context.');
+    if (clipboard && (!clipboard.startsWith('Q. ' + question) ||
+        !clipboard.includes('\\t') ||
+        !clipboard.includes('【Parallel】') ||
+        !clipboard.includes('【パラレルリーディング説明】'))) {
+      throw new Error('Legacy TSV output lost row geometry or conditional Parallel explanatory note.');
     }
 
     const firstPrimaryCards = all('.primary-matrix .card-result-block').length;
@@ -302,6 +322,9 @@ try {
       firstQuestion: readingNodes[0].querySelector('.question-input').value,
       secondEditable: !readingNodes[1].querySelector('.question-input').readOnly,
       secondHasPlus: Boolean(readingNodes[1].querySelector('.axis-add-button')),
+      markdownHasQuestion: markdown ? markdown.includes('**問い：** ' + question) : null,
+      markdownHasTable: markdown ? markdown.includes('| --- |') : null,
+      markdownExplainsParallel: markdown ? markdown.includes('### パラレルリーディングについて') : null,
       clipboardHasQuestion: clipboard ? clipboard.startsWith('Q. ' + question) : null,
       clipboardHasTabs: clipboard ? clipboard.includes('\\t') : null,
       apiBaseUrl: globalThis.__TAROT_DRAW_CONFIG__?.apiBaseUrl ?? null
