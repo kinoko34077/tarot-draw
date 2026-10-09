@@ -1069,6 +1069,59 @@ input:focus-visible {
 .column-header .axis-inline-label, .column-header .axis-readonly-label {
   height: 57px; min-height: 57px; max-height: 57px;
 }
+/* #75: one compact (~30px) header rhythm, proportional data columns.
+   The fixed-layout colgroup keeps 62px row actions and 32px column controls.
+   All remaining width is shared equally by the N data columns, but the table
+   cannot shrink below N * 96px and becomes horizontally scrollable instead. */
+.table-scroll { scrollbar-gutter: auto; }
+.reading-table {
+  width: 100%; min-width: 0; table-layout: fixed;
+}
+.reading-table .corner-header,
+.reading-table .row-header {
+  box-sizing: border-box;
+  width: 62px; min-width: 62px; max-width: 62px;
+}
+.reading-table .column-header,
+.reading-table .reading-cell {
+  box-sizing: border-box;
+  width: auto; min-width: 0; max-width: none;
+}
+.reading-table .column-header,
+.reading-table .axis-add-header {
+  height: 36px; max-height: 36px; padding-block: 1px;
+}
+.column-header .axis-handle {
+  min-height: 32px; height: 32px; flex-direction: row; gap: 1px;
+}
+.column-header .axis-inline-label,
+.column-header .axis-readonly-label {
+  height: 32px; min-height: 32px; max-height: 32px;
+  padding: 1px 2px;
+}
+.column-header .axis-menu-trigger {
+  width: 22px; min-width: 22px; height: 26px; min-height: 26px;
+}
+/* Preserve the row +/− pair while reducing only column controls from 65px. */
+.reading-table .axis-add-header,
+.reading-table .axis-add-tail {
+  width: 32px; min-width: 32px; max-width: 32px;
+  padding-inline: 1px;
+}
+.axis-add-actions-column {
+  width: 100%; gap: 1px; flex-direction: column; padding: 0;
+}
+.axis-add-actions-column .axis-add-button {
+  width: 22px; min-width: 22px; height: 16px; min-height: 16px;
+  border-radius: 2px; font-size: .8rem; line-height: 12px;
+}
+.matrix-heading .result-action-line { flex: 0 1 auto; margin-left: auto; }
+.matrix-heading .heading-right-controls {
+  flex: 0 0 auto; margin-left: 0; justify-content: flex-end;
+}
+.heading-right-controls .copy-button.hidden { display: none !important; }
+/* Status precedes the control group and never occupies its rightmost slot. */
+
 /* Ruby-base and ordinary kana share one line box and baseline.
    Readings float outside normal flow; no browser ruby layout box contributes
    to line height, including for isolated kana 「の」. */
