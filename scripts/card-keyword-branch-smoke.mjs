@@ -102,8 +102,8 @@ try {
     const sleep = ms => new Promise(resolve => setTimeout(resolve, ms));
     const one = q => document.querySelector(q);
     const all = q => [...document.querySelectorAll(q)];
-    for (let attempt = 0; attempt < 80 && !one('.shuffle-button'); attempt++) await sleep(50);
-    if (!one('.shuffle-button')) throw Error('Local JS app did not load');
+    for (let attempt = 0; attempt < 80 && !one('.reading-workbench .axis-add-header .axis-add-button'); attempt++) await sleep(50);
+    if (!one('.reading-workbench .axis-add-header .axis-add-button')) throw Error('Local JS app did not load');
     for (let i = 0; i < 6; i++) one('.axis-add-header .axis-add-button').click();
     for (let i = 0; i < 2; i++) one('.axis-add-row-header .axis-add-button').click();
     if (all('.column-header').length !== 9 || all('.row-header').length !== 3) throw Error('3x9 setup failed');

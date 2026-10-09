@@ -16,14 +16,14 @@ test('page hosts append-only reading history and no longer exposes numeric dimen
 });
 
 test('one reading exposes one strongest primary action per phase and secondary copy', async () => {
-  const app = await read('../web/app.js');
+  const [html, app] = await Promise.all([read('../web/index.html'), read('../web/app.js')]);
   assert.ok(app.includes('class="copy-button secondary hidden"'));
-  assert.ok(app.includes('結果をコピー（Markdown）'));
-  assert.ok(app.includes('class="tsv-copy-button secondary hidden"'));
-  assert.ok(app.includes("format === 'tsv' ? formatReadingText : formatReadingMarkdown"));
+  assert.ok(app.includes('結果をコピー</button>'));
+  assert.ok(!app.includes('tsv-copy-button'));
+  assert.ok(!app.includes('結果をコピー（Markdown）'));
   assert.ok(app.includes('parallelPile: state.parallelPile'));
-  assert.ok(app.includes('class="shuffle-button primary"'));
-  assert.ok(app.includes('class="draw-button primary hidden"'));
+  assert.ok(html.includes('id="shuffleButton"'));
+  assert.ok(html.includes('id="drawButton"'));
   assert.ok(!app.includes('copy-button primary'));
 });
 
@@ -39,6 +39,11 @@ test('matrix uses direct plus controls and contextual axis deletion', async () =
   const app = await read('../web/app.js');
   assert.ok(app.includes("addColumn.textContent = '＋'"));
   assert.ok(app.includes("button.textContent = '＋'"));
+  assert.ok(app.includes("removeRow.textContent = '−'"));
+  assert.ok(app.includes("removeColumn.textContent = '−'"));
+  assert.ok(app.includes("window.confirm('削除しますか？')"));
+  assert.ok(app.includes('axis-drag-ghost'));
+  assert.ok(app.includes('axis-drop-preview'));
   assert.ok(app.includes('LONG_PRESS_MS = 520'));
   assert.ok(app.includes("target.addEventListener('contextmenu'"));
   assert.ok(app.includes("menuButton.textContent = '⠿'"));
@@ -73,7 +78,8 @@ test('result cells use compact title/orientation lines and tap/click detail trig
   assert.ok(app.includes("title.className = 'card-title'"));
   assert.ok(app.includes("orientation.className = 'card-orientation'"));
   assert.ok(app.includes("openCardDetail(card, result)"));
-  assert.ok(css.includes('min-width: 108px'));
+  assert.ok(css.includes('width: 96px; min-width: 96px; max-width: 96px;'));
+  assert.ok(css.includes('grid-template-rows: 33px 14px'));
   assert.ok(css.includes('.card-title'));
   assert.ok(css.includes('.card-orientation'));
 });

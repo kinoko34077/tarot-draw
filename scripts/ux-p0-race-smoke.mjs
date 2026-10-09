@@ -274,10 +274,7 @@ try {
     one('.copy-button').click();
     for(let i=0;i<20 && !__p0.copiedText;i++)await sleep(20);
     const copied=__p0.copiedText;
-    __p0.copiedText=null;
-    one('.tsv-copy-button').click();
-    for(let i=0;i<20 && !__p0.copiedText;i++)await sleep(20);
-    const oldTsv=__p0.copiedText;
+
     const button=all('.card-detail-trigger')[0];
     const visibleCue=/詳細/.test(button.textContent);
     button.click();
@@ -290,7 +287,7 @@ try {
       copiedParallel:copied?.includes('## パラレルリーディング（山B）'),
       copiedMarkdown:copied?.includes('| --- |') && copied?.includes('### パラレルリーディングについて'),
       copiedMarkdownHasNoTabs:!copied?.includes('\\t'),
-      copiedTsv:oldTsv?.includes('【Parallel】') && oldTsv?.includes('【パラレルリーディング説明】') && oldTsv?.includes('\\t'),
+      tsvActionRemoved:!one('.tsv-copy-button'),
       visibleCue,detail};
   })()`);
   assert.deepEqual(ready.dims,{rows:3,columns:9});
@@ -300,7 +297,7 @@ try {
   assert.equal(ready.copiedParallel,true);
   assert.equal(ready.copiedMarkdown,true);
   assert.equal(ready.copiedMarkdownHasNoTabs,true);
-  assert.equal(ready.copiedTsv,true);
+  assert.equal(ready.tsvActionRemoved,true);
   assert.equal(ready.detail.open,true);
   assert.equal(ready.detail.keywords,25);
   report('NORMAL-27X2',{status:'PASS',...ready});
@@ -372,7 +369,7 @@ try {
       const afterSecond={disabled:one('.draw-button').disabled,hint:one('.selection-message').textContent};
       if(${total}>54) one('.pile-button:nth-child(3)').click();
       const ready={drawEnabled:!one('.draw-button').disabled,
-        canSelectParallel:all('.pile-button').some(b=>!b.disabled),
+        canSelectParallel:all('.pile-button').some(b=>!b.disabled && b.getAttribute('aria-pressed')!=='true'),
         hint:one('.selection-message').textContent};
       one('.draw-button').click();
       for(let i=0;i<300 && !one('.reading-status').textContent.includes('抽選完了');i++)await sleep(20);
@@ -406,6 +403,80 @@ try {
     report('MULTIPILE-'+total,{status:'PASS',...evidence});
   }
 
+  if (expectSafe) {
+    // User #70: verify actual pointer gesture/axis preview, labeled-delete guard, footer and reversible pile selection.
+    await navigate(390);
+    const ux70 = await evalInPage(`(async()=>{
+      const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+      const one=q=>document.querySelector(q), all=q=>[...document.querySelectorAll(q)];
+      const header=one('.reading-toolbar'), question=one('.question-field');
+      const inlineQ=Math.abs(header.getBoundingClientRect().top-question.getBoundingClientRect().top)<5;
+      const divider=parseFloat(getComputedStyle(question).borderLeftWidth)>=1;
+      const footer=one('.history-actions').contains(one('.shuffle-button'));
+      const initialCount=one('.layout-count').textContent;
+      one('.axis-add-header .axis-add-button').click();
+      const afterAdd=all('.column-header').length;
+      one('.axis-add-header .axis-remove-button').click();
+      const afterBlankDelete=all('.column-header').length;
+      const rename=(index,value)=>{
+        const button=all('.column-header .axis-inline-label')[index];
+        const host=button.parentElement;button.click();
+        const input=host.querySelector('.axis-inline-input');
+        input.value=value;input.dispatchEvent(new KeyboardEvent('keydown',{key:'Enter',bubbles:true}));
+      };
+      rename(2,'名称入力済');
+      let confirmations=0;let allow=false;
+      const oldConfirm=window.confirm;
+      window.confirm=message=>{ confirmations++;return allow; };
+      one('.axis-add-header .axis-remove-button').click();
+      const afterRefusedDelete=all('.column-header').length;
+      allow=true;one('.axis-add-header .axis-remove-button').click();
+      const afterConfirmedDelete=all('.column-header').length;
+      window.confirm=oldConfirm;
+      rename(0,'最初');rename(1,'次');
+      const headerCells=all('.column-header'), grip=headerCells[0].querySelector('.axis-menu-trigger');
+      const rect=headerCells[1].getBoundingClientRect();
+      const x=rect.left+rect.width/2,y=rect.top+rect.height/2;
+      grip.dispatchEvent(new PointerEvent('pointerdown',{pointerId:23,button:0,bubbles:true,clientX:x-80,clientY:y}));
+      window.dispatchEvent(new PointerEvent('pointermove',{pointerId:23,bubbles:true,clientX:x,clientY:y}));
+      const preview={ghost:!!one('.axis-drag-ghost'),from:all('.axis-dragging-source').length,to:all('.axis-drop-preview').length};
+      window.dispatchEvent(new PointerEvent('pointerup',{pointerId:23,button:0,bubbles:true,clientX:x,clientY:y}));
+      const reordered=all('.column-header .axis-inline-label').map(e=>e.textContent);
+      const ghostRemoved=!one('.axis-drag-ghost');
+      one('.shuffle-button').click();
+      for(let i=0;i<100 && all('.pile-button').length!==3;i++)await sleep(20);
+      const piles=()=>all('.pile-button');
+      piles()[0].click();
+      const primarySelected=piles()[0].getAttribute('aria-pressed')==='true';
+      piles()[0].click();
+      const cleared=piles().every(b=>b.getAttribute('aria-pressed')==='false');
+      piles()[1].click();piles()[0].click();
+      const roles={main:piles()[1].getAttribute('aria-pressed'),parallel:piles()[0].getAttribute('aria-pressed')};
+      const drawReady=!one('.draw-button').disabled;
+      return {inlineQ,divider,footer,initialCount,afterAdd,afterBlankDelete,
+        afterRefusedDelete,afterConfirmedDelete,confirmations,preview,reordered,ghostRemoved,
+        primarySelected,cleared,roles,drawReady};
+    })()`);
+    assert.equal(ux70.inlineQ,true);
+    assert.equal(ux70.divider,true);
+    assert.equal(ux70.footer,true);
+    assert.equal(ux70.initialCount,'計3枚');
+    assert.equal(ux70.afterAdd,4);
+    assert.equal(ux70.afterBlankDelete,3);
+    assert.equal(ux70.afterRefusedDelete,3);
+    assert.equal(ux70.afterConfirmedDelete,2);
+    assert.equal(ux70.confirmations,2);
+    assert.equal(ux70.preview.ghost,true);
+    assert.ok(ux70.preview.from>=2 && ux70.preview.to>=2,'Whole-column source/destination should be visible during drag');
+    assert.deepEqual(ux70.reordered,['次','最初']);
+    assert.equal(ux70.ghostRemoved,true);
+    assert.equal(ux70.primarySelected,true);
+    assert.equal(ux70.cleared,true);
+    assert.equal(ux70.roles.main,'true');
+    assert.equal(ux70.roles.parallel,'true');
+    assert.equal(ux70.drawReady,true);
+    report('UX70-FRONTEND-GESTURES',{status:'PASS',...ux70});
+  }
   if (expectSafe) {
     // One branch may have committed while the other has an unknown transport result.
     await navigate();
@@ -532,7 +603,7 @@ try {
       const drawingAfterB=one('.draw-button').disabled;
       a[2].click();
       const drawingAfterC=one('.draw-button').disabled;
-      const parallelBlocked=all('.pile-button').every(button => button.disabled);
+      const parallelBlocked=all('.pile-button').every(button => button.disabled || button.getAttribute('aria-pressed')==='true');
       one('.draw-button').click();
       for(let i=0;i<160 && one('.reading-status').textContent!=='抽選完了';i++)await sleep(30);
       const cards=all('.primary-matrix .card-detail-trigger').length;

@@ -5,7 +5,6 @@ import {
   cardDisplayText,
   CUSTOM_CARD_NOTES,
   formatReadingMarkdown,
-  formatReadingText,
   labelOrFallback,
   moveAxisLabel,
   planPileDraws,
@@ -22,6 +21,8 @@ const LONG_PRESS_MS = 520;
 const page = {
   readings: document.querySelector('#readings'),
   newReadingButton: document.querySelector('#newReadingButton'),
+  shuffleButton: document.querySelector('#shuffleButton'),
+  drawButton: document.querySelector('#drawButton'),
   axisMenu: document.querySelector('#axisMenu'),
   deleteAxisButton: document.querySelector('#deleteAxisButton'),
   moveAxisBeforeButton: document.querySelector('#moveAxisBeforeButton'),
@@ -401,16 +402,11 @@ function createReadingController(number) {
   article.innerHTML = `
     <div class="reading-toolbar">
       <span class="reading-index">Reading ${number}</span>
-      <div class="reading-actions">
-        <button class="shuffle-button primary" type="button">シャッフル</button>
-        <button class="draw-button primary hidden" type="button">引く</button>
-      </div>
+      <label class="question-field">
+        <span class="question-prefix">Q.</span>
+        <input class="question-input" type="text" autocomplete="off" aria-label="今回の問い" placeholder="今回の問い">
+      </label>
     </div>
-
-    <label class="question-field">
-      <span class="question-prefix">Q.</span>
-      <input class="question-input" type="text" autocomplete="off" aria-label="今回の問い" placeholder="今回の問い">
-    </label>
 
     <p class="layout-message helper" role="status"></p>
 
@@ -418,25 +414,22 @@ function createReadingController(number) {
       <span class="pile-label">山</span>
       <div class="pile-options"></div>
       <p class="selection-message helper pile-status" role="status" aria-live="polite"></p>
-      <button class="pile-reset-button secondary" type="button">山を選び直す</button>
-    </div>
-
-    <div class="result-action-line">
-      <p class="reading-status status" role="status" aria-live="polite"></p>
-      <button class="copy-button secondary hidden" type="button" title="Markdown形式の表をコピー">結果をコピー（Markdown）</button>
-      <button class="tsv-copy-button secondary hidden" type="button" title="表計算用のタブ区切り形式でコピー" aria-label="結果をTSV形式でコピー">TSV</button>
-      <span class="copy-feedback" role="status" aria-live="polite"></span>
     </div>
 
     <div class="matrix-stack">
       <section class="matrix-section">
         <div class="matrix-heading">
           <h2 class="primary-title">配置</h2>
-          <span class="card-count layout-count" aria-live="polite">1行 × 3列 · 3枚</span>
+          <span class="card-count layout-count" aria-live="polite">計3枚</span>
           <span class="primary-pile-label branch-meta"></span>
           <div class="axis-history-actions">
             <button class="axis-undo-button secondary hidden" type="button" title="直前の編集を元に戻す">戻す</button>
             <button class="axis-redo-button secondary hidden" type="button" title="取り消した編集をやり直す">やり直す</button>
+          </div>
+          <div class="result-action-line">
+            <p class="reading-status status" role="status" aria-live="polite"></p>
+            <button class="copy-button secondary hidden" type="button" title="Markdown形式の表をコピー">結果をコピー</button>
+            <span class="copy-feedback" role="status" aria-live="polite"></span>
           </div>
         </div>
         <div class="primary-matrix table-scroll"></div>
@@ -456,16 +449,14 @@ function createReadingController(number) {
   const refs = {
     cardCount: article.querySelector('.card-count'),
     copyButton: article.querySelector('.copy-button'),
-    tsvCopyButton: article.querySelector('.tsv-copy-button'),
     copyFeedback: article.querySelector('.copy-feedback'),
-    shuffleButton: article.querySelector('.shuffle-button'),
-    drawButton: article.querySelector('.draw-button'),
+    shuffleButton: page.shuffleButton,
+    drawButton: page.drawButton,
     questionInput: article.querySelector('.question-input'),
     layoutMessage: article.querySelector('.layout-message'),
     pilePanel: article.querySelector('.pile-panel'),
     pileOptions: article.querySelector('.pile-options'),
     selectionMessage: article.querySelector('.selection-message'),
-    pileResetButton: article.querySelector('.pile-reset-button'),
     primaryTitle: article.querySelector('.primary-title'),
     primaryPileLabel: article.querySelector('.primary-pile-label'),
     undoButton: article.querySelector('.axis-undo-button'),
@@ -485,26 +476,16 @@ function createReadingController(number) {
     removeAxis,
     moveAxis,
     render,
-    focusQuestion
+    focusQuestion,
+    shuffle,
+    draw
   };
 
   refs.questionInput.addEventListener('input', event => {
     if (state.pendingOperation || state.phase === 'draw-uncertain' || state.phase === 'completed') return;
     state.question = event.target.value;
   });
-  refs.shuffleButton.addEventListener('click', shuffle);
-  refs.drawButton.addEventListener('click', draw);
-  refs.pileResetButton.addEventListener('click', () => {
-    if (state.phase !== 'choosing' || state.pendingOperation) return;
-    state.primaryPiles = [];
-    state.parallelPiles = [];
-    state.primaryPile = null;
-    state.parallelPile = null;
-    render();
-    setTextStatus(refs.selectionMessage, 'メインの山を選択してください。');
-  });
-  refs.copyButton.addEventListener('click', () => copyReading('markdown'));
-  refs.tsvCopyButton.addEventListener('click', () => copyReading('tsv'));
+  refs.copyButton.addEventListener('click', copyReading);
   refs.undoButton.addEventListener('click', undoAxis);
   refs.redoButton.addEventListener('click', redoAxis);
 
@@ -588,6 +569,7 @@ function createReadingController(number) {
     if (state.phase !== 'editing' || state.pendingOperation) return;
     const labels = kind === 'row' ? state.rowLabels : state.columnLabels;
     if (labels.length <= 1 || index < 0 || index >= labels.length) return;
+    if (labels[index].trim() && !window.confirm('削除しますか？')) return;
     recordAxisHistory();
     if (kind === 'row') {
       state.rowLabels = removeAxisLabel(state.rowLabels, index);
@@ -688,21 +670,62 @@ function createReadingController(number) {
       let originX = 0;
       let originY = 0;
       let dragged = false;
-      let dropHeader = null;
-      const headerSelector = kind === 'row' ? '.row-header' : '.column-header';
-      const clearDrop = () => {
-        dropHeader?.classList.remove('axis-drop-target');
-        dropHeader = null;
+      const table = () => refs.primaryMatrix.querySelector('.reading-table');
+      const axisCells = axisIndex => {
+        const current = table();
+        if (!current) return [];
+        if (kind === 'row') return [...(current.tBodies[0]?.rows[axisIndex]?.cells ?? [])];
+        return [...current.querySelectorAll('thead tr, tbody tr:not(.axis-add-row)')]
+          .map(row => row.cells[axisIndex + 1]).filter(Boolean);
+      };
+      let ghost = null;
+      let hoveredIndex = -1;
+      const clearDragPreview = () => {
+        refs.primaryMatrix.querySelectorAll('.axis-dragging-source, .axis-drop-preview')
+          .forEach(cell => cell.classList.remove('axis-dragging-source', 'axis-drop-preview'));
+        ghost?.remove();
+        ghost = null;
+        hoveredIndex = -1;
       };
       const dropIndexAt = (x, y) => {
-        const hit = document.elementFromPoint(x, y)?.closest(headerSelector);
+        const hit = document.elementFromPoint(x, y);
         if (!hit || !refs.primaryMatrix.contains(hit)) return -1;
-        return [...refs.primaryMatrix.querySelectorAll(headerSelector)].indexOf(hit);
+        if (kind === 'row') {
+          const target = hit.closest('tbody tr:not(.axis-add-row)');
+          return target ? [...table().tBodies[0].rows].indexOf(target) : -1;
+        }
+        const cell = hit.closest('td, th');
+        const index = cell ? cell.cellIndex - 1 : -1;
+        return index >= 0 && index < state.columnLabels.length ? index : -1;
       };
-
-      // Track across the whole viewport, not only the pressed grip. Pointer
-      // capture can be lost in browser-automation, touch and cross-cell cases.
-      // Local-only pointerup left a stuck destination highlight.
+      const showDragPreview = (x, y) => {
+        if (!ghost) {
+          ghost = document.createElement('div');
+          ghost.className = 'axis-drag-ghost';
+          ghost.setAttribute('aria-hidden', 'true');
+          const heading = document.createElement('strong');
+          heading.textContent = `${axisName}${index + 1}を移動`;
+          ghost.append(heading);
+          axisCells(index).map(cell => cell.textContent?.trim()).filter(Boolean).slice(0, 4)
+            .forEach(value => {
+              const item = document.createElement('span');
+              item.textContent = value;
+              ghost.append(item);
+            });
+          document.body.append(ghost);
+        }
+        ghost.style.left = `${Math.max(4, Math.min(window.innerWidth - 150, x + 12))}px`;
+        ghost.style.top = `${Math.max(4, Math.min(window.innerHeight - 80, y + 12))}px`;
+        const destination = dropIndexAt(x, y);
+        if (destination === hoveredIndex) return;
+        refs.primaryMatrix.querySelectorAll('.axis-drop-preview')
+          .forEach(cell => cell.classList.remove('axis-drop-preview'));
+        hoveredIndex = destination;
+        axisCells(index).forEach(cell => cell.classList.add('axis-dragging-source'));
+        if (destination >= 0 && destination !== index) {
+          axisCells(destination).forEach(cell => cell.classList.add('axis-drop-preview'));
+        }
+      };
       const stopTracking = () => {
         window.removeEventListener('pointermove', onPointerMove, true);
         window.removeEventListener('pointerup', onPointerUp, true);
@@ -712,12 +735,7 @@ function createReadingController(number) {
         if (event.pointerId !== pointerId) return;
         if (!dragged && Math.hypot(event.clientX - originX, event.clientY - originY) < 7) return;
         dragged = true;
-        clearDrop();
-        const next = dropIndexAt(event.clientX, event.clientY);
-        if (next >= 0) {
-          dropHeader = refs.primaryMatrix.querySelectorAll(headerSelector)[next];
-          dropHeader?.classList.add('axis-drop-target');
-        }
+        showDragPreview(event.clientX, event.clientY);
       };
       const onPointerUp = event => {
         if (event.pointerId !== pointerId) return;
@@ -725,7 +743,7 @@ function createReadingController(number) {
         const to = didDrag ? dropIndexAt(event.clientX, event.clientY) : -1;
         stopTracking();
         pointerId = null;
-        clearDrop();
+        clearDragPreview();
         if (didDrag) {
           event.preventDefault();
           if (to >= 0) moveAxis(kind, index, to);
@@ -736,7 +754,7 @@ function createReadingController(number) {
         stopTracking();
         pointerId = null;
         dragged = false;
-        clearDrop();
+        clearDragPreview();
       };
       menuButton.addEventListener('pointerdown', event => {
         if (!canEditAxes() || event.button !== 0) return;
@@ -846,7 +864,18 @@ function createReadingController(number) {
       addColumn.setAttribute('aria-label', '列を追加');
       addColumn.disabled = !canAddColumn(state);
       addColumn.addEventListener('click', () => addAxis('column'));
-      addColumnHeader.append(addColumn);
+      const removeColumn = document.createElement('button');
+      removeColumn.className = 'axis-add-button axis-remove-button';
+      removeColumn.type = 'button';
+      removeColumn.textContent = '−';
+      removeColumn.title = '最後の列を削除';
+      removeColumn.setAttribute('aria-label', '最後の列を削除');
+      removeColumn.disabled = state.columnLabels.length <= 1;
+      removeColumn.addEventListener('click', () => removeAxis('column', state.columnLabels.length - 1));
+      const columnActions = document.createElement('div');
+      columnActions.className = 'axis-add-actions';
+      columnActions.append(addColumn, removeColumn);
+      addColumnHeader.append(columnActions);
       headerRow.append(addColumnHeader);
     }
 
@@ -918,7 +947,18 @@ function createReadingController(number) {
       button.setAttribute('aria-label', '行を追加');
       button.disabled = !canAddRow(state);
       button.addEventListener('click', () => addAxis('row'));
-      addCell.append(button);
+      const removeRow = document.createElement('button');
+      removeRow.className = 'axis-add-button axis-remove-button';
+      removeRow.type = 'button';
+      removeRow.textContent = '−';
+      removeRow.title = '最後の行を削除';
+      removeRow.setAttribute('aria-label', '最後の行を削除');
+      removeRow.disabled = state.rowLabels.length <= 1;
+      removeRow.addEventListener('click', () => removeAxis('row', state.rowLabels.length - 1));
+      const rowActions = document.createElement('div');
+      rowActions.className = 'axis-add-actions';
+      rowActions.append(button, removeRow);
+      addCell.append(rowActions);
       addRow.append(addCell);
 
       const filler = document.createElement('td');
@@ -1001,7 +1041,7 @@ function createReadingController(number) {
     }
     if (state.parallelPiles.length) return `メイン ${state.primaryPiles.join(' → ')} / Parallel ${state.parallelPiles.join(' → ')}：引けます。`;
     if (state.primaryPiles.length === 3) return `メイン ${state.primaryPiles.join(' → ')}：${needed}枚確保。3山すべて使うためParallelは選べません。`;
-    return `メイン ${state.primaryPiles.join(' → ')}：${needed}枚確保。追加で別の山を選ぶとParallel（任意）。`;
+    return `メイン ${state.primaryPiles.join(' → ')}：${needed}枚確保。迷ったら別の山を選んででifを確認できます。`;
   }
 
 
@@ -1013,8 +1053,9 @@ function createReadingController(number) {
       const button = document.createElement('button');
       button.type = 'button'; button.className = 'pile-button';
       button.setAttribute('aria-pressed', String(main || other));
-      button.disabled = Boolean(state.pendingOperation) || stage === 'done' || chosen.includes(id) ||
-        (stage === 'parallel' && !state.parallelPiles.length && state.primaryPiles.includes(id));
+      const selected = main || other;
+      button.disabled = Boolean(state.pendingOperation) || (!selected && (stage === 'done' ||
+        (stage === 'parallel' && !state.parallelPiles.length && main)));
       const name = document.createElement('span'), amount = document.createElement('span'), role = document.createElement('span');
       name.className = 'pile-name'; name.textContent = `山 ${id}`;
       amount.className = 'pile-count'; amount.textContent = `${pile.count}枚`;
@@ -1025,8 +1066,6 @@ function createReadingController(number) {
       button.addEventListener('click', () => selectPile(id));
       return button;
     }));
-    refs.pileResetButton.disabled = Boolean(state.pendingOperation) ||
-      !(state.primaryPiles.length || state.parallelPiles.length);
     setTextStatus(refs.selectionMessage, pileHint());
   }
 
@@ -1034,10 +1073,17 @@ function createReadingController(number) {
     if (state.phase !== 'choosing' || state.pendingOperation) return;
     const stage = selectionStage();
     if (stage === 'done') return;
-    const chosen = stage === 'main' ? state.primaryPiles : state.parallelPiles;
-    if (chosen.includes(pileId) ||
-      (stage === 'parallel' && !chosen.length && state.primaryPiles.includes(pileId))) return;
-    chosen.push(pileId);
+    const parallelIndex = state.parallelPiles.indexOf(pileId);
+    const mainIndex = state.primaryPiles.indexOf(pileId);
+    if (parallelIndex >= 0) {
+      state.parallelPiles.splice(parallelIndex);
+    } else if (mainIndex >= 0) {
+      state.primaryPiles.splice(mainIndex);
+      state.parallelPiles = [];
+    } else if (stage !== 'done') {
+      const chosen = stage === 'main' ? state.primaryPiles : state.parallelPiles;
+      chosen.push(pileId);
+    } else return;
     state.primaryPile = state.primaryPiles[0] ?? null;
     state.parallelPile = state.parallelPiles[0] ?? null;
     render();
@@ -1045,8 +1091,10 @@ function createReadingController(number) {
 
   function updateDrawAction() {
     const choosing = state.phase === 'choosing';
-    refs.drawButton.classList.toggle('hidden',!choosing);
-    refs.drawButton.disabled = !choosing || Boolean(state.pendingOperation) || !mainReady() || !parallelReady();
+    if (!readings.length || readings.at(-1) === controller) {
+      refs.drawButton.classList.toggle('hidden', !choosing);
+      refs.drawButton.disabled = !choosing || Boolean(state.pendingOperation) || !mainReady() || !parallelReady();
+    }
   }
 
   function renderLayoutState() {
@@ -1054,7 +1102,7 @@ function createReadingController(number) {
     const canUndo = canEditAxes();
     refs.undoButton.classList.toggle('hidden', !canUndo || state.undoStack.length === 0);
     refs.redoButton.classList.toggle('hidden', !canUndo || state.redoStack.length === 0);
-    refs.cardCount.textContent = `${state.rowLabels.length}行 × ${state.columnLabels.length}列 · ${count}枚`;
+    refs.cardCount.textContent = `計${count}枚`;
 
     if (state.phase === 'editing') {
       if (!canAddRow(state) && !canAddColumn(state)) {
@@ -1064,10 +1112,11 @@ function createReadingController(number) {
       }
     }
 
-    refs.shuffleButton.disabled = !runtime.apiAvailable || state.phase !== 'editing' || Boolean(state.pendingOperation);
-    refs.shuffleButton.classList.toggle('hidden', state.phase !== 'editing');
+    if (!readings.length || readings.at(-1) === controller) {
+      refs.shuffleButton.disabled = !runtime.apiAvailable || state.phase !== 'editing' || Boolean(state.pendingOperation);
+      refs.shuffleButton.classList.toggle('hidden', state.phase !== 'editing');
+    }
     refs.copyButton.classList.toggle('hidden', state.phase !== 'completed');
-    refs.tsvCopyButton.classList.toggle('hidden', state.phase !== 'completed');
     refs.questionInput.readOnly = state.phase === 'completed' || state.phase === 'draw-uncertain' || Boolean(state.pendingOperation);
   }
 
@@ -1241,9 +1290,8 @@ function createReadingController(number) {
     }
   }
 
-  async function copyReading(format) {
-    const formatResult = format === 'tsv' ? formatReadingText : formatReadingMarkdown;
-    const text = formatResult({
+  async function copyReading() {
+    const text = formatReadingMarkdown({
       question: state.question,
       rowCount: state.rowLabels.length,
       columnCount: state.columnLabels.length,
@@ -1257,7 +1305,7 @@ function createReadingController(number) {
 
     try {
       await copyText(text);
-      setTextStatus(refs.copyFeedback, format === 'tsv' ? 'TSVをコピーしました。' : 'Markdownをコピーしました。');
+      setTextStatus(refs.copyFeedback, 'コピーしました。');
     } catch (error) {
       setTextStatus(refs.copyFeedback, error.message, 'error');
     }
@@ -1278,11 +1326,14 @@ function appendReading() {
   const controller = createReadingController(nextReadingNumber++);
   readings.push(controller);
   page.readings.append(controller.article);
+  controller.render();
   page.newReadingButton.classList.add('hidden');
   controller.focusQuestion();
   controller.article.scrollIntoView({ block: 'start' });
 }
 
+page.shuffleButton.addEventListener('click', () => readings.at(-1)?.shuffle());
+page.drawButton.addEventListener('click', () => readings.at(-1)?.draw());
 page.newReadingButton.addEventListener('click', appendReading);
 
 appendReading();
