@@ -268,8 +268,8 @@ try {
     const distance = Math.abs(completion.getBoundingClientRect().top - copyAction.getBoundingClientRect().top);
     if (distance > 16) throw new Error('Copy button and completion are not on the same row: ' + distance);
     click('.copy-button');
-    for (let i = 0; i < 40 && !one('.copy-feedback').textContent.includes('Markdownをコピー') ; i += 1) await sleep(80);
-    if (!one('.copy-feedback').textContent.includes('Markdownをコピー')) {
+    for (let i = 0; i < 40 && !one('.copy-feedback').textContent.includes('コピーしました') ; i += 1) await sleep(80);
+    if (!one('.copy-feedback').textContent.includes('コピーしました')) {
       throw new Error('Nearby Markdown copy feedback did not appear.');
     }
     if (one('.reading-status').textContent !== '抽選完了') throw new Error('Copy changed the draw completion state.');
@@ -284,19 +284,7 @@ try {
       throw new Error('Markdown clipboard lost question, parallel meaning, headings, table geometry or uses TSV.');
     }
 
-    const tsvButton = one('.tsv-copy-button');
-    if (!tsvButton || tsvButton.classList.contains('hidden')) throw new Error('Spreadsheet TSV compatibility affordance missing.');
-    tsvButton.click();
-    for (let i = 0; i < 40 && !one('.copy-feedback').textContent.includes('TSVをコピー'); i += 1) await sleep(80);
-    if (!one('.copy-feedback').textContent.includes('TSVをコピー')) throw new Error('TSV copy feedback missing.');
-    let clipboard = '';
-    try { clipboard = await navigator.clipboard.readText(); } catch {}
-    if (clipboard && (!clipboard.startsWith('Q. ' + question) ||
-        !clipboard.includes('\\t') ||
-        !clipboard.includes('【Parallel】') ||
-        !clipboard.includes('【パラレルリーディング説明】'))) {
-      throw new Error('Legacy TSV output lost row geometry or conditional Parallel explanatory note.');
-    }
+    if (one('.tsv-copy-button')) throw new Error('Deprecated TSV action remains visible in DOM.');
 
     const firstPrimaryCards = all('.primary-matrix .card-result-block').length;
     const firstParallelCards = all('.parallel-matrix .card-result-block').length;
@@ -325,8 +313,8 @@ try {
       markdownHasQuestion: markdown ? markdown.includes('**問い：** ' + question) : null,
       markdownHasTable: markdown ? markdown.includes('| --- |') : null,
       markdownExplainsParallel: markdown ? markdown.includes('### パラレルリーディングについて') : null,
-      clipboardHasQuestion: clipboard ? clipboard.startsWith('Q. ' + question) : null,
-      clipboardHasTabs: clipboard ? clipboard.includes('\\t') : null,
+      tsvActionRemoved: !one('.tsv-copy-button'),
+      markdownOnly: markdown ? !markdown.includes('\\t') : null,
       apiBaseUrl: globalThis.__TAROT_DRAW_CONFIG__?.apiBaseUrl ?? null
     };
   })()`;
