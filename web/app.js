@@ -198,11 +198,11 @@ function requiredCards(state) {
 }
 
 function canAddRow(state) {
-  return (state.rowLabels.length + 1) * state.columnLabels.length <= 27;
+  return (state.rowLabels.length + 1) * state.columnLabels.length <= 80;
 }
 
 function canAddColumn(state) {
-  return state.rowLabels.length * (state.columnLabels.length + 1) <= 27;
+  return state.rowLabels.length * (state.columnLabels.length + 1) <= 80;
 }
 
 async function api(path, options = {}) {
@@ -366,6 +366,8 @@ function createReadingController(number) {
     piles: [],
     primaryPile: null,
     parallelPile: null,
+    primaryPiles: [],
+    parallelPiles: [],
     primaryResult: null,
     parallelResult: null,
     pendingOperation: null,
@@ -397,7 +399,8 @@ function createReadingController(number) {
     <div class="pile-panel hidden" aria-label="山選択">
       <span class="pile-label">山</span>
       <div class="pile-options"></div>
-      <p class="selection-message helper pile-status" role="status"></p>
+      <p class="selection-message helper pile-status" role="status" aria-live="polite"></p>
+      <button class="pile-reset-button secondary" type="button">山を選び直す</button>
     </div>
 
     <div class="result-action-line">
@@ -444,6 +447,7 @@ function createReadingController(number) {
     pilePanel: article.querySelector('.pile-panel'),
     pileOptions: article.querySelector('.pile-options'),
     selectionMessage: article.querySelector('.selection-message'),
+    pileResetButton: article.querySelector('.pile-reset-button'),
     primaryTitle: article.querySelector('.primary-title'),
     primaryPileLabel: article.querySelector('.primary-pile-label'),
     undoButton: article.querySelector('.axis-undo-button'),
@@ -472,6 +476,15 @@ function createReadingController(number) {
   });
   refs.shuffleButton.addEventListener('click', shuffle);
   refs.drawButton.addEventListener('click', draw);
+  refs.pileResetButton.addEventListener('click', () => {
+    if (state.phase !== 'choosing' || state.pendingOperation) return;
+    state.primaryPiles = [];
+    state.parallelPiles = [];
+    state.primaryPile = null;
+    state.parallelPile = null;
+    render();
+    setTextStatus(refs.selectionMessage, 'メインの最初の山を選択してください。');
+  });
   refs.copyButton.addEventListener('click', () => copyReading('markdown'));
   refs.tsvCopyButton.addEventListener('click', () => copyReading('tsv'));
   refs.undoButton.addEventListener('click', undoAxis);
@@ -537,14 +550,14 @@ function createReadingController(number) {
 
     if (kind === 'row') {
       if (!canAddRow(state)) {
-        setTextStatus(refs.layoutMessage, '1つの山は最大27枚です。これ以上行を追加できません。', 'error');
+        setTextStatus(refs.layoutMessage, '配置は最大80枚です。これ以上行を追加できません。', 'error');
         return;
       }
       recordAxisHistory();
       state.rowLabels = appendAxisLabel(state.rowLabels);
     } else {
       if (!canAddColumn(state)) {
-        setTextStatus(refs.layoutMessage, '1つの山は最大27枚です。これ以上列を追加できません。', 'error');
+        setTextStatus(refs.layoutMessage, '配置は最大80枚です。これ以上列を追加できません。', 'error');
         return;
       }
       recordAxisHistory();
@@ -910,7 +923,7 @@ function createReadingController(number) {
     }
 
     refs.parallelSection.classList.remove('hidden');
-    refs.parallelPileLabel.textContent = state.parallelPile ? `山 ${state.parallelPile}` : '';
+    refs.parallelPileLabel.textContent = state.parallelPiles.length ? `山 ${state.parallelPiles.join(' → ')}` : '';
     refs.parallelMatrix.replaceChildren(createMatrixTable({
       result: state.parallelResult,
       editableHeaders: false,
@@ -978,7 +991,7 @@ function createReadingController(number) {
     updateDrawAction();
 
     if (!state.primaryPile) {
-      setTextStatus(refs.selectionMessage, 'Primaryの山を選択してください。');
+      setTextStatus(refs.selectionMessage, 'メインの最初の山を選択してください。');
     } else if (!state.parallelPile) {
       setTextStatus(refs.selectionMessage, `Primary: ${state.primaryPile} · 2つ目を選ぶとParallel`);
     } else {
@@ -1000,9 +1013,7 @@ function createReadingController(number) {
     refs.cardCount.textContent = `${state.rowLabels.length}行 × ${state.columnLabels.length}列 · ${count}枚`;
 
     if (state.phase === 'editing') {
-      if (count === 27) {
-        setTextStatus(refs.layoutMessage, '27枚配置では26枚のC山は選べません。');
-      } else if (!canAddRow(state) && !canAddColumn(state)) {
+      if (!canAddRow(state) && !canAddColumn(state)) {
         setTextStatus(refs.layoutMessage, 'この配置ではこれ以上行・列を追加できません。');
       } else {
         setTextStatus(refs.layoutMessage, '');
@@ -1042,13 +1053,15 @@ function createReadingController(number) {
       state.piles = split.piles;
       state.primaryPile = null;
       state.parallelPile = null;
+      state.primaryPiles = [];
+      state.parallelPiles = [];
       state.phase = 'choosing';
       // No size changes after shuffle: pre-shuffle structural snapshots must not
       // be replayed into the fixed server session. New moves remain undoable.
       state.undoStack.length = 0;
       state.redoStack.length = 0;
       refs.pilePanel.classList.remove('hidden');
-      setTextStatus(refs.selectionMessage, 'Primaryの山を選択してください。');
+      setTextStatus(refs.selectionMessage, 'メインの最初の山を選択してください。');
       setTextStatus(refs.status, '山を選択');
     } catch (error) {
       setTextStatus(refs.status, `シャッフル結果を確認できませんでした。未完成の山は使用しません。${error.message}`, 'error');
