@@ -369,7 +369,7 @@ try {
       const afterSecond={disabled:one('.draw-button').disabled,hint:one('.selection-message').textContent};
       if(${total}>54) one('.pile-button:nth-child(3)').click();
       const ready={drawEnabled:!one('.draw-button').disabled,
-        canSelectParallel:all('.pile-button').some(b=>!b.disabled),
+        canSelectParallel:all('.pile-button').some(b=>!b.disabled && b.getAttribute('aria-pressed')!=='true'),
         hint:one('.selection-message').textContent};
       one('.draw-button').click();
       for(let i=0;i<300 && !one('.reading-status').textContent.includes('抽選完了');i++)await sleep(20);
