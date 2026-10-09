@@ -71,7 +71,7 @@ async function evaluate(fn) {
 
 async function waitForAppReady() {
   for (let attempt = 0; attempt < 100; attempt++) {
-    if (await evaluate(() => Boolean(document.querySelector('.reading-workbench .shuffle-button')))) return;
+    if (await evaluate(() => Boolean(document.querySelector('.shuffle-button')))) return;
     await sleep(100);
   }
   throw Error('Application did not render its first reading after the browser connected');
@@ -474,7 +474,7 @@ function axisResetAndShuffle() {
   const reading = [...document.querySelectorAll('.reading-workbench')].at(-1);
   reading.querySelector('.axis-undo-button').click();
   const afterUndo = [...reading.querySelectorAll('.column-header .axis-inline-label')].map(el=>el.textContent);
-  reading.querySelector('.shuffle-button').click();
+  document.querySelector('.shuffle-button').click();
   return { afterUndo };
 }
 async function axisAfterShuffle() {
