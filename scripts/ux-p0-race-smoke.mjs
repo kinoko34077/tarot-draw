@@ -506,6 +506,59 @@ try {
     assert.equal(limited.after,1);
     report('RATE-LIMITED-NO-RETRY',{status:'PASS',...limited});
   }
+  if (expectSafe) {
+    // Full 80-card journey: no automatic pile crossover, no Parallel when
+    // all three main piles are needed, and stable row-major merged positions.
+    await navigate();
+    const eighty = await evalInPage(`(async () => {
+      const sleep = ms => new Promise(resolve => setTimeout(resolve,ms));
+      const one = q => document.querySelector(q);
+      const all = q => [...document.querySelectorAll(q)];
+      __p0.deferDraw = false;
+      for (let i=3;i<80;i++) one('.axis-add-header .axis-add-button').click();
+      const capLabel = one('.layout-count').textContent;
+      const eightyIsLimit = one('.axis-add-header .axis-add-button').disabled &&
+        one('.axis-add-row-header .axis-add-button').disabled;
+      one('.shuffle-button').click();
+      for (let i=0;i<120 && all('.pile-button').length!==3;i++)await sleep(20);
+      const a=all('.pile-button');
+      a[0].click();
+      const cueA=one('.selection-message').textContent;
+      const drawingAfterA=one('.draw-button').disabled;
+      a[1].click();
+      const cueB=one('.selection-message').textContent;
+      const drawingAfterB=one('.draw-button').disabled;
+      a[2].click();
+      const drawingAfterC=one('.draw-button').disabled;
+      const parallelBlocked=all('.pile-button').every(button => button.disabled);
+      one('.draw-button').click();
+      for(let i=0;i<160 && one('.reading-status').textContent!=='抽選完了';i++)await sleep(30);
+      const cards=all('.primary-matrix .card-detail-trigger').length;
+      const rows=all('.primary-matrix .reading-table tbody tr').length;
+      const heading=one('.primary-pile-label').textContent;
+      const ids=__p0.drawCalls.flatMap(call=>call.positions);
+      const rowName=one('.primary-matrix .row-header');
+      return {capLabel,eightyIsLimit,cueA,cueB,drawingAfterA,drawingAfterB,
+        drawingAfterC,parallelBlocked,cards,rows,heading,unique:new Set(ids).size,
+        count:ids.length,piles:__p0.drawCalls.map(call=>call.pile),
+        rowWidth:rowName.getBoundingClientRect().width,
+        writingMode:getComputedStyle(rowName.querySelector('.axis-inline-label')).writingMode};
+    })()`);
+    assert.match(eighty.capLabel,/80枚/);
+    assert.equal(eighty.eightyIsLimit,true);
+    assert.match(eighty.cueA,/枚数確保の為次の山を選択/);
+    assert.match(eighty.cueB,/枚数確保の為次の山を選択/);
+    assert.equal(eighty.drawingAfterA,true);
+    assert.equal(eighty.drawingAfterB,true);
+    assert.equal(eighty.drawingAfterC,false);
+    assert.equal(eighty.parallelBlocked,true);
+    assert.equal(eighty.cards,80);
+    assert.equal(eighty.unique,80);
+    assert.deepEqual(eighty.piles,['A','B','C']);
+    assert.ok(eighty.rowWidth<=80);
+    assert.equal(eighty.writingMode,'vertical-rl');
+    report('MULTIPILE-80-FULL-JOURNEY',{status:'PASS',...eighty});
+  }
   console.log(expectSafe ? 'P1 corrected controlled tests successful' :
     'P0 controlled baseline successful (known defects intentionally reproduced; not P1 acceptance)');
 } finally {
