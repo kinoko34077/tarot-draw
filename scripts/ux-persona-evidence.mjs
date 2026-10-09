@@ -381,7 +381,7 @@ async function expertTask() {
     editor.value = '訂正した列名';
     editor.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }));
     completedRename = label.textContent === '訂正した列名';
-    parallelLabelMatches = parallel.querySelector('.column-header')?.textContent === '訂正した列名';
+    parallelLabelMatches = parallel.querySelector('.column-header .axis-inline-label')?.textContent === '訂正した列名';
     const cardsAfter = [...main.querySelectorAll('.card-result-block'), ...parallel.querySelectorAll('.card-result-block')]
       .map(el => el.textContent);
     unchangedCardsAfterRename = JSON.stringify(cardsBefore) === JSON.stringify(cardsAfter);

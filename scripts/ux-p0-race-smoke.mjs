@@ -404,6 +404,55 @@ try {
   }
 
   if (expectSafe) {
+    // #75: responsive 3/5 columns, no right dead space, slim column +/-,
+    // fixed right-aligned header actions, narrow-screen horizontal scroll.
+    for (const width of [1440, 390, 320]) {
+      await navigate(width);
+      const geom = await evalInPage(`(() => {
+        const one=q=>document.querySelector(q), all=q=>[...document.querySelectorAll(q)];
+        const snapshot=()=>{
+          const scroll=one('.primary-matrix'), table=scroll.querySelector('table');
+          const cells=all('.primary-matrix .column-header').map(node=>node.getBoundingClientRect().width);
+          const heading=one('.matrix-heading'), actions=one('.heading-right-controls');
+          return {
+            columns: cells.length, widths: cells.map(Math.round),
+            equal:Math.max(...cells)-Math.min(...cells)<1.6,
+            overflow:scroll.scrollWidth>scroll.clientWidth+1,
+            trailingBlank:Math.abs(table.getBoundingClientRect().width-scroll.clientWidth),
+            headerHeight:one('.primary-matrix .column-header').getBoundingClientRect().height,
+            columnPlusWidth:one('.axis-add-header').getBoundingClientRect().width,
+            columnStacked:getComputedStyle(one('.axis-add-actions-column')).flexDirection==='column',
+            rightGap:heading.getBoundingClientRect().right-actions.getBoundingClientRect().right,
+            hiddenCopyInvisible:getComputedStyle(one('.copy-button')).display==='none'
+          };
+        };
+        const three=snapshot();
+        one('.axis-add-header .axis-add-button').click();
+        one('.axis-add-header .axis-add-button').click();
+        const five=snapshot();
+        return {three,five};
+      })()`);
+      for (const [columns, measured] of [[3,geom.three],[5,geom.five]]) {
+        assert.equal(measured.columns,columns);
+        assert.equal(measured.equal,true,`Equal data cells ${columns} at ${width}`);
+        assert.equal(measured.headerHeight<=40,true,`No thick column heading ${width}`);
+        assert.ok(measured.columnPlusWidth<=34,`Column +/− strip should be half width at ${width}`);
+        assert.equal(measured.columnStacked,true);
+        assert.ok(measured.rightGap>=0&&measured.rightGap<10,`Right controls need true alignment at ${width}`);
+        assert.equal(measured.hiddenCopyInvisible,true,`No phantom right-side button slot at ${width}`);
+        if (width===1440) {
+          assert.equal(measured.overflow,false,`Spare space should be distributed across ${columns} columns`);
+          assert.ok(measured.trailingBlank<=3,`No right dead space for ${columns} columns`);
+          assert.ok(measured.widths.every(w=>w>96),`Desktop cells expand evenly`);
+        } else if (columns===5) {
+          assert.equal(measured.overflow,true,`Five columns scroll at ${width}`);
+          assert.ok(measured.widths.every(w=>w>=95),`Minimum 96px data widths under overflow`);
+        }
+      }
+      report('UX75-FLUID-'+width,{status:'PASS',...geom});
+    }
+  }
+  if (expectSafe) {
     // User #70: verify actual pointer gesture/axis preview, labeled-delete guard, footer and reversible pile selection.
     await navigate(390);
     const ux70 = await evalInPage(`(async()=>{
@@ -485,14 +534,35 @@ try {
       const feedbackRight=one('.copy-feedback').getBoundingClientRect().right;
       const controlsLeft=one('.heading-right-controls').getBoundingClientRect().left;
       const stableControls=Math.abs(initialRight-completeRight)<1 && Math.abs(initialRight-afterCopyRight)<1;
-      const parallelDigits=one('.parallel-matrix .row-header .axis-readonly-label')?.textContent ?? '';
+      const parallelDigits=one('.parallel-matrix .row-header .axis-inline-label')?.textContent ?? '';
       const copiedRawDigits=__p0.copiedText?.includes('行12') ?? false;
+      const apiDrawsBeforeLabels=__p0.drawCalls.length;
+      const editParallel=(selector,name)=>{
+        const button=one(selector), host=button.parentElement;
+        button.click();
+        const input=host.querySelector('.axis-inline-input');
+        if(!input)throw Error('Parallel direct edit did not open for '+selector);
+        input.value=name;
+        input.dispatchEvent(new KeyboardEvent('keydown',{key:'Enter',bubbles:true}));
+      };
+      editParallel('.parallel-matrix .row-header .axis-inline-label','並列行12');
+      editParallel('.parallel-matrix .column-header .axis-inline-label','並列列名');
+      const syncedLabels={
+        primaryRow:one('.primary-matrix .row-header .axis-inline-label').textContent,
+        parallelRow:one('.parallel-matrix .row-header .axis-inline-label').textContent,
+        primaryColumn:one('.primary-matrix .column-header .axis-inline-label').textContent,
+        parallelColumn:one('.parallel-matrix .column-header .axis-inline-label').textContent,
+        drawCallsUnchanged:__p0.drawCalls.length===apiDrawsBeforeLabels
+      };
+      one('.copy-button').click();
+      for(let i=0;i<20&&!__p0.copiedText?.includes('並列列名');i++)await sleep(10);
+      syncedLabels.copyUpdated=__p0.copiedText?.includes('並列列名') && __p0.copiedText?.includes('並列行12');
       return {inlineQ,divider,footer,initialCount,afterAdd,afterBlankDelete,
         afterRefusedDelete,afterConfirmedDelete,confirmations,preview,reordered,ghostRemoved,
         primarySelected,cleared,roles,drawReady,parallelClearedAfterDone,
         mainClearedAfterDone,drawEnabledAfterReselect,stableControls,
         columnControlsStacked,rowControlsSideBySide,historyOutsideHeading,
-        verticalDigits,editableRawDigits,parallelDigits,copiedRawDigits,
+        verticalDigits,editableRawDigits,parallelDigits,copiedRawDigits,syncedLabels,
         statusBeforeControls:statusRight<=controlsLeft+1,
         feedbackBeforeControls:feedbackRight<=controlsLeft+1};
     })()`);
@@ -524,6 +594,11 @@ try {
     assert.equal(ux70.editableRawDigits,'行12');
     assert.equal(ux70.parallelDigits,'行１２');
     assert.equal(ux70.copiedRawDigits,true);
+    assert.deepEqual(ux70.syncedLabels,{
+      primaryRow:'並列行１２',parallelRow:'並列行１２',
+      primaryColumn:'並列列名',parallelColumn:'並列列名',
+      drawCallsUnchanged:true,copyUpdated:true
+    });
     assert.equal(ux70.stableControls,true,'Fixed right controls must not move on status/copy feedback');
     assert.equal(ux70.statusBeforeControls,true);
     assert.equal(ux70.feedbackBeforeControls,true);
