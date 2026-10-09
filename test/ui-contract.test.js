@@ -66,7 +66,7 @@ test('matrix remains semantic and narrow layouts preserve geometry', async () =>
   assert.ok(css.includes('overflow-x: auto'));
   assert.ok(css.includes('.matrix-section { min-width: 0; }'));
   assert.ok(css.includes('max-width: 100%'));
-  assert.ok(css.includes('.reading-table {\n  width: max-content;\n  min-width: 0;'));
+  assert.ok(css.includes('width: 100%; min-width: 0; table-layout: fixed;'));
   assert.ok(css.includes('.row-header {'));
   assert.ok(css.includes('position: sticky'));
   assert.ok(!/\.reading-table\s*\{[^}]*grid-template-columns/s.test(css));
@@ -78,7 +78,7 @@ test('result cells use compact title/orientation lines and tap/click detail trig
   assert.ok(app.includes("title.className = 'card-title'"));
   assert.ok(app.includes("orientation.className = 'card-orientation'"));
   assert.ok(app.includes("openCardDetail(card, result)"));
-  assert.ok(css.includes('width: 96px; min-width: 96px; max-width: 96px;'));
+  assert.ok(app.includes("table.style.minWidth = "));
   assert.ok(css.includes('grid-template-rows: 33px 14px'));
   assert.ok(css.includes('.card-title'));
   assert.ok(css.includes('.card-orientation'));
@@ -95,8 +95,31 @@ test('UX72: selected piles remain removable in done phase, and footer messaging 
   assert.ok(app.indexOf('class="heading-right-controls"') < app.indexOf('class="primary-matrix table-scroll"'));
   assert.ok(app.indexOf('class="primary-matrix table-scroll"') < app.indexOf('class="axis-history-actions"'));
   assert.ok(css.includes('.heading-right-controls .copy-button.hidden'));
-  assert.ok(css.includes('visibility: hidden'));
+  assert.ok(css.includes('.heading-right-controls .copy-button.hidden { display: none !important; }'));
   assert.ok(css.includes('.axis-add-actions-column { flex-direction: column'));
+});
+
+test('UX75: grid distributes remaining space uniformly and keeps min 96px with horizontal scroll', async () => {
+  const [app, css] = await Promise.all([read('../web/app.js'), read('../web/styles.css')]);
+  assert.ok(app.includes("document.createElement('colgroup')"));
+  assert.ok(app.includes("rowCol.style.width = '62px'"));
+  assert.ok(app.includes("actionsCol.style.width = '32px'"));
+  assert.ok(app.includes("table.style.minWidth = `${62 + state.columnLabels.length * 96 + (canEditStructure ? 32 : 0)}px`"));
+  assert.ok(css.includes('width: 100%; min-width: 0; table-layout: fixed;'));
+  assert.ok(css.includes('.table-scroll { scrollbar-gutter: auto; }'));
+  assert.ok(css.includes('.axis-add-actions-column .axis-add-button'));
+  assert.ok(css.includes('width: 32px; min-width: 32px; max-width: 32px;'));
+  assert.ok(css.includes('height: 36px; max-height: 36px;'));
+});
+
+test('UX75: Parallel is a direct label edit surface using identical shared metadata', async () => {
+  const app = await read('../web/app.js');
+  const parallel = app.slice(app.indexOf('  function renderParallelMatrix() {'), app.indexOf('  function capacityOf('));
+  assert.ok(parallel.includes('editableHeaders: true'));
+  assert.ok(app.includes('function syncOtherHeading()'));
+  assert.ok(app.includes('for (const matrix of [refs.primaryMatrix, refs.parallelMatrix])'));
+  assert.ok(app.includes("matrix.querySelectorAll(selector)[index]"));
+  assert.ok(app.includes("input.addEventListener('blur', () => finish(true))"));
 });
 
 test('UX72: result-only ruby has out-of-flow reading; vertical digits are display-only', async () => {
