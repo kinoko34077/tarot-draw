@@ -93,10 +93,37 @@ function createCardVisual(card, { detail = false } = {}) {
   return visual;
 }
 
-function setCardTitle(element, parts) {
+function setCardTitle(element, parts, { floatingRuby = false } = {}) {
   element.replaceChildren();
-  if (parts.titleHtml) element.innerHTML = parts.titleHtml;
-  else element.textContent = parts.title;
+  if (parts.titleHtml && floatingRuby) {
+    // The phonetic label is absolute, never a line box or anonymous flex item.
+    // Keep plain text (e.g. 「の」) and ruby bases on exactly the same baseline.
+    const template = document.createElement('template');
+    template.innerHTML = parts.titleHtml;
+    for (const node of [...template.content.childNodes]) {
+      if (node.nodeType !== 1 || node.localName !== 'ruby') {
+        element.append(node);
+        continue;
+      }
+      const wrapper = document.createElement('span');
+      wrapper.className = 'ruby-token';
+      const base = document.createElement('span');
+      base.className = 'ruby-base';
+      const clone = node.cloneNode(true);
+      clone.querySelectorAll('rt, rp').forEach(item => item.remove());
+      base.textContent = clone.textContent;
+      const phonetic = document.createElement('span');
+      phonetic.className = 'ruby-float';
+      phonetic.textContent = node.querySelector('rt')?.textContent ?? '';
+      phonetic.setAttribute('aria-hidden', 'true');
+      wrapper.append(base, phonetic);
+      element.append(wrapper);
+    }
+  } else if (parts.titleHtml) {
+    element.innerHTML = parts.titleHtml;
+  } else {
+    element.textContent = parts.title;
+  }
   element.setAttribute('aria-label', parts.plainTitle);
 }
 
@@ -359,6 +386,14 @@ function bindAxisContextMenu(target, controller, kind, index, trigger) {
 
 // Keep row/column widths fixed: shrink long names inside the existing area.
 // The full label remains available via title and the accessible DOM text.
+function displayAxisLabel(labels, index, kind) {
+  const label = labelOrFallback(labels, index, kind);
+  // Display-only correction for vertical Japanese headings. Do not change
+  // stored labels, editor input, Markdown export, or positional IDs.
+  return kind === 'row' ? label.replace(/[0-9]/g, digit =>
+    String.fromCharCode(digit.charCodeAt(0) + 0xFEE0)) : label;
+}
+
 function fitAxisText(node) {
   if (!node?.isConnected) return;
   for (let size = 13; size >= 5.5; size -= 0.5) {
@@ -420,19 +455,21 @@ function createReadingController(number) {
       <section class="matrix-section">
         <div class="matrix-heading">
           <h2 class="primary-title">配置</h2>
-          <span class="card-count layout-count" aria-live="polite">計3枚</span>
           <span class="primary-pile-label branch-meta"></span>
-          <div class="axis-history-actions">
-            <button class="axis-undo-button secondary hidden" type="button" title="直前の編集を元に戻す">戻す</button>
-            <button class="axis-redo-button secondary hidden" type="button" title="取り消した編集をやり直す">やり直す</button>
-          </div>
           <div class="result-action-line">
             <p class="reading-status status" role="status" aria-live="polite"></p>
-            <button class="copy-button secondary hidden" type="button" title="Markdown形式の表をコピー">結果をコピー</button>
             <span class="copy-feedback" role="status" aria-live="polite"></span>
+          </div>
+          <div class="heading-right-controls">
+            <span class="card-count layout-count" aria-live="polite">計3枚</span>
+            <button class="copy-button secondary hidden" type="button" title="Markdown形式の表をコピー">結果をコピー</button>
           </div>
         </div>
         <div class="primary-matrix table-scroll"></div>
+        <div class="axis-history-actions" aria-label="配置編集履歴">
+          <button class="axis-undo-button secondary hidden" type="button" title="直前の編集を元に戻す">戻す</button>
+          <button class="axis-redo-button secondary hidden" type="button" title="取り消した編集をやり直す">やり直す</button>
+        </div>
       </section>
 
       <section class="parallel-section matrix-section hidden">
@@ -591,7 +628,7 @@ function createReadingController(number) {
     const label = document.createElement('button');
     label.type = 'button';
     label.className = 'axis-inline-label';
-    label.textContent = labelOrFallback(state[stateKey], index, kind);
+    label.textContent = displayAxisLabel(state[stateKey], index, kind);
     label.setAttribute('aria-label', axisName + (index + 1) + 'の名前を編集');
     label.title = `${label.textContent}（名前を編集）`;
     label.disabled = Boolean(state.pendingOperation) || state.phase === 'draw-uncertain';
@@ -611,7 +648,7 @@ function createReadingController(number) {
       const matching = refs.parallelMatrix.querySelectorAll(selector)[index];
       const updated = matching?.querySelector('.axis-readonly-label');
       if (updated) {
-        updated.textContent = labelOrFallback(state[stateKey], index, kind);
+        updated.textContent = displayAxisLabel(state[stateKey], index, kind);
         updated.title = updated.textContent;
         fitAxisText(updated);
       }
@@ -636,7 +673,7 @@ function createReadingController(number) {
         values[index] = commit ? input.value : previousValue;
         if (commit && values[index] !== previousValue && canEditAxes()) recordAxisHistory();
         state[stateKey] = values;
-        label.textContent = labelOrFallback(values, index, kind);
+        label.textContent = displayAxisLabel(values, index, kind);
         label.title = `${label.textContent}（名前を編集）`;
         input.replaceWith(label);
         fitAxisText(label);
@@ -803,7 +840,7 @@ function createReadingController(number) {
 
     const title = document.createElement('span');
     title.className = 'card-title';
-    setCardTitle(title, parts);
+    setCardTitle(title, parts, { floatingRuby: true });
 
     const orientation = document.createElement('span');
     orientation.className = 'card-orientation';
@@ -873,7 +910,7 @@ function createReadingController(number) {
       removeColumn.disabled = state.columnLabels.length <= 1;
       removeColumn.addEventListener('click', () => removeAxis('column', state.columnLabels.length - 1));
       const columnActions = document.createElement('div');
-      columnActions.className = 'axis-add-actions';
+      columnActions.className = 'axis-add-actions axis-add-actions-column';
       columnActions.append(addColumn, removeColumn);
       addColumnHeader.append(columnActions);
       headerRow.append(addColumnHeader);
@@ -898,7 +935,7 @@ function createReadingController(number) {
       } else {
         const text = document.createElement('span');
         text.className = 'axis-readonly-label';
-        text.textContent = labelOrFallback(state.rowLabels, row, 'row');
+        text.textContent = displayAxisLabel(state.rowLabels, row, 'row');
         text.title = text.textContent;
         rowHeader.append(text);
       }
@@ -1047,7 +1084,7 @@ function createReadingController(number) {
 
   function renderPiles() {
     if (!state.piles.length) { refs.pileOptions.replaceChildren(); return; }
-    const stage = selectionStage(), chosen = stage === 'main' ? state.primaryPiles : state.parallelPiles;
+    const stage = selectionStage();
     refs.pileOptions.replaceChildren(...state.piles.map(pile => {
       const id = pile.pile_id, main = state.primaryPiles.includes(id), other = state.parallelPiles.includes(id);
       const button = document.createElement('button');
@@ -1072,7 +1109,6 @@ function createReadingController(number) {
   function selectPile(pileId) {
     if (state.phase !== 'choosing' || state.pendingOperation) return;
     const stage = selectionStage();
-    if (stage === 'done') return;
     const parallelIndex = state.parallelPiles.indexOf(pileId);
     const mainIndex = state.primaryPiles.indexOf(pileId);
     if (parallelIndex >= 0) {
