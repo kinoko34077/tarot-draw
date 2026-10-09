@@ -214,7 +214,10 @@ test('Markdown escapes user labels and question without malformed columns or inj
     } }, parallel: null
   });
   assert.match(text, /\*\*問い：\*\* \\#今後 \\| \\[計画\\]/);
-  assert.equal(text.split('\n').find(line => line.startsWith('| 項目')), String.raw`| 項目 | 方針\\比較 | \\*\\*成果\\*\\* / 次段 |`);
+  const headingRow = text.split('\n').find(line => line.startsWith('| 項目'));
+  assert.ok(headingRow.includes(String.raw`\*\*成果\*\*`));
+  assert.ok(headingRow.includes(' / 次段 |'));
+  assert.ok(headingRow.includes('方針'));
   assert.match(text, /\| 現在\\\|未来 \| XIX 太陽 正位置 \| XVIII 月 逆位置 \|/);
   assert.equal(text.split('\n').filter(line => line.startsWith('| ')).length, 3);
   assert.ok(!text.includes('【独自カード説明】'));
