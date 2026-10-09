@@ -445,12 +445,13 @@ try {
       const ghostRemoved=!one('.axis-drag-ghost');
       one('.shuffle-button').click();
       for(let i=0;i<100 && all('.pile-button').length!==3;i++)await sleep(20);
-      const a=all('.pile-button');a[0].click();
-      const primarySelected=a[0].getAttribute('aria-pressed')==='true';
-      a[0].click();
-      const cleared=all('.pile-button').every(b=>b.getAttribute('aria-pressed')==='false');
-      a[1].click();a[0].click();
-      const roles={main:a[1].getAttribute('aria-pressed'),parallel:a[0].getAttribute('aria-pressed')};
+      const piles=()=>all('.pile-button');
+      piles()[0].click();
+      const primarySelected=piles()[0].getAttribute('aria-pressed')==='true';
+      piles()[0].click();
+      const cleared=piles().every(b=>b.getAttribute('aria-pressed')==='false');
+      piles()[1].click();piles()[0].click();
+      const roles={main:piles()[1].getAttribute('aria-pressed'),parallel:piles()[0].getAttribute('aria-pressed')};
       const drawReady=!one('.draw-button').disabled;
       return {inlineQ,divider,footer,initialCount,afterAdd,afterBlankDelete,
         afterRefusedDelete,afterConfirmedDelete,confirmations,preview,reordered,ghostRemoved,
