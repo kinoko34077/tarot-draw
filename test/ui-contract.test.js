@@ -18,6 +18,10 @@ test('page hosts append-only reading history and no longer exposes numeric dimen
 test('one reading exposes one strongest primary action per phase and secondary copy', async () => {
   const app = await read('../web/app.js');
   assert.ok(app.includes('class="copy-button secondary hidden"'));
+  assert.ok(app.includes('結果をコピー（Markdown）'));
+  assert.ok(app.includes('class="tsv-copy-button secondary hidden"'));
+  assert.ok(app.includes("format === 'tsv' ? formatReadingText : formatReadingMarkdown"));
+  assert.ok(app.includes('parallelPile: state.parallelPile'));
   assert.ok(app.includes('class="shuffle-button primary"'));
   assert.ok(app.includes('class="draw-button primary hidden"'));
   assert.ok(!app.includes('copy-button primary'));

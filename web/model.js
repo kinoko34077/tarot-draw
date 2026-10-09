@@ -30,6 +30,10 @@ export const CUSTOM_CARD_NOTES = Object.freeze({
   'meta.guarantee': 'GUARANTEE: 世界（XXI）の後、22に対応づける独自カード。正位置・逆位置あり。'
 });
 
+/** Interpretive framework only: neither branch represents an actual alternate event. */
+export const PARALLEL_READING_NOTE =
+  'パラレルリーディングは、別の山を選ぼうか迷ったこと自体にも意味があると捉え、「もしそちらを選んでいたら」という仮の結果を、実際に選んだメインの結果と合わせて観る、この占い独自の方式です。両方の結果は同じシャッフル時点から異なる山に分かれ、それぞれ独立に引いています。';
+
 export function buildPositionIds(rowCount, columnCount) {
   const ids = [];
   for (let row = 0; row < rowCount; row += 1) {
@@ -146,6 +150,7 @@ export function formatReadingText({
 
   if (primary) sections.push(formatBranch('Primary', primary));
   if (parallel) sections.push(formatBranch('Parallel', parallel));
+  if (parallel) sections.push(['【パラレルリーディング説明】', PARALLEL_READING_NOTE].join('\n'));
 
   const customNotes = customCardNotesForResults(primary, parallel);
   if (customNotes.length > 0) {
@@ -172,4 +177,66 @@ export function formatReadingText({
     }
     return lines.join('\n');
   }
+}
+
+/** Visible, lossless n×m results expressed as copy/paste-friendly Markdown. */
+export function formatReadingMarkdown({
+  question = '',
+  rowCount,
+  columnCount,
+  rowLabels,
+  columnLabels,
+  primary,
+  parallel,
+  primaryPile = null,
+  parallelPile = null
+}) {
+  const blocks = [
+    '# タロット占い結果',
+    `**問い：** ${markdownCell(question) || '（未入力）'}`
+  ];
+
+  if (primary) blocks.push(markdownBranch('メインリーディング', primary, primaryPile));
+  if (parallel) {
+    blocks.push(markdownBranch('パラレルリーディング', parallel, parallelPile));
+    blocks.push(['### パラレルリーディングについて', PARALLEL_READING_NOTE].join('\n\n'));
+  }
+
+  const notes = customCardNotesForResults(primary, parallel);
+  if (notes.length) {
+    blocks.push(['### 独自カードについて', ...notes.map(note => `- ${note}`)].join('\n'));
+  }
+  return blocks.join('\n\n');
+
+  function markdownBranch(name, result, pileId) {
+    // `| ... |` and the header separator are deliberate GitHub-flavored
+    // Markdown; labels/cards are escaped before insertion.
+    const heading = `## ${name}${pileId ? `（山${markdownCell(pileId)}）` : ''}`;
+    const headers = [
+      '項目',
+      ...Array.from({ length: columnCount }, (_, col) =>
+        markdownCell(labelOrFallback(columnLabels, col, 'column')))
+    ];
+    const lines = [
+      `| ${headers.join(' | ')} |`,
+      `| ${headers.map(() => '---').join(' | ')} |`
+    ];
+    for (let row = 0; row < rowCount; row += 1) {
+      const values = [markdownCell(labelOrFallback(rowLabels, row, 'row'))];
+      for (let col = 0; col < columnCount; col += 1) {
+        values.push(markdownCell(cardDisplayText(result.positions[`r${row}c${col}`])));
+      }
+      lines.push(`| ${values.join(' | ')} |`);
+    }
+    return [heading, ...lines].join('\n');
+  }
+}
+
+function markdownCell(value) {
+  // Treat user-entered names/question as literal text, never as table syntax.
+  // A multiline input cannot split or silently shift the table columns.
+  return String(value ?? '')
+    .trim()
+    .replace(/[\r\n\t]+/g, ' / ')
+    .replace(/([\\`*_[\]{}()#+.!|>~-])/g, '\\$1');
 }

@@ -120,6 +120,7 @@ test('detail reference uses adjacent enlarged artwork and a vertical writing tab
   assert.ok(css.includes('border-bottom: 1px solid var(--border-strong)'));
   assert.ok(css.includes('border-right: 1px solid var(--keyword-column-guide)'));
   assert.ok(css.includes('border-right-color: var(--keyword-theme-guide)'));
+  assert.match(css, /\.keyword-grid-table tbody th::after,[\s\S]*?\.keyword-grid-table tbody td::after\s*\{[^}]*bottom: -1px;[^}]*height: 1px;[^}]*background: var\(--border-strong\);[^}]*z-index: 2;/);
   assert.ok(!css.includes('padding: 4px 1px;\n  border: 1px solid var(--border-strong)'), 'old all-edges box grid must not return');
   assert.ok(css.includes('.keyword-grid-table thead th.keyword-grid-title-cell'));
   assert.ok(css.includes('border: 1px solid var(--border-strong)'));
