@@ -496,6 +496,7 @@ function createReadingController(number) {
     selectionMessage: article.querySelector('.selection-message'),
     primaryTitle: article.querySelector('.primary-title'),
     primaryPileLabel: article.querySelector('.primary-pile-label'),
+    historyActions: article.querySelector('.axis-history-actions'),
     undoButton: article.querySelector('.axis-undo-button'),
     redoButton: article.querySelector('.axis-redo-button'),
     primaryMatrix: article.querySelector('.primary-matrix'),
@@ -1138,6 +1139,7 @@ function createReadingController(number) {
     const canUndo = canEditAxes();
     refs.undoButton.classList.toggle('hidden', !canUndo || state.undoStack.length === 0);
     refs.redoButton.classList.toggle('hidden', !canUndo || state.redoStack.length === 0);
+    refs.historyActions.classList.toggle('hidden', !canUndo || (state.undoStack.length === 0 && state.redoStack.length === 0));
     refs.cardCount.textContent = `計${count}枚`;
 
     if (state.phase === 'editing') {
