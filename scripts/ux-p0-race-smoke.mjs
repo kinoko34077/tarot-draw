@@ -274,6 +274,10 @@ try {
     one('.copy-button').click();
     for(let i=0;i<20 && !__p0.copiedText;i++)await sleep(20);
     const copied=__p0.copiedText;
+    __p0.copiedText=null;
+    one('.tsv-copy-button').click();
+    for(let i=0;i<20 && !__p0.copiedText;i++)await sleep(20);
+    const oldTsv=__p0.copiedText;
     const button=all('.card-detail-trigger')[0];
     const visibleCue=/詳細/.test(button.textContent);
     button.click();
@@ -282,15 +286,21 @@ try {
       heading:one('#cardDetailKeywordHeading').textContent.trim()};
     one('#cardDetailClose').click();
     return {dims,cards,drawPiles:__p0.drawCalls.map(d=>d.pile),
-      copiedQuestion:copied?.includes('P0 baseline question'),copiedParallel:copied?.includes('Parallel'),
-      copiedTabs:copied?.includes('\\t'),visibleCue,detail};
+      copiedQuestion:copied?.includes('P0 baseline question'),
+      copiedParallel:copied?.includes('## パラレルリーディング（山B）'),
+      copiedMarkdown:copied?.includes('| --- |') && copied?.includes('### パラレルリーディングについて'),
+      copiedMarkdownHasNoTabs:!copied?.includes('\\t'),
+      copiedTsv:oldTsv?.includes('【Parallel】') && oldTsv?.includes('【パラレルリーディング説明】') && oldTsv?.includes('\\t'),
+      visibleCue,detail};
   })()`);
   assert.deepEqual(ready.dims,{rows:3,columns:9});
   assert.equal(ready.cards,54);
   assert.deepEqual(ready.drawPiles,['A','B']);
   assert.equal(ready.copiedQuestion,true);
   assert.equal(ready.copiedParallel,true);
-  assert.equal(ready.copiedTabs,true);
+  assert.equal(ready.copiedMarkdown,true);
+  assert.equal(ready.copiedMarkdownHasNoTabs,true);
+  assert.equal(ready.copiedTsv,true);
   assert.equal(ready.detail.open,true);
   assert.equal(ready.detail.keywords,25);
   report('NORMAL-27X2',{status:'PASS',...ready});
