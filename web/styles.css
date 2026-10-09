@@ -960,7 +960,8 @@ input:focus-visible {
 .column-header .axis-inline-label,
 .column-header .axis-readonly-label {
   height: 34px; min-height: 34px; max-height: 34px;
-  display: flex; align-items: center; padding: 1px 2px; line-height: 1.15;
+  display: block; align-content: center; padding: 1px 2px; line-height: 1.15;
+  white-space: normal; overflow-wrap: anywhere;
 }
 .column-header .axis-menu-trigger { align-self: center; }
 .row-header .axis-handle {
