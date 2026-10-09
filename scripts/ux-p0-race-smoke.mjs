@@ -404,6 +404,79 @@ try {
   }
 
   if (expectSafe) {
+    // User #70: verify actual pointer gesture/axis preview, labeled-delete guard, footer and reversible pile selection.
+    await navigate(390);
+    const ux70 = await evalInPage(`(async()=>{
+      const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+      const one=q=>document.querySelector(q), all=q=>[...document.querySelectorAll(q)];
+      const header=one('.reading-toolbar'), question=one('.question-field');
+      const inlineQ=Math.abs(header.getBoundingClientRect().top-question.getBoundingClientRect().top)<5;
+      const divider=parseFloat(getComputedStyle(question).borderLeftWidth)>=1;
+      const footer=one('.history-actions').contains(one('.shuffle-button'));
+      const initialCount=one('.layout-count').textContent;
+      one('.axis-add-header .axis-add-button').click();
+      const afterAdd=all('.column-header').length;
+      one('.axis-add-header .axis-remove-button').click();
+      const afterBlankDelete=all('.column-header').length;
+      const rename=(index,value)=>{
+        const button=all('.column-header .axis-inline-label')[index];
+        const host=button.parentElement;button.click();
+        const input=host.querySelector('.axis-inline-input');
+        input.value=value;input.dispatchEvent(new KeyboardEvent('keydown',{key:'Enter',bubbles:true}));
+      };
+      rename(2,'名称入力済');
+      let confirmations=0;let allow=false;
+      const oldConfirm=window.confirm;
+      window.confirm=message=>{ confirmations++;return allow; };
+      one('.axis-add-header .axis-remove-button').click();
+      const afterRefusedDelete=all('.column-header').length;
+      allow=true;one('.axis-add-header .axis-remove-button').click();
+      const afterConfirmedDelete=all('.column-header').length;
+      window.confirm=oldConfirm;
+      rename(0,'最初');rename(1,'次');
+      const headerCells=all('.column-header'), grip=headerCells[0].querySelector('.axis-menu-trigger');
+      const rect=headerCells[1].getBoundingClientRect();
+      const x=rect.left+rect.width/2,y=rect.top+rect.height/2;
+      grip.dispatchEvent(new PointerEvent('pointerdown',{pointerId:23,button:0,bubbles:true,clientX:x-80,clientY:y}));
+      window.dispatchEvent(new PointerEvent('pointermove',{pointerId:23,bubbles:true,clientX:x,clientY:y}));
+      const preview={ghost:!!one('.axis-drag-ghost'),from:all('.axis-dragging-source').length,to:all('.axis-drop-preview').length};
+      window.dispatchEvent(new PointerEvent('pointerup',{pointerId:23,button:0,bubbles:true,clientX:x,clientY:y}));
+      const reordered=all('.column-header .axis-inline-label').map(e=>e.textContent);
+      const ghostRemoved=!one('.axis-drag-ghost');
+      one('.shuffle-button').click();
+      for(let i=0;i<100 && all('.pile-button').length!==3;i++)await sleep(20);
+      const a=all('.pile-button');a[0].click();
+      const primarySelected=a[0].getAttribute('aria-pressed')==='true';
+      a[0].click();
+      const cleared=all('.pile-button').every(b=>b.getAttribute('aria-pressed')==='false');
+      a[1].click();a[0].click();
+      const roles={main:a[1].getAttribute('aria-pressed'),parallel:a[0].getAttribute('aria-pressed')};
+      const drawReady=!one('.draw-button').disabled;
+      return {inlineQ,divider,footer,initialCount,afterAdd,afterBlankDelete,
+        afterRefusedDelete,afterConfirmedDelete,confirmations,preview,reordered,ghostRemoved,
+        primarySelected,cleared,roles,drawReady};
+    })()`);
+    assert.equal(ux70.inlineQ,true);
+    assert.equal(ux70.divider,true);
+    assert.equal(ux70.footer,true);
+    assert.equal(ux70.initialCount,'計3枚');
+    assert.equal(ux70.afterAdd,4);
+    assert.equal(ux70.afterBlankDelete,3);
+    assert.equal(ux70.afterRefusedDelete,3);
+    assert.equal(ux70.afterConfirmedDelete,2);
+    assert.equal(ux70.confirmations,2);
+    assert.equal(ux70.preview.ghost,true);
+    assert.ok(ux70.preview.from>=2 && ux70.preview.to>=2,'Whole-column source/destination should be visible during drag');
+    assert.deepEqual(ux70.reordered,['次','最初']);
+    assert.equal(ux70.ghostRemoved,true);
+    assert.equal(ux70.primarySelected,true);
+    assert.equal(ux70.cleared,true);
+    assert.equal(ux70.roles.main,'true');
+    assert.equal(ux70.roles.parallel,'true');
+    assert.equal(ux70.drawReady,true);
+    report('UX70-FRONTEND-GESTURES',{status:'PASS',...ux70});
+  }
+  if (expectSafe) {
     // One branch may have committed while the other has an unknown transport result.
     await navigate();
     const partial = await evalInPage(`(async () => {
