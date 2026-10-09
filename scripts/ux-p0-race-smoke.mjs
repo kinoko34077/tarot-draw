@@ -485,7 +485,7 @@ try {
       const feedbackRight=one('.copy-feedback').getBoundingClientRect().right;
       const controlsLeft=one('.heading-right-controls').getBoundingClientRect().left;
       const stableControls=Math.abs(initialRight-completeRight)<1 && Math.abs(initialRight-afterCopyRight)<1;
-      const parallelDigits=one('.parallel-matrix .row-header .axis-readonly-label')?.textContent ?? '';
+      const parallelDigits=one('.parallel-matrix .row-header .axis-inline-label')?.textContent ?? '';
       const copiedRawDigits=__p0.copiedText?.includes('行12') ?? false;
       return {inlineQ,divider,footer,initialCount,afterAdd,afterBlankDelete,
         afterRefusedDelete,afterConfirmedDelete,confirmations,preview,reordered,ghostRemoved,
