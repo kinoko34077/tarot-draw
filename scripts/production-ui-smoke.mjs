@@ -261,7 +261,7 @@ try {
     if (reversedVisuals === 0) throw new Error('No reversed visual was observed.');
 
     const completion = one('.result-action-line .reading-status');
-    const copyAction = one('.result-action-line .copy-button');
+    const copyAction = one('.heading-right-controls .copy-button');
     if (!completion || completion.textContent !== '抽選完了' || !copyAction) {
       throw new Error('Copy button and completion are not together before the result grid.');
     }
