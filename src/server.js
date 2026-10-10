@@ -105,7 +105,8 @@ export function createTarotServer({ store = new TarotStore() } = {}) {
 
       let match = pathname.match(/^\/api\/sessions\/([^/]+)\/shuffle$/);
       if (req.method === 'POST' && match) {
-        return json(res, 200, store.shuffleSession(decodeURIComponent(match[1])));
+        const options = await parseJson(req);
+        return json(res, 200, store.shuffleSession(decodeURIComponent(match[1]), options));
       }
 
       match = pathname.match(/^\/api\/sessions\/([^/]+)\/branches$/);
