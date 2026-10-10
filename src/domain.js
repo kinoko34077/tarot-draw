@@ -43,5 +43,10 @@ export function validateShuffleOptions(options = {}) {
   if (!options || typeof options !== 'object' || Array.isArray(options)) {
     throw new TarotError('INVALID_DECK_OPTIONS', 'Shuffle settings must be an object.', 400);
   }
-  return validateIncludeCustom(options.include_custom);
+  const includeCustom = validateIncludeCustom(options.include_custom);
+  const deckId = options.deck_id ?? 'B';
+  if (deckId !== 'A' && deckId !== 'B') {
+    throw new TarotError('INVALID_DECK_OPTIONS', 'deck_id must be A or B.', 400);
+  }
+  return { includeCustom, deckId };
 }
