@@ -48,5 +48,10 @@ export function validateShuffleOptions(options = {}) {
   if (deckId !== 'A' && deckId !== 'B') {
     throw new TarotError('INVALID_DECK_OPTIONS', 'deck_id must be A or B.', 400);
   }
-  return { includeCustom, deckId };
+  const includeTitle = options.include_title === undefined ? includeCustom : options.include_title;
+  const includeSecondary = options.include_secondary === undefined ? includeCustom : options.include_secondary;
+  if (typeof includeTitle !== 'boolean' || typeof includeSecondary !== 'boolean') {
+    throw new TarotError('INVALID_DECK_OPTIONS', 'include_title and include_secondary must be boolean.', 400);
+  }
+  return { includeCustom: includeTitle && includeSecondary, includeTitle, includeSecondary, deckId };
 }
