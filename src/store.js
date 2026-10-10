@@ -1,5 +1,5 @@
 import { CARD_CATALOG } from './cards.js';
-import { TarotError, requireStringId, validatePositions } from './domain.js';
+import { TarotError, requireStringId, validatePositions, validateIncludeCustom } from './domain.js';
 import { PILE_IDS, shuffleAndOrient, splitThreeWays } from './engine.js';
 
 export { TarotError } from './domain.js';
@@ -24,19 +24,23 @@ export class TarotStore {
     return { session_id: id, state: session.state };
   }
 
-  shuffleSession(sessionId) {
+  shuffleSession(sessionId, { include_custom = true } = {}) {
     const session = this.#getSession(sessionId);
     if (session.state !== 'created') {
       throw new TarotError('SESSION_ALREADY_SHUFFLED', 'Create a new reading to shuffle again.', 409);
     }
 
-    const deck = shuffleAndOrient(CARD_CATALOG, this.randomIndex);
+    const includeCustom = validateIncludeCustom(include_custom);
+    const source = includeCustom ? CARD_CATALOG : CARD_CATALOG.filter(card => !card.card_id.startsWith('meta.'));
+    const deck = shuffleAndOrient(source, this.randomIndex);
     session.piles = splitThreeWays(deck);
     session.state = 'split';
 
     return {
       session_id: session.id,
       state: session.state,
+      include_custom: includeCustom,
+      total_cards: deck.length,
       piles: PILE_IDS.map(pileId => ({ pile_id: pileId, count: session.piles[pileId].length }))
     };
   }
