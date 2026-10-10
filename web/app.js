@@ -117,7 +117,8 @@ for (const slot of page.settingsDialog.querySelectorAll('[data-deck-a-image]')) 
   const image = document.createElement('img');
   image.className = 'settings-deck-preview-image';
   image.alt = '';
-  image.loading = 'lazy';
+  // The preview is off-DOM until load; a lazy image would never begin fetching.
+  image.loading = 'eager';
   image.src = './assets/cards/grid/' + slot.dataset.deckAImage;
   image.addEventListener('load', () => slot.replaceChildren(image), { once: true });
   image.addEventListener('error', () => { slot.textContent = '画像未登録'; }, { once: true });
