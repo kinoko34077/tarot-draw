@@ -68,6 +68,14 @@ function applySettingsToCurrent() {
     : 'この設定は次の新しい占いから反映されます。進行中・完了済みの抽選は変更しません。';
 }
 page.settingsButton.addEventListener('click', () => {
+  const current = readings.at(-1);
+  const canApplyNow = current?.state.phase === 'editing' && !current?.state.pendingOperation;
+  const currentCount = canApplyNow ? current.state.rowLabels.length * current.state.columnLabels.length : 0;
+  page.settingsScope.textContent = !canApplyNow
+    ? 'この設定は次の新しい占いから反映されます。進行中・完了済みの抽選は変更しません。'
+    : !chosenSettings.includeCustom && currentCount > 78
+      ? '現在の配置は78枚を超えています。78枚で使うには、先に配置を78枚以下へ減らしてください。'
+      : 'この設定で次のシャッフルを行います。';
   page.settingsDialog.showModal();
   page.settingsDialog.querySelector('input[name="deckId"]:checked')?.focus({ preventScroll: true });
 });
