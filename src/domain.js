@@ -37,3 +37,11 @@ export function validateIncludeCustom(value = true) {
   }
   return value;
 }
+
+/** Reject malformed shuffle contracts before mutating any persisted session. */
+export function validateShuffleOptions(options = {}) {
+  if (!options || typeof options !== 'object' || Array.isArray(options)) {
+    throw new TarotError('INVALID_DECK_OPTIONS', 'Shuffle settings must be an object.', 400);
+  }
+  return validateIncludeCustom(options.include_custom);
+}
