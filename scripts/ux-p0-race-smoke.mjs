@@ -201,6 +201,10 @@ try {
       q('#settingsButton').click();
       const opened=q('#settingsDialog').open;
       const previewCount=all('#settingsDialog .deck-preview-face').length;
+      for(let i=0;i<100 && all('[data-deck-a-image] img').length!==2;i++)await sleep(20);
+      const aArt=all('[data-deck-a-image] img').map(im=>({
+        src:im.getAttribute('src'),ok:im.complete&&im.naturalWidth===1024&&im.naturalHeight===1755
+      }));
       q('input[name="deckId"][value="A"]').click();
       q('#includeTitleCard').click();
       q('#includeSecondaryCard').click();
@@ -218,7 +222,7 @@ try {
       const immutability=q('.reading-deck-summary').textContent;
       const nextNotice=q('#settingsScope').textContent;
       q('#settingsClose').click();
-      return {opened,closed,previewCount,
+      return {opened,closed,previewCount,aArt,
         squarePlus:Math.abs(plus.width-plus.height)<1&&plus.width>=26,
         squareMinus:Math.abs(minus.width-minus.height)<1&&minus.width>=26,
         selectedA,counts,modeStatus,immutability,nextNotice};
@@ -226,6 +230,8 @@ try {
     assert.equal(settings.opened,true);
     assert.equal(settings.closed,true);
     assert.equal(settings.previewCount,4);
+    assert.equal(settings.aArt.length,2);
+    assert.ok(settings.aArt.every(a=>a.ok&&a.src.endsWith('.svg')),'Both independently reconstructed Deck A cards must load as self-hosted SVG in actual browser');
     assert.equal(settings.squarePlus,true);
     assert.equal(settings.squareMinus,true);
     assert.equal(settings.selectedA,'デッキA・78枚');
