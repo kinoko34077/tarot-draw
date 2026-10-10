@@ -12,7 +12,7 @@ import { createHash } from 'node:crypto';
 
 const CARD_DIR = resolve(fileURLToPath(new URL('../web/assets/cards/', import.meta.url)));
 const W = 1024, H = 1755;
-const ARCHIVE_PHOTO = 'https://upload.wikimedia.org/wikipedia/commons/thumb/1/1e/Pamela_Colman_Smith_The_Craftsman_cropped.jpg/500px-Pamela_Colman_Smith_The_Craftsman_cropped.jpg';
+const ARCHIVE_PHOTO = 'https://upload.wikimedia.org/wikipedia/commons/thumb/1/1e/Pamela_Colman_Smith_The_Craftsman_cropped.jpg/250px-Pamela_Colman_Smith_The_Craftsman_cropped.jpg';
 const PHOTO_SHA256 = ''; // Fill after first verified build; fail on drift in subsequent builds.
 const esc = s => String(s).replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('"','&quot;');
 const base = (id, content) => '<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 1024 1755" width="1024" height="1755" role="img" aria-labelledby="' + id + 'title ' + id + 'desc">'+content+'</svg>';
