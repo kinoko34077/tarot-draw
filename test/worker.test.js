@@ -216,3 +216,23 @@ test('Durable Object 78-card mode excludes meta cards and rejects invalid flags'
     assert.ok(Object.values(draw.body.positions).every(card=>!card.card_id.startsWith('meta.')));
   }
 });
+
+
+test('Durable Object Deck A contains a separate introduction ID exactly once', async () => {
+  const session=new TarotSession({storage:new FakeStorage()},{});
+  await session.fetch(jsonRequest('/create','POST',undefined,{'X-Tarot-Session-Id':'deck-A'}));
+  const split=await json(await session.fetch(jsonRequest('/shuffle','POST',{include_custom:true,deck_id:'A'})));
+  assert.equal(split.body.deck_id,'A');
+  const ids=[];
+  for(const {pile_id,count} of split.body.piles){
+    const branch=await json(await session.fetch(jsonRequest('/branches','POST',{pile:pile_id})));
+    const cards=await json(await session.fetch(jsonRequest('/draw','POST',{
+      branch_id:branch.body.branch_id.split('~')[1],
+      positions:Array.from({length:count},(_,i)=>'p'+i)
+    })));
+    ids.push(...Object.values(cards.body.positions).map(card=>card.card_id));
+  }
+  assert.equal(ids.filter(id=>id==='meta.introduction').length,1);
+  assert.ok(!ids.includes('meta.guarantee'));
+  assert.equal(new Set(ids).size,80);
+});
