@@ -62,9 +62,15 @@ const mock = `(() => {
     }
     if (/^\\/api\\/sessions\\/[^/]+\\/shuffle$/.test(path)) {
       p0.shuffleCalls++;
-      const reply=()=>ok({piles:[
-        {pile_id:'A',count:27},{pile_id:'B',count:27},{pile_id:'C',count:26}
-      ]});
+      const custom=JSON.parse(init.body||'{}').include_custom!==false;
+      const reply=()=>ok({
+        include_custom:custom,total_cards:custom?80:78,
+        piles:[
+          {pile_id:'A',count:custom?27:26},
+          {pile_id:'B',count:custom?27:26},
+          {pile_id:'C',count:26}
+        ]
+      });
       if (p0.deferShuffle) return new Promise(resolve=>p0.deferredShuffle.push(()=>resolve(reply())));
       return reply();
     }
@@ -171,6 +177,51 @@ try {
   await cdp.call('Runtime.enable');
   await cdp.call('Page.enable');
   await cdp.call('Page.addScriptToEvaluateOnNewDocument',{source:mock});
+
+  if (expectSafe) {
+    // #78 settings are discoverable, native-dialog accessible and applied only
+    // to the current unshuffled reading, never retroactively to a frozen draw.
+    await navigate(390);
+    const settings = await evalInPage(`(async()=>{
+      const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+      const q=s=>document.querySelector(s), all=s=>[...document.querySelectorAll(s)];
+      const plus=q('.axis-add-actions-column .axis-add-button').getBoundingClientRect();
+      const minus=q('.axis-add-actions-column .axis-remove-button').getBoundingClientRect();
+      q('#settingsButton').click();
+      const opened=q('#settingsDialog').open;
+      const previewCount=all('#settingsDialog .deck-preview-face').length;
+      q('input[name="deckId"][value="A"]').click();
+      q('#includeCustomCards').click();
+      const selectedA=q('.reading-deck-summary').textContent;
+      q('#settingsDone').click();
+      const closed=!q('#settingsDialog').open;
+      q('.shuffle-button').click();
+      for(let i=0;i<100&&all('.pile-button').length!==3;i++)await sleep(20);
+      const counts=all('.pile-count').map(e=>e.textContent);
+      const modeStatus=q('.reading-deck-summary').textContent;
+      q('#settingsButton').click();
+      q('input[name="deckId"][value="B"]').click();
+      q('#includeCustomCards').click();
+      const immutability=q('.reading-deck-summary').textContent;
+      const nextNotice=q('#settingsScope').textContent;
+      q('#settingsClose').click();
+      return {opened,closed,previewCount,
+        squarePlus:Math.abs(plus.width-plus.height)<1&&plus.width>=26,
+        squareMinus:Math.abs(minus.width-minus.height)<1&&minus.width>=26,
+        selectedA,counts,modeStatus,immutability,nextNotice};
+    })()`);
+    assert.equal(settings.opened,true);
+    assert.equal(settings.closed,true);
+    assert.equal(settings.previewCount,4);
+    assert.equal(settings.squarePlus,true);
+    assert.equal(settings.squareMinus,true);
+    assert.equal(settings.selectedA,'デッキA・78枚');
+    assert.deepEqual(settings.counts,['26枚','26枚','26枚']);
+    assert.equal(settings.modeStatus,'デッキA・78枚');
+    assert.equal(settings.immutability,'デッキA・78枚');
+    assert.ok(settings.nextNotice.includes('次の新しい占い'));
+    report('UX78-DECK-SETTINGS',{status:'PASS',...settings});
+  }
 
   // C04a: editing the matrix while Shuffle is awaiting response re-enables Shuffle.
   await navigate();
