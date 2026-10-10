@@ -65,6 +65,8 @@ const mock = `(() => {
       const options=JSON.parse(init.body||'{}');
       const custom=options.include_custom!==false;
       const deckId=options.deck_id||'B';
+      p0.deckId=deckId;
+      p0.includeCustom=custom;
       const reply=()=>ok({
         include_custom:custom,deck_id:deckId,total_cards:custom?80:78,
         piles:[
@@ -87,11 +89,14 @@ const mock = `(() => {
       const branch=p0.branchCalls.find(b=>b.id===id);
       const positions=JSON.parse(init.body).positions;
       p0.drawCalls.push({id,pile:branch.pile,positions});
-      const cards=Object.fromEntries(positions.map(position=>[position,{
-        card_id:branch.pile==='A'?'major.fool':'major.magician',
-        name_ja:branch.pile==='A'?'愚者':'魔術師',
-        orientation:branch.pile==='A'?'upright':'reversed'
-      }]));
+      const cards=Object.fromEntries(positions.map((position,index)=>{
+        const intro=p0.deckId==='A' && p0.includeCustom && branch.pile==='A' && index===0;
+        return [position,{
+          card_id:intro?'meta.introduction':branch.pile==='A'?'major.fool':'major.magician',
+          name_ja:intro?'パメラ・コールマン・スミス紹介カード':branch.pile==='A'?'愚者':'魔術師',
+          orientation:branch.pile==='A'?'upright':'reversed'
+        }];
+      }));
       const reply=()=>{
         if(p0.failDrawPiles.includes(branch.pile))
           return Promise.reject(new Error('P1 mock transport loss for '+branch.pile));
@@ -223,6 +228,46 @@ try {
     assert.equal(settings.immutability,'デッキA・78枚');
     assert.ok(settings.nextNotice.includes('次の新しい占い'));
     report('UX78-DECK-SETTINGS',{status:'PASS',...settings});
+
+    // A/80 is not a mere B-label alias: its introduction ID, display/detail
+    // and copied notes must match, with no GUARANTEE or invented biography.
+    await navigate(390);
+    const intro = await evalInPage(`(async()=>{
+      const q=s=>document.querySelector(s), all=s=>[...document.querySelectorAll(s)];
+      const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+      __p0.deferDraw=false;
+      q('#settingsButton').click();
+      q('input[name="deckId"][value="A"]').click();
+      q('#settingsDone').click();
+      q('.shuffle-button').click();
+      for(let i=0;i<100 && all('.pile-button').length!==3;i++)await sleep(20);
+      const sizes=all('.pile-count').map(e=>e.textContent);
+      all('.pile-button')[0].click();
+      q('.draw-button').click();
+      for(let i=0;i<120 && q('.reading-status').textContent!=='抽選完了';i++)await sleep(20);
+      const first=q('.primary-matrix .card-detail-trigger');
+      const visualTitle=first.querySelector('.card-title').textContent;
+      first.click();
+      const detailText=q('#cardDetailCustomText').textContent;
+      const detailOpen=q('#cardDetailDialog').open;
+      q('#cardDetailClose').click();
+      q('.copy-button').click();
+      for(let i=0;i<20&&!__p0.copiedText;i++)await sleep(20);
+      return {
+        sizes,summary:q('.reading-deck-summary').textContent,
+        visualTitle,detailText,detailOpen,
+        copyIntro:__p0.copiedText?.includes('パメラ・コールマン・スミス紹介カード'),
+        copyGuarantee:__p0.copiedText?.includes('GUARANTEE')
+      };
+    })()`);
+    assert.deepEqual(intro.sizes,['27枚','27枚','26枚']);
+    assert.equal(intro.summary,'デッキA・80枚');
+    assert.ok(intro.visualTitle.includes('パメラ・コールマン・スミス紹介カード'));
+    assert.equal(intro.detailOpen,true);
+    assert.ok(intro.detailText.includes('本文・画像は提供待ち'));
+    assert.equal(intro.copyIntro,true);
+    assert.equal(intro.copyGuarantee,false);
+    report('UX78-DECK-A-INTRO-DRAW',{status:'PASS',...intro});
   }
 
   // C04a: editing the matrix while Shuffle is awaiting response re-enables Shuffle.
