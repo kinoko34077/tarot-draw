@@ -40,7 +40,7 @@ export function customCardPresentation(cardId, deckId = 'B') {
   };
   if (cardId === 'meta.introduction') return {
     title: 'パメラ・コールマン・スミス紹介カード', faceTitle: '紹介',
-    note: '紹介カード: パメラ・コールマン・スミスの生涯を紹介する独自カード。本文・画像は提供待ちです。'
+    note: '紹介カード: パメラ・コールマン・スミスの生涯を記載したデッキAの独自カード。'
   };
   if (cardId === 'meta.guarantee') return {
     title: 'GUARANTEE', faceTitle: 'GUARANTEE',
@@ -165,10 +165,16 @@ export function cardDisplayText(card, deckId = 'B') {
   return parts.orientation ? `${parts.title} ${parts.orientation}` : parts.title;
 }
 
-export function rwsImageUrl(card, width = 128) {
-  if (!card?.card_id || card.card_id.startsWith('meta.')) return null;
-
+export function rwsImageUrl(card, width = 128, deckId = 'B') {
+  if (!card?.card_id) return null;
   const variant = Number(width) > 160 ? 'detail' : 'grid';
+  if (card.card_id.startsWith('meta.')) {
+    if (deckId !== 'A') return null;
+    const filename = card.card_id === 'meta.title' ? 'deck-a-title.webp'
+      : card.card_id === 'meta.introduction' ? 'deck-a-introduction.webp' : null;
+    return filename ? `./assets/cards/${variant}/${filename}` : null;
+  }
+
   const filename = card.card_id.replaceAll('.', '-') + '.webp';
   return `./assets/cards/${variant}/${filename}`;
 }
