@@ -189,6 +189,7 @@ export function customCardNotesForResults(primary, parallel, deckId = 'B') {
 
 export function formatReadingText({
   deckId = 'B',
+  inactivePositions = [],
   question = '',
   rowCount,
   columnCount,
@@ -197,6 +198,7 @@ export function formatReadingText({
   primary,
   parallel
 }) {
+  const inactive = new Set(inactivePositions);
   const sections = [`Q. ${question.trim()}`];
 
   if (primary) sections.push(formatBranch('Primary', primary));
@@ -222,7 +224,7 @@ export function formatReadingText({
       const cells = [labelOrFallback(rowLabels, row, 'row')];
       for (let column = 0; column < columnCount; column += 1) {
         const positionId = `r${row}c${column}`;
-        cells.push(cardDisplayText(result.positions[positionId], deckId));
+        cells.push(inactive.has(positionId) ? '-' : cardDisplayText(result.positions[positionId], deckId));
       }
       lines.push(cells.join('\t'));
     }
@@ -233,6 +235,7 @@ export function formatReadingText({
 /** Visible, lossless n×m results expressed as copy/paste-friendly Markdown. */
 export function formatReadingMarkdown({
   deckId = 'B',
+  inactivePositions = [],
   question = '',
   rowCount,
   columnCount,
@@ -243,6 +246,7 @@ export function formatReadingMarkdown({
   primaryPile = null,
   parallelPile = null
 }) {
+  const inactive = new Set(inactivePositions);
   const blocks = [
     '# タロット占い結果',
     `**問い：** ${markdownCell(question) || '（未入力）'}`
@@ -276,7 +280,8 @@ export function formatReadingMarkdown({
     for (let row = 0; row < rowCount; row += 1) {
       const values = [markdownCell(labelOrFallback(rowLabels, row, 'row'))];
       for (let col = 0; col < columnCount; col += 1) {
-        values.push(markdownCell(cardDisplayText(result.positions[`r${row}c${col}`], deckId)));
+        const id = `r${row}c${col}`;
+        values.push(inactive.has(id) ? '-' : markdownCell(cardDisplayText(result.positions[id], deckId)));
       }
       lines.push(`| ${values.join(' | ')} |`);
     }
