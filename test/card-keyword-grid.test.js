@@ -145,6 +145,6 @@ test('detail reference uses adjacent enlarged artwork and a vertical writing tab
   assert.ok(app.includes("label.textContent = heading"));
   assert.ok(app.includes("page.cardDetailSourceInfo.classList.toggle('hidden', !groups)"));
   assert.ok(app.includes("renderKeywordGrid(detail ? card.card_id : null)"));
-  assert.ok(app.includes("createCardVisual(card, { detail: true })"));
+  assert.ok(app.includes("createCardVisual(card, { detail: true, deckId })"));
   assert.ok(notice.includes('MIT License') && notice.includes('Copyright (c) 2026 Tarotoo'));
 });
