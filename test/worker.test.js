@@ -194,3 +194,25 @@ test('public Worker returns 429 when Cloudflare rate limiter rejects request', a
   assert.equal(response.status, 429);
   assert.equal(response.body.error.code, 'RATE_LIMITED');
 });
+
+
+test('Durable Object 78-card mode excludes meta cards and rejects invalid flags', async () => {
+  const storage=new FakeStorage();
+  const session=new TarotSession({storage},{});
+  await session.fetch(jsonRequest('/create','POST',undefined,{'X-Tarot-Session-Id':'session-78'}));
+  const bad=await json(await session.fetch(jsonRequest('/shuffle','POST',{include_custom:'no'})));
+  assert.equal(bad.status,400);
+  assert.equal(bad.body.error.code,'INVALID_DECK_OPTIONS');
+  const split=await json(await session.fetch(jsonRequest('/shuffle','POST',{include_custom:false})));
+  assert.equal(split.status,200);
+  assert.equal(split.body.total_cards,78);
+  assert.deepEqual(split.body.piles.map(p=>p.count),[26,26,26]);
+  for(const pile of ['A','B','C']){
+    const branch=await json(await session.fetch(jsonRequest('/branches','POST',{pile})));
+    const draw=await json(await session.fetch(jsonRequest('/draw','POST',{
+      branch_id:branch.body.branch_id.split('~')[1],
+      positions:Array.from({length:26},(_,i)=>'r'+i)
+    })));
+    assert.ok(Object.values(draw.body.positions).every(card=>!card.card_id.startsWith('meta.')));
+  }
+});
