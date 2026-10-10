@@ -99,6 +99,7 @@ export function cardsForDeck(deckId = 'B', includeCustom = true) {
   if (!includeCustom || deckId === 'B') return catalog;
   return catalog.map(card => card.card_id === 'meta.guarantee' ? Object.freeze({
     card_id: 'meta.introduction',
+    arcana: 'meta',
     name_en: 'Pamela Colman Smith Introduction Card',
     name_ja: 'パメラ・コールマン・スミス紹介カード'
   }) : card);
