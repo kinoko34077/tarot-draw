@@ -10,6 +10,7 @@
 <body>
   <header class="topbar">
     <h1>Tarot Draw</h1>
+    <button id="settingsButton" class="settings-open secondary" type="button" aria-label="設定を開く" title="デッキとカードの設定" aria-haspopup="dialog" aria-controls="settingsDialog"><span aria-hidden="true">⚙</span><span>設定</span></button>
   </header>
 
   <main class="workspace">
@@ -26,6 +27,39 @@
       <a href="https://commons.wikimedia.org/wiki/Category:Rider-Waite-Smith_tarot_deck_(Geldard)" target="_blank" rel="noopener noreferrer">Wikimedia Commons</a>
     </p>
   </main>
+
+  <dialog id="settingsDialog" class="settings-dialog" aria-labelledby="settingsTitle">
+    <div class="settings-panel">
+      <header class="settings-heading">
+        <h2 id="settingsTitle">デッキ設定</h2>
+        <button id="settingsClose" class="secondary settings-close" type="button" aria-label="設定を閉じる">×</button>
+      </header>
+      <p class="settings-help">使用するデッキと、独自カードを含めるかを選択します。</p>
+      <fieldset class="deck-choices">
+        <legend>デッキ</legend>
+        <label class="deck-choice">
+          <span class="deck-choice-line"><input type="radio" name="deckId" value="A"><strong>デッキ A</strong><span>タイトル ＋ 紹介カード</span></span>
+          <span class="deck-preview-list" aria-label="デッキAの独自カード">
+            <span class="deck-preview"><span class="deck-preview-face">画像準備中</span><span>タイトルカード</span></span>
+            <span class="deck-preview"><span class="deck-preview-face">画像準備中</span><span>パメラ・コールマン・スミス紹介カード</span></span>
+          </span>
+        </label>
+        <label class="deck-choice">
+          <span class="deck-choice-line"><input type="radio" name="deckId" value="B" checked><strong>デッキ B</strong><span>タイトル ＋ 保証カード</span></span>
+          <span class="deck-preview-list" aria-label="デッキBの独自カード">
+            <span class="deck-preview"><span class="deck-preview-face">画像準備中</span><span>タイトルカード</span></span>
+            <span class="deck-preview"><span class="deck-preview-face">画像準備中</span><span>保証カード</span></span>
+          </span>
+        </label>
+      </fieldset>
+      <label class="settings-custom-choice">
+        <input id="includeCustomCards" type="checkbox" checked>
+        <span><strong>オリジナルカードを使用</strong><small>オン：80枚（独自カード2枚入り）／オフ：78枚</small></span>
+      </label>
+      <p id="settingsScope" class="settings-scope" role="status" aria-live="polite">この設定は次のシャッフルに反映されます。</p>
+      <div class="settings-footer"><button id="settingsDone" class="primary" type="button">完了</button></div>
+    </div>
+  </dialog>
 
   <div id="axisMenu" class="axis-menu hidden" role="menu" aria-label="行列操作">
     <button id="moveAxisBeforeButton" class="axis-menu-item" type="button" role="menuitem">前へ移動</button>
