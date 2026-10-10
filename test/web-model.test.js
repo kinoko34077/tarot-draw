@@ -247,3 +247,19 @@ test('26, 27, 28, 53, 54, 55 and 80 cells are partitioned once in chosen pile or
   assert.throws(()=>planPileDraws(['A','A'],piles,buildPositionIds(1,28)),/repeat/);
   assert.throws(()=>planPileDraws(['A','B','C'],piles,buildPositionIds(1,81)),/Invalid pile selection/);
 });
+
+
+test('Deck A introduction custom replaces Deck B guarantee only in display/notes/export', () => {
+  const intro={card_id:'meta.guarantee',name_ja:'GUARANTEE（保証カード）',orientation:'upright'};
+  const result={positions:{r0c0:intro}};
+  assert.equal(cardDisplayParts(intro,'A').plainTitle,'パメラ・コールマン・スミス紹介カード');
+  assert.equal(cardDisplayText(intro,'B'),'GUARANTEE 正位置');
+  assert.equal(cardDisplayText(intro,'A'),'パメラ・コールマン・スミス紹介カード 正位置');
+  assert.ok(customCardNotesForResults(result,null,'A')[0].includes('生涯'));
+  assert.ok(!customCardNotesForResults(result,null,'A')[0].includes('GUARANTEE'));
+  const markdown=formatReadingMarkdown({
+    deckId:'A',rowCount:1,columnCount:1,rowLabels:['項'],columnLabels:['題'],primary:result
+  });
+  assert.match(markdown,/パメラ・コールマン・スミス紹介カード/);
+  assert.doesNotMatch(markdown,/GUARANTEE/);
+});
