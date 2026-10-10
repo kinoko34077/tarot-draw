@@ -150,3 +150,22 @@ test('local server serves the complete two-module 78-card keyword corpus', async
     assert.ok(expansion.includes("'minor.pentacles.king'"));
   });
 });
+
+
+test('HTTP API supports 78-only shuffle and rejects wrong option types', async () => {
+  await withServer(async base => {
+    const session = await jsonRequest(base+'/api/sessions',{method:'POST',body:'{}'});
+    const id = session.body.session_id;
+    const invalid = await jsonRequest(base+'/api/sessions/'+id+'/shuffle',{
+      method:'POST', body:JSON.stringify({include_custom:'false'})
+    });
+    assert.equal(invalid.response.status,400);
+    assert.equal(invalid.body.error.code,'INVALID_DECK_OPTIONS');
+    const valid=await jsonRequest(base+'/api/sessions/'+id+'/shuffle',{
+      method:'POST', body:JSON.stringify({include_custom:false})
+    });
+    assert.equal(valid.response.status,200);
+    assert.deepEqual(valid.body.piles.map(p=>p.count),[26,26,26]);
+    assert.equal(valid.body.total_cards,78);
+  });
+});
