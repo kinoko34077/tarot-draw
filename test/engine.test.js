@@ -39,5 +39,5 @@ test('78-card option excludes original slots and splits exactly 26/26/26', () =>
   assert.ok(deck.every(card => !card.card_id.startsWith('meta.')));
   assert.deepEqual(Object.values(piles).map(pile => pile.length), [26, 26, 26]);
   assert.deepEqual([...piles.A,...piles.B,...piles.C], deck);
-  assert.throws(() => splitThreeWays(CARD_CATALOG.slice(0,77)), /78- or 80-card/);
+  assert.throws(() => splitThreeWays(CARD_CATALOG.slice(0,77)), /78-, 79- or 80-card/);
 });
