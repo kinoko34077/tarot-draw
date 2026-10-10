@@ -38,10 +38,11 @@ export function customCardPresentation(cardId, deckId = 'B') {
     title: 'タイトルカード', faceTitle: 'TITLE',
     note: CUSTOM_CARD_NOTES['meta.title']
   };
-  if (cardId === 'meta.guarantee') return deckId === 'A' ? {
+  if (cardId === 'meta.introduction') return {
     title: 'パメラ・コールマン・スミス紹介カード', faceTitle: '紹介',
     note: '紹介カード: パメラ・コールマン・スミスの生涯を紹介する独自カード。本文・画像は提供待ちです。'
-  } : {
+  };
+  if (cardId === 'meta.guarantee') return {
     title: 'GUARANTEE', faceTitle: 'GUARANTEE',
     note: CUSTOM_CARD_NOTES['meta.guarantee']
   };
@@ -181,7 +182,7 @@ export function customCardNotesForResults(primary, parallel, deckId = 'B') {
     }
   }
 
-  return ['meta.title', 'meta.guarantee']
+  return ['meta.title', 'meta.introduction', 'meta.guarantee']
     .filter(cardId => seen.has(cardId))
     .map(cardId => customCardPresentation(cardId, deckId).note);
 }
