@@ -624,7 +624,8 @@ function createReadingController(number) {
   }
 
   function snapshotAxes() {
-    return { rowLabels: [...state.rowLabels], columnLabels: [...state.columnLabels] };
+    return { rowLabels: [...state.rowLabels], columnLabels: [...state.columnLabels],
+      inactivePositions: [...state.inactivePositions] };
   }
 
   function recordAxisHistory() {
@@ -636,6 +637,7 @@ function createReadingController(number) {
   function applyAxes(snapshot) {
     state.rowLabels = [...snapshot.rowLabels];
     state.columnLabels = [...snapshot.columnLabels];
+    state.inactivePositions = new Set(snapshot.inactivePositions ?? []);
   }
 
   function canEditAxes() {
@@ -666,6 +668,15 @@ function createReadingController(number) {
     if (from === to) return false;
     recordAxisHistory();
     state[stateKey] = moveAxisLabel(values, from, to);
+    const order = moveAxisLabel(values.map((_, i) => i), from, to);
+    state.inactivePositions = new Set([...state.inactivePositions].map(id => {
+      const match = /^r(\d+)c(\d+)$/.exec(id);
+      if (!match) return id;
+      let row = Number(match[1]), col = Number(match[2]);
+      if (kind === 'row') row = order.indexOf(row);
+      else col = order.indexOf(col);
+      return `r${row}c${col}`;
+    }));
     render();
     const selector = kind === 'row' ? '.row-header' : '.column-header';
     const target = refs.primaryMatrix.querySelectorAll(selector)[to]?.querySelector('.axis-menu-trigger');
@@ -706,6 +717,15 @@ function createReadingController(number) {
     } else {
       state.columnLabels = removeAxisLabel(state.columnLabels, index);
     }
+    state.inactivePositions = new Set([...state.inactivePositions].flatMap(id => {
+      const match = /^r(\d+)c(\d+)$/.exec(id);
+      if (!match) return [];
+      let row = Number(match[1]), col = Number(match[2]);
+      if ((kind === 'row' ? row : col) === index) return [];
+      if (kind === 'row' && row > index) row--;
+      if (kind === 'column' && col > index) col--;
+      return [`r${row}c${col}`];
+    }));
     render();
   }
 
@@ -946,6 +966,14 @@ function createReadingController(number) {
     return result;
   }
 
+  function toggleCell(positionId) {
+    if (state.pendingOperation || !['editing', 'choosing'].includes(state.phase)) return;
+    recordAxisHistory();
+    if (state.inactivePositions.has(positionId)) state.inactivePositions.delete(positionId);
+    else state.inactivePositions.add(positionId);
+    render();
+  }
+
   function createMatrixTable({ result = null, editableHeaders = false, label }) {
     const table = document.createElement('table');
     table.className = 'reading-table';
@@ -1058,8 +1086,37 @@ function createReadingController(number) {
         td.dataset.position = positionId;
 
         const card = result?.positions?.[positionId];
-        if (card) {
+        if (state.inactivePositions.has(positionId)) {
+          td.classList.add('cell-inactive');
+          if ((state.phase === 'editing' || state.phase === 'choosing') && !state.pendingOperation) {
+            const toggle = document.createElement('button');
+            toggle.type = 'button';
+            toggle.className = 'cell-mask-toggle';
+            toggle.textContent = '×';
+            toggle.title = 'このマスを使用する';
+            toggle.setAttribute('aria-label', `行${row + 1}列${column + 1}を使用する（現在×）`);
+            toggle.setAttribute('aria-pressed', 'true');
+            toggle.addEventListener('click', () => toggleCell(positionId));
+            td.append(toggle);
+          } else {
+            const cross = document.createElement('span');
+            cross.className = 'cell-mask-excluded';
+            cross.textContent = '×';
+            cross.setAttribute('aria-label', '使用しないマス');
+            td.append(cross);
+          }
+        } else if (card) {
           td.append(createCardResult(card));
+        } else if ((state.phase === 'editing' || state.phase === 'choosing') && !state.pendingOperation) {
+          const toggle = document.createElement('button');
+          toggle.type = 'button';
+          toggle.className = 'cell-mask-toggle';
+          toggle.textContent = '○';
+          toggle.title = 'このマスを使わない';
+          toggle.setAttribute('aria-label', `行${row + 1}列${column + 1}を使わない（現在○）`);
+          toggle.setAttribute('aria-pressed', 'false');
+          toggle.addEventListener('click', () => toggleCell(positionId));
+          td.append(toggle);
         } else {
           const placeholder = document.createElement('span');
           placeholder.className = 'cell-placeholder';
