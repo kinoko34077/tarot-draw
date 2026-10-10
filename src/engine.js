@@ -35,11 +35,11 @@ export function shuffleAndOrient(catalog = CARD_CATALOG, randomIndex = secureRan
 }
 
 export function splitThreeWays(deck) {
-  if (!Array.isArray(deck) || (deck.length !== 80 && deck.length !== 78)) {
-    throw new TypeError('Expected a shuffled 78- or 80-card deck.');
+  if (!Array.isArray(deck) || ![78, 79, 80].includes(deck.length)) {
+    throw new TypeError('Expected a shuffled 78-, 79- or 80-card deck.');
   }
-  const first = deck.length === 80 ? 27 : 26;
-  const second = first * 2;
+  const first = deck.length >= 79 ? 27 : 26;
+  const second = first + (deck.length === 80 ? 27 : 26);
   return Object.freeze({
     A: Object.freeze(deck.slice(0, first)),
     B: Object.freeze(deck.slice(first, second)),
