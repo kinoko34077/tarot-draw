@@ -113,6 +113,15 @@ page.settingsDialog.addEventListener('change', event => {
   applySettingsToCurrent();
 });
 renderSettingsSummary();
+for (const slot of page.settingsDialog.querySelectorAll('[data-deck-a-image]')) {
+  const image = document.createElement('img');
+  image.className = 'settings-deck-preview-image';
+  image.alt = '';
+  image.loading = 'lazy';
+  image.src = './assets/cards/grid/' + slot.dataset.deckAImage;
+  image.addEventListener('load', () => slot.replaceChildren(image), { once: true });
+  image.addEventListener('error', () => { slot.textContent = '画像未登録'; }, { once: true });
+}
 
 function createCardVisual(card, { detail = false, deckId = 'B' } = {}) {
   const visual = document.createElement('div');
