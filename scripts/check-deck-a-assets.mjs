@@ -12,8 +12,8 @@ const root = resolve(fileURLToPath(new URL('../web/assets/cards/', import.meta.u
 const assets = [
   { path: 'grid/deck-a-title.webp', width: 128, height: 220, budget: 24576 },
   { path: 'grid/deck-a-introduction.webp', width: 128, height: 220, budget: 24576 },
-  { path: 'detail/deck-a-title.webp', width: 224, height: 384, budget: 57344 },
-  { path: 'detail/deck-a-introduction.webp', width: 224, height: 384, budget: 57344 }
+  { path: 'detail/deck-a-title.webp', width: 256, height: 439, budget: 57344 },
+  { path: 'detail/deck-a-introduction.webp', width: 256, height: 439, budget: 57344 }
 ];
 
 let invalid = 0;
