@@ -77,7 +77,7 @@ test('result cells use compact title/orientation lines and tap/click detail trig
   assert.ok(app.includes("document.createElement('button')"));
   assert.ok(app.includes("title.className = 'card-title'"));
   assert.ok(app.includes("orientation.className = 'card-orientation'"));
-  assert.ok(app.includes("openCardDetail(card, result)"));
+  assert.ok(app.includes("openCardDetail(card, result, state.deckId)"));
   assert.ok(app.includes("table.style.minWidth = "));
   assert.ok(css.includes('grid-template-rows: 33px 14px'));
   assert.ok(css.includes('.card-title'));
@@ -202,7 +202,7 @@ test('card detail uses an accessible native dialog with attachment-backed text a
   assert.ok(app.includes("addEventListener('cancel'"));
   assert.ok(app.includes("addEventListener('close'"));
   assert.ok(app.includes('focus({ preventScroll: true })'));
-  assert.ok(app.includes('createCardVisual(card, { detail: true })'));
+  assert.ok(app.includes('createCardVisual(card, { detail: true, deckId })'));
   assert.ok(app.includes('rwsImageUrl(card, detail ? 224 : 128)'));
   assert.ok(css.includes('.card-detail-dialog::backdrop'));
   assert.ok(css.includes('.detail-meaning[data-active="true"]'));
