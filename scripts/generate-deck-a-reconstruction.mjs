@@ -13,7 +13,7 @@ import { createHash } from 'node:crypto';
 const CARD_DIR = resolve(fileURLToPath(new URL('../web/assets/cards/', import.meta.url)));
 const W = 1024, H = 1755;
 const ARCHIVE_PHOTO = 'https://upload.wikimedia.org/wikipedia/commons/thumb/1/1e/Pamela_Colman_Smith_The_Craftsman_cropped.jpg/250px-Pamela_Colman_Smith_The_Craftsman_cropped.jpg';
-const PHOTO_SHA256 = ''; // Fill after first verified build; fail on drift in subsequent builds.
+const PHOTO_SHA256 = 'dfb4efb05f8ed5489e28b0999a7e440adad2e058e38d3477c7dc6365c08ec70b'; // Pinned Commons 250px archival photo, CI 38064594635
 const esc = s => String(s).replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('"','&quot;');
 const base = (id, content) => '<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 1024 1755" width="1024" height="1755" role="img" aria-labelledby="' + id + 'title ' + id + 'desc">'+content+'</svg>';
 
@@ -127,7 +127,7 @@ function bioCard(photoData) {
   const right1Y=portraitY+24;
   const right2Y=right1Y+linesOf(right1,361,28).length*38+18;
   const right3Y=right2Y+linesOf(right2,361,28).length*38+18;
-  const lower1Y=1280,lower2Y=1444;
+  const lower1Y=1345,lower2Y=1479;
   return base('bio',grainDefs()+
     '<title id="biotitle">Pamela Colman Smith — artist biography</title>'+
     '<desc id="biodesc">Original biographical text, period newspaper-inspired typography, and public-domain portrait first published in The Craftsman, October 1912.</desc>'+
