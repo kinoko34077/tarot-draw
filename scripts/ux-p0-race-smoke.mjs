@@ -274,6 +274,83 @@ try {
     assert.equal(intro.copyIntro,true);
     assert.equal(intro.copyGuarantee,false);
     report('UX78-DECK-A-INTRO-DRAW',{status:'PASS',...intro});
+
+    await navigate(390);
+    const thirty = await evalInPage(`(async()=>{
+      const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+      const q=s=>document.querySelector(s),all=s=>[...document.querySelectorAll(s)];
+      __p0.deferDraw=false;
+      for(let i=1;i<10;i++)q('.axis-add-row-header .axis-add-button').click();
+      const needed=q('.layout-count').textContent;
+      q('.shuffle-button').click();
+      for(let i=0;i<100&&all('.primary-pile-options .pile-button').length!==3;i++)await sleep(20);
+      all('.primary-pile-options .pile-button')[0].click();
+      all('.primary-pile-options .pile-button')[1].click();
+      all('.parallel-pile-options .pile-button')[2].click();
+      all('.parallel-pile-options .pile-button')[0].click();
+      const mainRoles=all('.primary-pile-options .pile-role').map(e=>e.textContent);
+      const parallelRoles=all('.parallel-pile-options .pile-role').map(e=>e.textContent);
+      const ready=!q('.draw-button').disabled;
+      q('.draw-button').click();
+      for(let i=0;i<120&&q('.reading-status').textContent!=='抽選完了';i++)await sleep(20);
+      return {
+        needed,mainRoles,parallelRoles,ready,
+        mainCards:all('.primary-matrix .card-detail-trigger').length,
+        parallelCards:all('.parallel-matrix .card-detail-trigger').length,
+        mainHeading:q('.primary-pile-label').textContent,
+        parallelHeading:q('.parallel-pile-label').textContent,
+        drawMap:__p0.drawCalls.map(x=>({pile:x.pile,count:x.positions.length,
+          first:x.positions[0]}))
+      };
+    })()`);
+    assert.equal(thirty.needed,'計30枚');
+    assert.deepEqual(thirty.mainRoles,['1番目','2番目','']);
+    assert.deepEqual(thirty.parallelRoles,['2番目','','1番目']);
+    assert.equal(thirty.ready,true);
+    assert.equal(thirty.mainCards,30);
+    assert.equal(thirty.parallelCards,30);
+    assert.equal(thirty.mainHeading,'山 A → B');
+    assert.equal(thirty.parallelHeading,'山 C → A');
+    assert.deepEqual(thirty.drawMap.filter(x=>x.pile==='B').map(x=>x.count),[3]);
+    assert.deepEqual(thirty.drawMap.filter(x=>x.pile==='C').map(x=>x.count),[26]);
+    assert.deepEqual(thirty.drawMap.filter(x=>x.pile==='A').map(x=>x.count).sort((a,b)=>a-b),[4,27]);
+    report('UX81-PARALLEL-30-INDEPENDENT',{status:'PASS',...thirty});
+
+    await navigate(390);
+    const mask = await evalInPage(`(async()=>{
+      const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+      const q=s=>document.querySelector(s),all=s=>[...document.querySelectorAll(s)];
+      __p0.deferDraw=false;
+      for(let i=0;i<2;i++)q('.axis-add-row-header .axis-add-button').click();
+      for(let i=0;i<2;i++)q('.axis-add-header .axis-add-button').click();
+      const omitted=[];
+      for(let row=0;row<3;row++)for(let col=0;col<5;col++){
+        if(row===1||col===2)continue;
+        const id='r'+row+'c'+col;
+        q('.primary-matrix [data-position="'+id+'"] .cell-mask-toggle').click();
+        omitted.push(id);
+      }
+      const before=q('.layout-count').textContent;
+      q('.shuffle-button').click();
+      for(let i=0;i<100&&all('.primary-pile-options .pile-button').length!==3;i++)await sleep(20);
+      all('.primary-pile-options .pile-button')[0].click();
+      q('.draw-button').click();
+      for(let i=0;i<100&&q('.reading-status').textContent!=='抽選完了';i++)await sleep(20);
+      const cards=all('.primary-matrix .card-detail-trigger').length;
+      const excluded=all('.primary-matrix .cell-mask-excluded').length;
+      q('.copy-button').click();
+      for(let i=0;i<20&&!__p0.copiedText;i++)await sleep(20);
+      return {before,cards,excluded,omitted,
+        positions:__p0.drawCalls.flatMap(c=>c.positions),
+        copiedMinus:(__p0.copiedText.match(/\\| - \\|/g)||[]).length};
+    })()`);
+    assert.equal(mask.before,'計7枚');
+    assert.equal(mask.cards,7);
+    assert.equal(mask.excluded,8);
+    assert.equal(mask.positions.length,7);
+    assert.ok(mask.positions.every(x=>!mask.omitted.includes(x)));
+    assert.ok(mask.copiedMinus>=4);
+    report('UX81-MASK-CROSS-SKIPS-DRAW',{status:'PASS',...mask});
   }
 
   // C04a: editing the matrix while Shuffle is awaiting response re-enables Shuffle.
