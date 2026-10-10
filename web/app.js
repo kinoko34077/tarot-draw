@@ -1239,9 +1239,9 @@ function createReadingController(number) {
     if (!needed) return '○のマスがありません。少なくとも1マスを使用してください。';
     if (!state.primaryPiles.length) return 'Primaryで山を選択してください。順番どおりに配ります。';
     const mainCount = capacityOf(state.primaryPiles);
-    if (mainCount < needed) return `Primaryの山 ${state.primaryPiles.join(' → ')}（${mainCount}/${needed}枚）。次の山を追加してください。`;
+    if (mainCount < needed) return `Primaryの山 ${state.primaryPiles.join(' → ')}（${mainCount}/${needed}枚）。枚数確保の為次の山を選択してください。`;
     if (state.parallelPiles.length && !parallelReady()) {
-      return `Parallelの山 ${state.parallelPiles.join(' → ')}（${capacityOf(state.parallelPiles)}/${needed}枚）。次の山を追加してください。`;
+      return `Parallelの山 ${state.parallelPiles.join(' → ')}（${capacityOf(state.parallelPiles)}/${needed}枚）。枚数確保の為次の山を選択してください。`;
     }
     if (state.parallelPiles.length) return `Primary ${state.primaryPiles.join(' → ')}／Parallel ${state.parallelPiles.join(' → ')}：引けます。`;
     return 'Primaryは準備できました。別の引き方を比べる場合はParallel側で山を選択できます。';
