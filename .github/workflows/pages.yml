@@ -36,6 +36,8 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: '22'
+      - name: Fail closed unless four supplied Deck A card artworks are valid
+        run: node scripts/check-deck-a-assets.mjs
       - name: Build static Pages site
         run: npm run build:pages
       - name: Configure Pages
