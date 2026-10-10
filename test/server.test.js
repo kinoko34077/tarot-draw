@@ -169,3 +169,17 @@ test('HTTP API supports 78-only shuffle and rejects wrong option types', async (
     assert.equal(valid.body.total_cards,78);
   });
 });
+
+
+test('HTTP deck_id A is validated and returned before session shuffle', async () => {
+  await withServer(async base=>{
+    const session=await jsonRequest(base+'/api/sessions',{method:'POST',body:'{}'});
+    const route=base+'/api/sessions/'+session.body.session_id+'/shuffle';
+    const bad=await jsonRequest(route,{method:'POST',body:JSON.stringify({deck_id:'C'})});
+    assert.equal(bad.response.status,400);
+    assert.equal(bad.body.error.code,'INVALID_DECK_OPTIONS');
+    const good=await jsonRequest(route,{method:'POST',body:JSON.stringify({deck_id:'A',include_custom:true})});
+    assert.equal(good.body.deck_id,'A');
+    assert.deepEqual(good.body.piles.map(x=>x.count),[27,27,26]);
+  });
+});
