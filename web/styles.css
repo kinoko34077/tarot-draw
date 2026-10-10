@@ -1122,6 +1122,21 @@ input:focus-visible {
 .heading-right-controls .copy-button.hidden { display: none !important; }
 /* Status precedes the control group and never occupies its rightmost slot. */
 
+/* #78: retain the narrowed column-only strip, restore its full square buttons.
+   Their vertical stack occupies the blank right-hand tail beneath the header,
+   not the data cells, so all ordinary column headings remain compact. */
+.reading-table .axis-add-header { position: relative; overflow: visible; }
+.axis-add-actions-column {
+  position: absolute; top: 1px; left: 0; right: 0;
+  width: 32px; display: flex; align-items: center;
+  flex-direction: column; gap: 2px; z-index: 3;
+}
+.axis-add-actions-column .axis-add-button {
+  box-sizing: border-box; width: 27px; min-width: 27px;
+  height: 27px; min-height: 27px; border-radius: 4px;
+  padding: 0; font-size: 1rem; line-height: normal;
+}
+
 /* Ruby-base and ordinary kana share one line box and baseline.
    Readings float outside normal flow; no browser ruby layout box contributes
    to line height, including for isolated kana 「の」. */
