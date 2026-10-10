@@ -270,7 +270,7 @@ try {
     assert.equal(intro.summary,'デッキA・80枚');
     assert.ok(intro.visualTitle.includes('パメラ・コールマン・スミス紹介カード'));
     assert.equal(intro.detailOpen,true);
-    assert.ok(intro.detailText.includes('本文・画像は提供待ち'));
+    assert.ok(intro.detailText.includes('生涯を記載したデッキA'));
     assert.equal(intro.copyIntro,true);
     assert.equal(intro.copyGuarantee,false);
     report('UX78-DECK-A-INTRO-DRAW',{status:'PASS',...intro});
