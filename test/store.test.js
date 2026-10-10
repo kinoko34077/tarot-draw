@@ -129,3 +129,35 @@ test('A and B represent physically distinct second special cards at the server b
     assert.equal(new Set(ids).size,80);
   }
 });
+
+
+test('independent 79-card toggles are server-authored and never draw the other original', () => {
+  for (const [options, expected] of [
+    [{ deck_id:'A', include_title:true, include_secondary:false }, 'meta.title'],
+    [{ deck_id:'A', include_title:false, include_secondary:true }, 'meta.introduction'],
+    [{ deck_id:'B', include_title:false, include_secondary:true }, 'meta.guarantee']
+  ]) {
+    const store = makeStore();
+    const created = store.createSession();
+    const shuffled = store.shuffleSession(created.session_id, options);
+    assert.equal(shuffled.total_cards, 79);
+    assert.deepEqual(shuffled.piles.map(p => p.count), [27,26,26]);
+    const found = [];
+    for (const pile of shuffled.piles) {
+      const branch = store.createBranch(created.session_id, pile.pile_id);
+      const drawn = store.draw(branch.branch_id, Array.from({length:pile.count},(_,i)=>'r'+i));
+      found.push(...Object.values(drawn.positions).map(card=>card.card_id));
+    }
+    assert.equal(found.filter(id=>id.startsWith('meta.')).length,1);
+    assert.equal(found.filter(id=>id===expected).length,1);
+    assert.equal(new Set(found).size,79);
+  }
+});
+
+test('shuffle rejects invalid individual original-card settings without freezing session', () => {
+  const store = makeStore(), session=store.createSession();
+  assert.throws(()=>store.shuffleSession(session.session_id,{include_title:'yes'}), e=>e.code==='INVALID_DECK_OPTIONS');
+  const shuffled=store.shuffleSession(session.session_id,{include_title:false,include_secondary:false});
+  assert.deepEqual(shuffled.piles.map(p=>p.count),[26,26,26]);
+  assert.equal(shuffled.total_cards,78);
+});
