@@ -236,3 +236,27 @@ test('Durable Object Deck A contains a separate introduction ID exactly once', a
   assert.ok(!ids.includes('meta.guarantee'));
   assert.equal(new Set(ids).size,80);
 });
+
+
+test('Durable Object accepts 79 custom-card subset after rejected invalid flag', async () => {
+  const session = new TarotSession({storage:new FakeStorage()}, {});
+  await session.fetch(jsonRequest('/create','POST',undefined,{'X-Tarot-Session-Id':'subsets'}));
+  const invalid=await json(await session.fetch(jsonRequest('/shuffle','POST',{include_secondary:0})));
+  assert.equal(invalid.status,400);
+  const result=await json(await session.fetch(jsonRequest('/shuffle','POST',{
+    deck_id:'A',include_title:false,include_secondary:true
+  })));
+  assert.equal(result.status,200);
+  assert.deepEqual(result.body.piles.map(p=>p.count),[27,26,26]);
+  assert.equal(result.body.total_cards,79);
+  const found=[];
+  for(const pile of result.body.piles){
+    const branch=await json(await session.fetch(jsonRequest('/branches','POST',{pile:pile.pile_id})));
+    const drawn=await json(await session.fetch(jsonRequest('/draw','POST',{
+      branch_id:branch.body.branch_id.split('~')[1],
+      positions:Array.from({length:pile.count},(_,i)=>'r'+i)
+    })));
+    found.push(...Object.values(drawn.body.positions).map(c=>c.card_id));
+  }
+  assert.equal(found.filter(x=>x.startsWith('meta.')).join(','),'meta.introduction');
+});
