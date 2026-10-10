@@ -29,3 +29,15 @@ test('three-way split is 27/27/26 and preserves shuffled order inside slices', (
   assert.deepEqual(piles.B, deck.slice(27, 54));
   assert.deepEqual(piles.C, deck.slice(54, 80));
 });
+
+
+test('78-card option excludes original slots and splits exactly 26/26/26', () => {
+  const base = CARD_CATALOG.filter(card => !card.card_id.startsWith('meta.'));
+  const deck = shuffleAndOrient(base, deterministicIndex());
+  const piles = splitThreeWays(deck);
+  assert.equal(deck.length, 78);
+  assert.ok(deck.every(card => !card.card_id.startsWith('meta.')));
+  assert.deepEqual(Object.values(piles).map(pile => pile.length), [26, 26, 26]);
+  assert.deepEqual([...piles.A,...piles.B,...piles.C], deck);
+  assert.throws(() => splitThreeWays(CARD_CATALOG.slice(0,77)), /78-, 79- or 80-card/);
+});

@@ -1,5 +1,5 @@
-import { CARD_CATALOG } from './cards.js';
-import { TarotError, requireStringId, validatePositions } from './domain.js';
+import { cardsForDeck } from './cards.js';
+import { TarotError, requireStringId, validatePositions, validateShuffleOptions } from './domain.js';
 import { PILE_IDS, shuffleAndOrient, splitThreeWays } from './engine.js';
 
 const PAGES_ORIGIN = 'https://kinoko34077.github.io';
@@ -130,12 +130,15 @@ export class TarotSession {
       }
 
       if (request.method === 'POST' && path === '/shuffle') {
+        const options = await parseJson(request);
         const session = await this.#requireSession();
         if (session.state !== 'created') {
           throw new TarotError('SESSION_ALREADY_SHUFFLED', 'Create a new reading to shuffle again.', 409);
         }
 
-        const deck = shuffleAndOrient(CARD_CATALOG);
+        const { includeCustom, includeTitle, includeSecondary, deckId } = validateShuffleOptions(options);
+        const source = cardsForDeck(deckId, { includeTitle, includeSecondary });
+        const deck = shuffleAndOrient(source);
         session.piles = splitThreeWays(deck);
         session.state = 'split';
         await this.ctx.storage.put('session', session);
@@ -144,6 +147,11 @@ export class TarotSession {
         return jsonResponse({
           session_id: session.id,
           state: session.state,
+          include_custom: includeCustom,
+          include_title: includeTitle,
+          include_secondary: includeSecondary,
+          deck_id: deckId,
+          total_cards: deck.length,
           piles: PILE_IDS.map(pileId => ({ pile_id: pileId, count: session.piles[pileId].length }))
         });
       }
@@ -286,7 +294,16 @@ export const worker = {
       let match = pathname.match(/^\/api\/sessions\/([^/]+)\/shuffle$/);
       if (request.method === 'POST' && match) {
         const sessionId = decodeURIComponent(match[1]);
-        return forward(getSessionStub(env, sessionId), '/shuffle', { method: 'POST' }, origin);
+        const options = await parseJson(request);
+        const validated = validateShuffleOptions(options);
+        return forward(getSessionStub(env, sessionId), '/shuffle', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            include_title: validated.includeTitle, include_secondary: validated.includeSecondary,
+            deck_id: validated.deckId
+          })
+        }, origin);
       }
 
       match = pathname.match(/^\/api\/sessions\/([^/]+)\/branches$/);

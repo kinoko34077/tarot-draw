@@ -84,3 +84,80 @@ test('80-card user-selected multi-pile plan consumes each oriented card exactly 
   assert.ok(Object.values(resolved).every(card =>
     card.orientation === 'upright' || card.orientation === 'reversed'));
 });
+
+
+test('78-card session has no original cards and preserves optional second branch', () => {
+  const store = makeStore();
+  const session = store.createSession();
+  assert.throws(() => store.shuffleSession(session.session_id, { include_custom: 'false' }),
+    error => error.code === 'INVALID_DECK_OPTIONS');
+  const split = store.shuffleSession(session.session_id, { include_custom:false });
+  assert.equal(split.total_cards,78);
+  assert.equal(split.include_custom,false);
+  assert.deepEqual(split.piles.map(p=>p.count),[26,26,26]);
+  const primary = store.createBranch(session.session_id,'A');
+  const parallel = store.createBranch(session.session_id,'B');
+  const positions = Array.from({length:26},(_,i)=>'p'+i);
+  for (const branch of [primary,parallel]) {
+    const result = store.draw(branch.branch_id,positions);
+    assert.equal(Object.keys(result.positions).length,26);
+    assert.ok(Object.values(result.positions).every(card=>!card.card_id.startsWith('meta.')));
+  }
+  const session80=store.createSession();
+  const legacy=store.shuffleSession(session80.session_id);
+  assert.deepEqual(legacy.piles.map(p=>p.count),[27,27,26]);
+});
+
+
+test('A and B represent physically distinct second special cards at the server boundary', () => {
+  for (const [deckId,expected,excluded] of [
+    ['A','meta.introduction','meta.guarantee'],['B','meta.guarantee','meta.introduction']
+  ]) {
+    const store=makeStore();
+    const session=store.createSession();
+    const split=store.shuffleSession(session.session_id,{include_custom:true,deck_id:deckId});
+    assert.equal(split.deck_id,deckId);
+    assert.equal(split.total_cards,80);
+    const ids=[];
+    for (const {pile_id,count} of split.piles) {
+      const branch=store.createBranch(session.session_id,pile_id);
+      const result=store.draw(branch.branch_id,Array.from({length:count},(_,i)=>'r'+i));
+      ids.push(...Object.values(result.positions).map(card=>card.card_id));
+    }
+    assert.equal(ids.filter(id=>id===expected).length,1);
+    assert.equal(ids.includes(excluded),false);
+    assert.equal(new Set(ids).size,80);
+  }
+});
+
+
+test('independent 79-card toggles are server-authored and never draw the other original', () => {
+  for (const [options, expected] of [
+    [{ deck_id:'A', include_title:true, include_secondary:false }, 'meta.title'],
+    [{ deck_id:'A', include_title:false, include_secondary:true }, 'meta.introduction'],
+    [{ deck_id:'B', include_title:false, include_secondary:true }, 'meta.guarantee']
+  ]) {
+    const store = makeStore();
+    const created = store.createSession();
+    const shuffled = store.shuffleSession(created.session_id, options);
+    assert.equal(shuffled.total_cards, 79);
+    assert.deepEqual(shuffled.piles.map(p => p.count), [27,26,26]);
+    const found = [];
+    for (const pile of shuffled.piles) {
+      const branch = store.createBranch(created.session_id, pile.pile_id);
+      const drawn = store.draw(branch.branch_id, Array.from({length:pile.count},(_,i)=>'r'+i));
+      found.push(...Object.values(drawn.positions).map(card=>card.card_id));
+    }
+    assert.equal(found.filter(id=>id.startsWith('meta.')).length,1);
+    assert.equal(found.filter(id=>id===expected).length,1);
+    assert.equal(new Set(found).size,79);
+  }
+});
+
+test('shuffle rejects invalid individual original-card settings without freezing session', () => {
+  const store = makeStore(), session=store.createSession();
+  assert.throws(()=>store.shuffleSession(session.session_id,{include_title:'yes'}), e=>e.code==='INVALID_DECK_OPTIONS');
+  const shuffled=store.shuffleSession(session.session_id,{include_title:false,include_secondary:false});
+  assert.deepEqual(shuffled.piles.map(p=>p.count),[26,26,26]);
+  assert.equal(shuffled.total_cards,78);
+});

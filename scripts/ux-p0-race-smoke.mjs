@@ -62,9 +62,23 @@ const mock = `(() => {
     }
     if (/^\\/api\\/sessions\\/[^/]+\\/shuffle$/.test(path)) {
       p0.shuffleCalls++;
-      const reply=()=>ok({piles:[
-        {pile_id:'A',count:27},{pile_id:'B',count:27},{pile_id:'C',count:26}
-      ]});
+      const options=JSON.parse(init.body||'{}');
+      const includeTitle=options.include_title ?? options.include_custom ?? true;
+      const includeSecondary=options.include_secondary ?? options.include_custom ?? true;
+      const custom=includeTitle && includeSecondary;
+      const total=78+Number(includeTitle)+Number(includeSecondary);
+      const deckId=options.deck_id||'B';
+      p0.deckId=deckId;
+      p0.includeCustom=custom;
+      const reply=()=>ok({
+        include_custom:custom,include_title:includeTitle,include_secondary:includeSecondary,
+        deck_id:deckId,total_cards:total,
+        piles:[
+          {pile_id:'A',count:total>=79?27:26},
+          {pile_id:'B',count:total===80?27:26},
+          {pile_id:'C',count:26}
+        ]
+      });
       if (p0.deferShuffle) return new Promise(resolve=>p0.deferredShuffle.push(()=>resolve(reply())));
       return reply();
     }
@@ -79,11 +93,14 @@ const mock = `(() => {
       const branch=p0.branchCalls.find(b=>b.id===id);
       const positions=JSON.parse(init.body).positions;
       p0.drawCalls.push({id,pile:branch.pile,positions});
-      const cards=Object.fromEntries(positions.map(position=>[position,{
-        card_id:branch.pile==='A'?'major.fool':'major.magician',
-        name_ja:branch.pile==='A'?'愚者':'魔術師',
-        orientation:branch.pile==='A'?'upright':'reversed'
-      }]));
+      const cards=Object.fromEntries(positions.map((position,index)=>{
+        const intro=p0.deckId==='A' && p0.includeCustom && branch.pile==='A' && index===0;
+        return [position,{
+          card_id:intro?'meta.introduction':branch.pile==='A'?'major.fool':'major.magician',
+          name_ja:intro?'パメラ・コールマン・スミス紹介カード':branch.pile==='A'?'愚者':'魔術師',
+          orientation:branch.pile==='A'?'upright':'reversed'
+        }];
+      }));
       const reply=()=>{
         if(p0.failDrawPiles.includes(branch.pile))
           return Promise.reject(new Error('P1 mock transport loss for '+branch.pile));
@@ -172,6 +189,176 @@ try {
   await cdp.call('Page.enable');
   await cdp.call('Page.addScriptToEvaluateOnNewDocument',{source:mock});
 
+  if (expectSafe) {
+    // #78 settings are discoverable, native-dialog accessible and applied only
+    // to the current unshuffled reading, never retroactively to a frozen draw.
+    await navigate(390);
+    const settings = await evalInPage(`(async()=>{
+      const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+      const q=s=>document.querySelector(s), all=s=>[...document.querySelectorAll(s)];
+      const plus=q('.axis-add-actions-column .axis-add-button').getBoundingClientRect();
+      const minus=q('.axis-add-actions-column .axis-remove-button').getBoundingClientRect();
+      q('#settingsButton').click();
+      const opened=q('#settingsDialog').open;
+      const previewCount=all('#settingsDialog .deck-preview-face').length;
+      for(let i=0;i<100 && all('[data-deck-a-image] img').length!==2;i++)await sleep(20);
+      const aArt=all('[data-deck-a-image] img').map(im=>({
+        src:im.getAttribute('src'),ok:im.complete&&im.naturalWidth===1024&&im.naturalHeight===1755
+      }));
+      q('input[name="deckId"][value="A"]').click();
+      q('#includeTitleCard').click();
+      q('#includeSecondaryCard').click();
+      const selectedA=q('.reading-deck-summary').textContent;
+      q('#settingsDone').click();
+      const closed=!q('#settingsDialog').open;
+      q('.shuffle-button').click();
+      for(let i=0;i<100&&all('.primary-pile-options .pile-button').length!==3;i++)await sleep(20);
+      const counts=all('.primary-pile-options .pile-count').map(e=>e.textContent);
+      const modeStatus=q('.reading-deck-summary').textContent;
+      q('#settingsButton').click();
+      q('input[name="deckId"][value="B"]').click();
+      q('#includeTitleCard').click();
+      q('#includeSecondaryCard').click();
+      const immutability=q('.reading-deck-summary').textContent;
+      const nextNotice=q('#settingsScope').textContent;
+      q('#settingsClose').click();
+      return {opened,closed,previewCount,aArt,
+        squarePlus:Math.abs(plus.width-plus.height)<1&&plus.width>=26,
+        squareMinus:Math.abs(minus.width-minus.height)<1&&minus.width>=26,
+        selectedA,counts,modeStatus,immutability,nextNotice};
+    })()`);
+    assert.equal(settings.opened,true);
+    assert.equal(settings.closed,true);
+    assert.equal(settings.previewCount,4);
+    assert.equal(settings.aArt.length,2);
+    assert.ok(settings.aArt.every(a=>a.ok&&a.src.endsWith('.svg')),'Both independently reconstructed Deck A cards must load as self-hosted SVG in actual browser');
+    assert.equal(settings.squarePlus,true);
+    assert.equal(settings.squareMinus,true);
+    assert.equal(settings.selectedA,'デッキA・78枚');
+    assert.deepEqual(settings.counts,['26枚','26枚','26枚']);
+    assert.equal(settings.modeStatus,'デッキA・78枚');
+    assert.equal(settings.immutability,'デッキA・78枚');
+    assert.ok(settings.nextNotice.includes('次の新しい占い'));
+    report('UX78-DECK-SETTINGS',{status:'PASS',...settings});
+
+    // A/80 is not a mere B-label alias: its introduction ID, display/detail
+    // and copied notes must match, with no GUARANTEE or invented biography.
+    await navigate(390);
+    const intro = await evalInPage(`(async()=>{
+      const q=s=>document.querySelector(s), all=s=>[...document.querySelectorAll(s)];
+      const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+      __p0.deferDraw=false;
+      q('#settingsButton').click();
+      q('input[name="deckId"][value="A"]').click();
+      q('#settingsDone').click();
+      q('.shuffle-button').click();
+      for(let i=0;i<100 && all('.primary-pile-options .pile-button').length!==3;i++)await sleep(20);
+      const sizes=all('.primary-pile-options .pile-count').map(e=>e.textContent);
+      all('.primary-pile-options .pile-button')[0].click();
+      q('.draw-button').click();
+      for(let i=0;i<120 && q('.reading-status').textContent!=='抽選完了';i++)await sleep(20);
+      const first=q('.primary-matrix .card-detail-trigger');
+      const visualTitle=first.querySelector('.card-title').textContent;
+      first.click();
+      const detailText=q('#cardDetailCustomText').textContent;
+      const detailOpen=q('#cardDetailDialog').open;
+      q('#cardDetailClose').click();
+      q('.copy-button').click();
+      for(let i=0;i<20&&!__p0.copiedText;i++)await sleep(20);
+      return {
+        sizes,summary:q('.reading-deck-summary').textContent,
+        visualTitle,detailText,detailOpen,
+        copyIntro:__p0.copiedText?.includes('パメラ・コールマン・スミス紹介カード'),
+        copyGuarantee:__p0.copiedText?.includes('GUARANTEE')
+      };
+    })()`);
+    assert.deepEqual(intro.sizes,['27枚','27枚','26枚']);
+    assert.equal(intro.summary,'デッキA・80枚');
+    assert.ok(intro.visualTitle.includes('パメラ・コールマン・スミス紹介カード'));
+    assert.equal(intro.detailOpen,true);
+    assert.ok(intro.detailText.includes('生涯を記載したデッキA'));
+    assert.equal(intro.copyIntro,true);
+    assert.equal(intro.copyGuarantee,false);
+    report('UX78-DECK-A-INTRO-DRAW',{status:'PASS',...intro});
+
+    await navigate(390);
+    const thirty = await evalInPage(`(async()=>{
+      const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+      const q=s=>document.querySelector(s),all=s=>[...document.querySelectorAll(s)];
+      __p0.deferDraw=false;
+      for(let i=1;i<10;i++)q('.axis-add-row-header .axis-add-button').click();
+      const needed=q('.layout-count').textContent;
+      q('.shuffle-button').click();
+      for(let i=0;i<100&&all('.primary-pile-options .pile-button').length!==3;i++)await sleep(20);
+      all('.primary-pile-options .pile-button')[0].click();
+      all('.primary-pile-options .pile-button')[1].click();
+      all('.parallel-pile-options .pile-button')[2].click();
+      all('.parallel-pile-options .pile-button')[0].click();
+      const mainRoles=all('.primary-pile-options .pile-role').map(e=>e.textContent);
+      const parallelRoles=all('.parallel-pile-options .pile-role').map(e=>e.textContent);
+      const ready=!q('.draw-button').disabled;
+      q('.draw-button').click();
+      for(let i=0;i<120&&q('.reading-status').textContent!=='抽選完了';i++)await sleep(20);
+      return {
+        needed,mainRoles,parallelRoles,ready,
+        mainCards:all('.primary-matrix .card-detail-trigger').length,
+        parallelCards:all('.parallel-matrix .card-detail-trigger').length,
+        mainHeading:q('.primary-pile-label').textContent,
+        parallelHeading:q('.parallel-pile-label').textContent,
+        drawMap:__p0.drawCalls.map(x=>({pile:x.pile,count:x.positions.length,
+          first:x.positions[0]}))
+      };
+    })()`);
+    assert.equal(thirty.needed,'計30枚');
+    assert.deepEqual(thirty.mainRoles,['1番目','2番目','']);
+    assert.deepEqual(thirty.parallelRoles,['2番目','','1番目']);
+    assert.equal(thirty.ready,true);
+    assert.equal(thirty.mainCards,30);
+    assert.equal(thirty.parallelCards,30);
+    assert.equal(thirty.mainHeading,'山 A → B');
+    assert.equal(thirty.parallelHeading,'山 C → A');
+    assert.deepEqual(thirty.drawMap.filter(x=>x.pile==='B').map(x=>x.count),[3]);
+    assert.deepEqual(thirty.drawMap.filter(x=>x.pile==='C').map(x=>x.count),[26]);
+    assert.deepEqual(thirty.drawMap.filter(x=>x.pile==='A').map(x=>x.count).sort((a,b)=>a-b),[4,27]);
+    report('UX81-PARALLEL-30-INDEPENDENT',{status:'PASS',...thirty});
+
+    await navigate(390);
+    const mask = await evalInPage(`(async()=>{
+      const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+      const q=s=>document.querySelector(s),all=s=>[...document.querySelectorAll(s)];
+      __p0.deferDraw=false;
+      for(let i=0;i<2;i++)q('.axis-add-row-header .axis-add-button').click();
+      for(let i=0;i<2;i++)q('.axis-add-header .axis-add-button').click();
+      const omitted=[];
+      for(let row=0;row<3;row++)for(let col=0;col<5;col++){
+        if(row===1||col===2)continue;
+        const id='r'+row+'c'+col;
+        q('.primary-matrix [data-position="'+id+'"] .cell-mask-toggle').click();
+        omitted.push(id);
+      }
+      const before=q('.layout-count').textContent;
+      q('.shuffle-button').click();
+      for(let i=0;i<100&&all('.primary-pile-options .pile-button').length!==3;i++)await sleep(20);
+      all('.primary-pile-options .pile-button')[0].click();
+      q('.draw-button').click();
+      for(let i=0;i<100&&q('.reading-status').textContent!=='抽選完了';i++)await sleep(20);
+      const cards=all('.primary-matrix .card-detail-trigger').length;
+      const excluded=all('.primary-matrix .cell-mask-excluded').length;
+      q('.copy-button').click();
+      for(let i=0;i<20&&!__p0.copiedText;i++)await sleep(20);
+      return {before,cards,excluded,omitted,
+        positions:__p0.drawCalls.flatMap(c=>c.positions),
+        copiedMinus:(__p0.copiedText.match(/\\| - \\|/g)||[]).length};
+    })()`);
+    assert.equal(mask.before,'計7枚');
+    assert.equal(mask.cards,7);
+    assert.equal(mask.excluded,8);
+    assert.equal(mask.positions.length,7);
+    assert.ok(mask.positions.every(x=>!mask.omitted.includes(x)));
+    assert.ok(mask.copiedMinus>=4);
+    report('UX81-MASK-CROSS-SKIPS-DRAW',{status:'PASS',...mask});
+  }
+
   // C04a: editing the matrix while Shuffle is awaiting response re-enables Shuffle.
   await navigate();
   const shuffle=await evalInPage(`(async()=>{
@@ -204,12 +391,12 @@ try {
     const sleep=ms=>new Promise(r=>setTimeout(r,ms));
     const one=q=>document.querySelector(q);
     one('.shuffle-button').click();
-    for(let i=0;i<50 && document.querySelectorAll('.pile-button').length!==3;i++)await sleep(20);
-    one('.pile-button:nth-child(1)').click();
+    for(let i=0;i<50 && document.querySelectorAll('.primary-pile-options .pile-button').length!==3;i++)await sleep(20);
+    one('.primary-pile-options .pile-button:nth-child(1)').click();
     one('.draw-button').click();
     for(let i=0;i<50 && __p0.deferredDraw.length!==1;i++)await sleep(20);
-    one('.pile-button:nth-child(1)').click(); // deselect Primary A
-    one('.pile-button:nth-child(2)').click(); // choose Primary B
+    one('.primary-pile-options .pile-button:nth-child(1)').click(); // deselect Primary A
+    one('.primary-pile-options .pile-button:nth-child(2)').click(); // choose Primary B
     const pendingPiles=__p0.drawCalls.map(call=>call.pile);
     __p0.deferredDraw.splice(0).forEach(resolve=>resolve());
     for(let i=0;i<50 && !one('.reading-status').textContent.includes('抽選完了');i++)await sleep(20);
@@ -231,12 +418,12 @@ try {
     const sleep=ms=>new Promise(r=>setTimeout(r,ms));
     const one=q=>document.querySelector(q);
     one('.shuffle-button').click();
-    for(let i=0;i<50 && document.querySelectorAll('.pile-button').length!==3;i++)await sleep(20);
-    one('.pile-button:nth-child(1)').click();
+    for(let i=0;i<50 && document.querySelectorAll('.primary-pile-options .pile-button').length!==3;i++)await sleep(20);
+    one('.primary-pile-options .pile-button:nth-child(1)').click();
     one('.draw-button').click();
     for(let i=0;i<50 && __p0.deferredDraw.length!==1;i++)await sleep(20);
     const disabledBefore=one('.draw-button').disabled;
-    one('.pile-button:nth-child(2)').click();
+    one('.primary-pile-options .pile-button:nth-child(2)').click();
     const enabledAfter=!one('.draw-button').disabled;
     if(enabledAfter)one('.draw-button').click();
     for(let i=0;i<50 && __p0.deferredDraw.length<3;i++)await sleep(20);
@@ -266,8 +453,9 @@ try {
     for(let i=0;i<2;i++)one('.axis-add-row-header .axis-add-button').click();
     const dims={rows:all('.row-header').length,columns:all('.column-header').length};
     one('.shuffle-button').click();
-    for(let i=0;i<100 && all('.pile-button').length!==3;i++)await sleep(20);
-    all('.pile-button')[0].click();all('.pile-button')[1].click();
+    for(let i=0;i<100 && all('.primary-pile-options .pile-button').length!==3;i++)await sleep(20);
+    all('.primary-pile-options .pile-button')[0].click();
+    all('.parallel-pile-options .pile-button')[1].click();
     one('.draw-button').click();
     for(let i=0;i<100 && !one('.reading-status').textContent.includes('抽選完了');i++)await sleep(20);
     const cards=all('.card-detail-trigger').length;
@@ -362,14 +550,14 @@ try {
       const addDisabled=one('.axis-add-header .axis-add-button').disabled &&
         one('.axis-add-row-header .axis-add-button').disabled;
       one('.shuffle-button').click();
-      for(let i=0;i<100 && all('.pile-button').length!==3;i++)await sleep(20);
-      one('.pile-button:nth-child(1)').click();
+      for(let i=0;i<100 && all('.primary-pile-options .pile-button').length!==3;i++)await sleep(20);
+      one('.primary-pile-options .pile-button:nth-child(1)').click();
       const afterFirst={disabled:one('.draw-button').disabled,hint:one('.selection-message').textContent};
-      one('.pile-button:nth-child(2)').click();
+      one('.primary-pile-options .pile-button:nth-child(2)').click();
       const afterSecond={disabled:one('.draw-button').disabled,hint:one('.selection-message').textContent};
-      if(${total}>54) one('.pile-button:nth-child(3)').click();
+      if(${total}>54) one('.primary-pile-options .pile-button:nth-child(3)').click();
       const ready={drawEnabled:!one('.draw-button').disabled,
-        canSelectParallel:all('.pile-button').some(b=>!b.disabled && b.getAttribute('aria-pressed')!=='true'),
+        canSelectParallel:all('.primary-pile-options .pile-button').some(b=>!b.disabled && b.getAttribute('aria-pressed')!=='true'),
         hint:one('.selection-message').textContent};
       one('.draw-button').click();
       for(let i=0;i<300 && !one('.reading-status').textContent.includes('抽選完了');i++)await sleep(20);
@@ -505,21 +693,22 @@ try {
       const editableRawDigits=one('.row-header .axis-inline-input').value;
       one('.row-header .axis-inline-input').dispatchEvent(new KeyboardEvent('keydown',{key:'Escape',bubbles:true}));
       one('.shuffle-button').click();
-      for(let i=0;i<100 && all('.pile-button').length!==3;i++)await sleep(20);
-      const piles=()=>all('.pile-button');
+      for(let i=0;i<100 && all('.primary-pile-options .pile-button').length!==3;i++)await sleep(20);
+      const piles=()=>all('.primary-pile-options .pile-button');
+      const alternatives=()=>all('.parallel-pile-options .pile-button');
       piles()[0].click();
       const primarySelected=piles()[0].getAttribute('aria-pressed')==='true';
       piles()[0].click();
       const cleared=piles().every(b=>b.getAttribute('aria-pressed')==='false');
-      piles()[1].click();piles()[0].click();
-      const roles={main:piles()[1].getAttribute('aria-pressed'),parallel:piles()[0].getAttribute('aria-pressed')};
+      piles()[1].click();alternatives()[0].click();
+      const roles={main:piles()[1].getAttribute('aria-pressed'),parallel:alternatives()[0].getAttribute('aria-pressed')};
       const drawReady=!one('.draw-button').disabled;
       // Regression: #70 previously returned early for a fully selected reading.
-      piles()[0].click();
-      const parallelClearedAfterDone=piles()[0].getAttribute('aria-pressed')==='false';
+      alternatives()[0].click();
+      const parallelClearedAfterDone=alternatives()[0].getAttribute('aria-pressed')==='false';
       piles()[1].click();
       const mainClearedAfterDone=piles().every(p=>p.getAttribute('aria-pressed')==='false');
-      piles()[1].click();piles()[0].click();
+      piles()[1].click();alternatives()[0].click();
       const drawEnabledAfterReselect=!one('.draw-button').disabled;
       const right=()=>one('.heading-right-controls').getBoundingClientRect().right;
       const initialRight=right();
@@ -614,8 +803,8 @@ try {
       __p0.deferDraw=false;
       __p0.failDrawPiles=['B'];
       one('.shuffle-button').click();
-      for(let i=0;i<100 && all('.pile-button').length!==3;i++)await sleep(20);
-      all('.pile-button')[0].click(); all('.pile-button')[1].click();
+      for(let i=0;i<100 && all('.primary-pile-options .pile-button').length!==3;i++)await sleep(20);
+      all('.primary-pile-options .pile-button')[0].click(); all('.parallel-pile-options .pile-button')[1].click();
       one('.draw-button').click();
       for(let i=0;i<100 && !one('.reading-status').textContent.includes('確定状況が不明');i++)await sleep(20);
       const before=__p0.drawCalls.length;
@@ -640,8 +829,8 @@ try {
       __p0.deferDraw=false;
       __p0.failDrawPiles=['A'];
       one('.shuffle-button').click();
-      for(let i=0;i<100 && document.querySelectorAll('.pile-button').length!==3;i++)await sleep(20);
-      one('.pile-button:nth-child(1)').click();
+      for(let i=0;i<100 && document.querySelectorAll('.primary-pile-options .pile-button').length!==3;i++)await sleep(20);
+      one('.primary-pile-options .pile-button:nth-child(1)').click();
       one('.draw-button').click();
       for(let i=0;i<100 && !one('.reading-status').textContent.includes('確定済みの可能性');i++)await sleep(20);
       const before=__p0.drawCalls.length;
@@ -662,8 +851,8 @@ try {
       const one=q=>document.querySelector(q);
       const all=q=>[...document.querySelectorAll(q)];
       one('.shuffle-button').click();
-      for(let i=0;i<100 && all('.pile-button').length!==3;i++)await sleep(20);
-      all('.pile-button')[0].click(); all('.pile-button')[1].click();
+      for(let i=0;i<100 && all('.primary-pile-options .pile-button').length!==3;i++)await sleep(20);
+      all('.primary-pile-options .pile-button')[0].click(); all('.parallel-pile-options .pile-button')[1].click();
       one('.draw-button').click();
       for(let i=0;i<100 && __p0.deferredDraw.length!==2;i++)await sleep(20);
       const releases=__p0.deferredDraw.splice(0);
@@ -693,8 +882,8 @@ try {
       __p0.deferDraw=false;
       __p0.failDrawStatuses={A:429};
       one('.shuffle-button').click();
-      for(let i=0;i<100 && document.querySelectorAll('.pile-button').length!==3;i++)await sleep(20);
-      one('.pile-button:nth-child(1)').click();
+      for(let i=0;i<100 && document.querySelectorAll('.primary-pile-options .pile-button').length!==3;i++)await sleep(20);
+      one('.primary-pile-options .pile-button:nth-child(1)').click();
       one('.draw-button').click();
       for(let i=0;i<100 && !one('.reading-status').textContent.includes('確定済みの可能性');i++)await sleep(20);
       const before=__p0.drawCalls.length;
@@ -719,9 +908,15 @@ try {
       const capLabel = one('.layout-count').textContent;
       const eightyIsLimit = one('.axis-add-header .axis-add-button').disabled &&
         one('.axis-add-row-header .axis-add-button').disabled;
+      one('#settingsButton').click();
+      one('#includeTitleCard').click();
+      const rejected78At80 = one('#includeTitleCard').checked === true &&
+        one('.reading-deck-summary').textContent === 'デッキB・80枚' &&
+        one('#settingsScope').textContent.includes('先に配置を減らしてください');
+      one('#settingsDone').click();
       one('.shuffle-button').click();
-      for (let i=0;i<120 && all('.pile-button').length!==3;i++)await sleep(20);
-      const a=all('.pile-button');
+      for (let i=0;i<120 && all('.primary-pile-options .pile-button').length!==3;i++)await sleep(20);
+      const a=all('.primary-pile-options .pile-button');
       a[0].click();
       const cueA=one('.selection-message').textContent;
       const drawingAfterA=one('.draw-button').disabled;
@@ -730,11 +925,11 @@ try {
       const drawingAfterB=one('.draw-button').disabled;
       a[2].click();
       const drawingAfterC=one('.draw-button').disabled;
-      const parallelBlocked=all('.pile-button').every(button => button.disabled || button.getAttribute('aria-pressed')==='true');
-      all('.pile-button')[2].click();
-      const thirdCleared=all('.pile-button')[2].getAttribute('aria-pressed')==='false';
+      const parallelBlocked=all('.parallel-pile-options .pile-button').every(button => button.disabled);
+      all('.primary-pile-options .pile-button')[2].click();
+      const thirdCleared=all('.primary-pile-options .pile-button')[2].getAttribute('aria-pressed')==='false';
       const disabledAfterClear=one('.draw-button').disabled;
-      all('.pile-button')[2].click();
+      all('.primary-pile-options .pile-button')[2].click();
       const restoredAfterRetap=!one('.draw-button').disabled;
       one('.draw-button').click();
       for(let i=0;i<160 && one('.reading-status').textContent!=='抽選完了';i++)await sleep(30);
@@ -743,7 +938,7 @@ try {
       const heading=one('.primary-pile-label').textContent;
       const ids=__p0.drawCalls.flatMap(call=>call.positions);
       const rowName=one('.primary-matrix .row-header');
-      return {capLabel,eightyIsLimit,cueA,cueB,drawingAfterA,drawingAfterB,
+      return {capLabel,eightyIsLimit,rejected78At80,cueA,cueB,drawingAfterA,drawingAfterB,
         drawingAfterC,parallelBlocked,thirdCleared,disabledAfterClear,restoredAfterRetap,cards,rows,heading,unique:new Set(ids).size,
         count:ids.length,piles:__p0.drawCalls.map(call=>call.pile),
         rowWidth:rowName.getBoundingClientRect().width,
@@ -751,12 +946,13 @@ try {
     })()`);
     assert.match(eighty.capLabel,/80枚/);
     assert.equal(eighty.eightyIsLimit,true);
+    assert.equal(eighty.rejected78At80,true,'78-card toggle must explain why a prepared 80-card layout cannot fit');
     assert.match(eighty.cueA,/枚数確保の為次の山を選択/);
     assert.match(eighty.cueB,/枚数確保の為次の山を選択/);
     assert.equal(eighty.drawingAfterA,true);
     assert.equal(eighty.drawingAfterB,true);
     assert.equal(eighty.drawingAfterC,false);
-    assert.equal(eighty.parallelBlocked,true);
+    assert.equal(eighty.parallelBlocked,false,'Separate Parallel selector allows all three piles, even when Primary consumes all three');
     assert.equal(eighty.thirdCleared,true);
     assert.equal(eighty.disabledAfterClear,true);
     assert.equal(eighty.restoredAfterRetap,true);

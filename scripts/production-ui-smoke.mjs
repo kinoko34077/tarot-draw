@@ -215,7 +215,7 @@ try {
 
     click('.shuffle-button');
     for (let i = 0; i < 120 && all('.pile-button').length < 3; i += 1) await sleep(100);
-    const piles = all('.pile-button').filter(button => !button.disabled);
+    const piles = all('.primary-pile-options .pile-button').filter(button => !button.disabled);
     if (piles.length < 2) throw new Error('Two selectable piles were not available.');
     keyboardMoveFirstColumnRight();
     if (getColumns()[0] !== columns[1]) throw new Error('Reorder before Draw was lost after Shuffle.');
@@ -224,7 +224,7 @@ try {
       throw new Error('Pre-draw Undo after Shuffle did not restore layout.');
     }
     piles[0].click();
-    piles[1].click();
+    one('.parallel-pile-options .pile-button:nth-child(2)').click();
     click('.draw-button');
 
     for (let i = 0; i < 180 && one('.reading-status').textContent !== '抽選完了'; i += 1) {

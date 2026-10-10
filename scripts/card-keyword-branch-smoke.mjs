@@ -109,10 +109,10 @@ try {
     if (all('.column-header').length !== 9 || all('.row-header').length !== 3) throw Error('3x9 setup failed');
     one('.shuffle-button').click();
     for (let i = 0; i < 120 && all('.pile-button').length < 3; i++) await sleep(100);
-    const piles = all('.pile-button').filter(button => !button.disabled);
+    const piles = all('.primary-pile-options .pile-button').filter(button => !button.disabled);
     if (piles.length < 2) throw Error('Two pile choices unavailable');
     piles[0].click();
-    piles[1].click();
+    one('.parallel-pile-options .pile-button:nth-child(2)').click();
     one('.draw-button').click();
     for (let i = 0; i < 160 && !all('.reading-status').some(el => el.textContent === '抽選完了'); i++) await sleep(100);
     if (!all('.reading-status').some(el => el.textContent === '抽選完了')) throw Error('Local draw did not complete');

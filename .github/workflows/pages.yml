@@ -36,6 +36,10 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: '22'
+      - name: Compose independent vintage Deck A art (with archival 1912 photo)
+        run: node scripts/generate-deck-a-reconstruction.mjs
+      - name: Verify self-contained Deck A cards prior to public release
+        run: node scripts/check-deck-a-assets.mjs
       - name: Build static Pages site
         run: npm run build:pages
       - name: Configure Pages

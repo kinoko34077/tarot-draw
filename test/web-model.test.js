@@ -247,3 +247,37 @@ test('26, 27, 28, 53, 54, 55 and 80 cells are partitioned once in chosen pile or
   assert.throws(()=>planPileDraws(['A','A'],piles,buildPositionIds(1,28)),/repeat/);
   assert.throws(()=>planPileDraws(['A','B','C'],piles,buildPositionIds(1,81)),/Invalid pile selection/);
 });
+
+
+test('Deck A introduction custom replaces Deck B guarantee only in display/notes/export', () => {
+  const intro={card_id:'meta.introduction',name_ja:'パメラ・コールマン・スミス紹介カード',orientation:'upright'};
+  const guarantee={card_id:'meta.guarantee',name_ja:'GUARANTEE（保証カード）',orientation:'upright'};
+  const result={positions:{r0c0:intro}};
+  assert.equal(cardDisplayParts(intro,'A').plainTitle,'パメラ・コールマン・スミス紹介カード');
+  assert.equal(cardDisplayText(guarantee,'B'),'GUARANTEE 正位置');
+  assert.equal(cardDisplayText(intro,'A'),'パメラ・コールマン・スミス紹介カード 正位置');
+  assert.ok(customCardNotesForResults(result,null,'A')[0].includes('生涯'));
+  assert.ok(!customCardNotesForResults(result,null,'A')[0].includes('GUARANTEE'));
+  const markdown=formatReadingMarkdown({
+    deckId:'A',rowCount:1,columnCount:1,rowLabels:['項'],columnLabels:['題'],primary:result
+  });
+  assert.match(markdown,/パメラ・コールマン・スミス紹介カード/);
+  assert.doesNotMatch(markdown,/GUARANTEE/);
+});
+
+
+test('masked cross layout copies skipped cells as literal - without shifting their positions', () => {
+  const inactive=['r0c0','r0c2','r2c0','r2c2'];
+  const positions={r0c1:{card_id:'major.fool',name_ja:'愚者',orientation:'upright'}};
+  const primary={positions};
+  const data={
+    question:'十字',rowCount:3,columnCount:3,rowLabels:['上','中','下'],
+    columnLabels:['左','中央','右'],primary,inactivePositions:inactive
+  };
+  const markdown=formatReadingMarkdown(data);
+  assert.match(markdown,/\| 上 \| - \| 0 愚者 正位置 \| - \|/);
+  assert.match(markdown,/\| 下 \| - \| — \| - \|/);
+  assert.ok(!markdown.includes('\\- |'));
+  const tsv=formatReadingText(data);
+  assert.ok(tsv.includes('上\t-\t0 愚者 正位置\t-'));
+});

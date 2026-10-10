@@ -65,13 +65,19 @@ function errorPayload(error) {
 }
 
 async function serveStatic(pathname, res) {
-  const cardAsset = pathname.match(/^\/assets\/cards\/(grid|detail)\/([a-z0-9-]+\.webp)$/);
+  const cardAsset = pathname.match(/^\/assets\/cards\/(grid|detail)\/([a-z0-9-]+\.(?:webp|svg))$/);
   if (cardAsset) {
     const [, variant, filename] = cardAsset;
-    const data = await readFile(resolve(WEB_ROOT, 'assets', 'cards', variant, filename));
+    let data;
+    try {
+      data = await readFile(resolve(WEB_ROOT, 'assets', 'cards', variant, filename));
+    } catch (error) {
+      if (error.code === 'ENOENT') return false; // Missing optional art is a clean 404.
+      throw error;
+    }
     setCommonHeaders(res);
     res.statusCode = 200;
-    res.setHeader('Content-Type', 'image/webp');
+    res.setHeader('Content-Type', filename.endsWith('.svg') ? 'image/svg+xml; charset=utf-8' : 'image/webp');
     res.setHeader('Cache-Control', 'public, max-age=31536000, immutable');
     res.end(data);
     return true;
@@ -105,7 +111,8 @@ export function createTarotServer({ store = new TarotStore() } = {}) {
 
       let match = pathname.match(/^\/api\/sessions\/([^/]+)\/shuffle$/);
       if (req.method === 'POST' && match) {
-        return json(res, 200, store.shuffleSession(decodeURIComponent(match[1])));
+        const options = await parseJson(req);
+        return json(res, 200, store.shuffleSession(decodeURIComponent(match[1]), options));
       }
 
       match = pathname.match(/^\/api\/sessions\/([^/]+)\/branches$/);

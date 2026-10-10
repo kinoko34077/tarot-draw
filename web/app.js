@@ -3,7 +3,7 @@ import {
   buildPositionIds,
   cardDisplayParts,
   cardDisplayText,
-  CUSTOM_CARD_NOTES,
+  customCardPresentation,
   formatReadingMarkdown,
   labelOrFallback,
   moveAxisLabel,
@@ -42,19 +42,93 @@ const page = {
   cardDetailUprightBlock: document.querySelector('#cardDetailUprightBlock'),
   cardDetailReversedBlock: document.querySelector('#cardDetailReversedBlock'),
   cardDetailCustom: document.querySelector('#cardDetailCustom'),
-  cardDetailCustomText: document.querySelector('#cardDetailCustomText')
+  cardDetailCustomText: document.querySelector('#cardDetailCustomText'),
+  settingsButton: document.querySelector('#settingsButton'),
+  settingsDialog: document.querySelector('#settingsDialog'),
+  settingsClose: document.querySelector('#settingsClose'),
+  settingsDone: document.querySelector('#settingsDone'),
+  settingsScope: document.querySelector('#settingsScope'),
+  includeTitleCard: document.querySelector('#includeTitleCard'),
+  includeSecondaryCard: document.querySelector('#includeSecondaryCard'),
+  secondaryCardName: document.querySelector('#secondaryCardName'),
+  selectedDeckCount: document.querySelector('#selectedDeckCount')
 };
 
 const readings = [];
 let nextReadingNumber = 1;
 let axisMenuContext = null;
 let lastCardTrigger = null;
+const chosenSettings = { deckId: 'B', includeTitle: true, includeSecondary: true };
+function deckCardCount(value) {
+  return 78 + Number(value.includeTitle) + Number(value.includeSecondary);
+}
+function describeDeckChoice(value) {
+  return `デッキ${value.deckId}・${deckCardCount(value)}枚`;
+}
+function renderSettingsSummary() {
+  page.secondaryCardName.textContent = chosenSettings.deckId === 'A'
+    ? 'パメラ・コールマン・スミス紹介カード' : '保証カード';
+  page.selectedDeckCount.textContent = `${deckCardCount(chosenSettings)}枚（通常78枚＋独自カード${deckCardCount(chosenSettings) - 78}枚）`;
+}
+function applySettingsToCurrent() {
+  renderSettingsSummary();
+  const current = readings.at(-1);
+  const applied = current?.applyDeckSettings(chosenSettings) ?? false;
+  page.settingsScope.textContent = applied
+    ? 'この設定で次のシャッフルを行います。'
+    : 'この設定は次の新しい占いから反映されます。進行中・完了済みの抽選は変更しません。';
+}
+page.settingsButton.addEventListener('click', () => {
+  const current = readings.at(-1);
+  const canApplyNow = current?.state.phase === 'editing' && !current?.state.pendingOperation;
+  const currentCount = canApplyNow ? current.state.rowLabels.length * current.state.columnLabels.length : 0;
+  page.settingsScope.textContent = !canApplyNow
+    ? 'この設定は次の新しい占いから反映されます。進行中・完了済みの抽選は変更しません。'
+    : currentCount > deckCardCount(chosenSettings)
+      ? '現在の配置マスが設定した枚数を超えています。先に配置を減らしてください。'
+      : 'この設定で次のシャッフルを行います。';
+  page.settingsDialog.showModal();
+  page.settingsDialog.querySelector('input[name="deckId"]:checked')?.focus({ preventScroll: true });
+});
+function closeSettings() { page.settingsDialog.close(); }
+page.settingsClose.addEventListener('click', closeSettings);
+page.settingsDone.addEventListener('click', closeSettings);
+page.settingsDialog.addEventListener('click', event => {
+  if (event.target === page.settingsDialog) closeSettings();
+});
+page.settingsDialog.addEventListener('close', () => page.settingsButton.focus({ preventScroll: true }));
+page.settingsDialog.addEventListener('change', event => {
+  const next = { ...chosenSettings };
+  if (event.target.name === 'deckId') next.deckId = event.target.value;
+  if (event.target === page.includeTitleCard) next.includeTitle = event.target.checked;
+  if (event.target === page.includeSecondaryCard) next.includeSecondary = event.target.checked;
+  const current = readings.at(-1);
+  if (current?.state.phase === 'editing' && current?.state.rowLabels.length * current?.state.columnLabels.length > deckCardCount(next)) {
+    if (event.target.type === 'checkbox') event.target.checked = !event.target.checked;
+    if (event.target.type === 'radio') page.settingsDialog.querySelector('input[name="deckId"][value="' + chosenSettings.deckId + '"]').checked = true;
+    page.settingsScope.textContent = '現在の配置は' + deckCardCount(next) + 'マスを超えています。先に配置を減らしてください。';
+    return;
+  }
+  Object.assign(chosenSettings, next);
+  applySettingsToCurrent();
+});
+renderSettingsSummary();
+for (const slot of page.settingsDialog.querySelectorAll('[data-deck-a-image]')) {
+  const image = document.createElement('img');
+  image.className = 'settings-deck-preview-image';
+  image.alt = '';
+  // The preview is off-DOM until load; a lazy image would never begin fetching.
+  image.loading = 'eager';
+  image.src = './assets/cards/grid/' + slot.dataset.deckAImage;
+  image.addEventListener('load', () => slot.replaceChildren(image), { once: true });
+  image.addEventListener('error', () => { slot.textContent = '画像未登録'; }, { once: true });
+}
 
-function createCardVisual(card, { detail = false } = {}) {
+function createCardVisual(card, { detail = false, deckId = 'B' } = {}) {
   const visual = document.createElement('div');
   visual.className = detail ? 'card-visual detail-card-visual' : 'card-visual';
 
-  const imageUrl = rwsImageUrl(card, detail ? 224 : 128);
+  const imageUrl = rwsImageUrl(card, detail ? 224 : 128, deckId);
   if (imageUrl) {
     const image = document.createElement('img');
     image.className = detail ? 'card-art detail-card-art' : 'card-art';
@@ -82,11 +156,12 @@ function createCardVisual(card, { detail = false } = {}) {
   face.className = detail ? 'custom-card-face detail-custom-card-face' : 'custom-card-face';
   if (card.orientation === 'reversed') face.classList.add('is-reversed');
 
+  face.dataset.deck = deckId;
   const eyebrow = document.createElement('span');
-  eyebrow.textContent = 'CUSTOM';
+  eyebrow.textContent = deckId === 'A' ? 'DECK A · 画像準備中' : 'CUSTOM';
 
   const title = document.createElement('strong');
-  title.textContent = card.card_id === 'meta.guarantee' ? 'GUARANTEE' : 'TITLE';
+  title.textContent = customCardPresentation(card.card_id, deckId)?.faceTitle ?? 'CARD';
 
   face.append(eyebrow, title);
   visual.append(face);
@@ -156,14 +231,14 @@ function renderKeywordGrid(cardId) {
   }
 }
 
-function openCardDetail(card, trigger) {
-  const parts = cardDisplayParts(card);
+function openCardDetail(card, trigger, deckId = 'B') {
+  const parts = cardDisplayParts(card, deckId);
   const detail = cardDetail(card.card_id);
   lastCardTrigger = trigger;
 
   setCardTitle(page.cardDetailTitle, parts);
   page.cardDetailOrientation.textContent = parts.orientation;
-  page.cardDetailVisual.replaceChildren(createCardVisual(card, { detail: true }));
+  page.cardDetailVisual.replaceChildren(createCardVisual(card, { detail: true, deckId }));
   renderKeywordGrid(detail ? card.card_id : null);
 
   if (detail) {
@@ -182,7 +257,7 @@ function openCardDetail(card, trigger) {
   } else {
     page.cardDetailReference.classList.add('hidden');
     page.cardDetailCustom.classList.remove('hidden');
-    page.cardDetailCustomText.textContent = CUSTOM_CARD_NOTES[card.card_id] ?? '独自カード';
+    page.cardDetailCustomText.textContent = customCardPresentation(card.card_id, deckId)?.note ?? '独自カード';
   }
 
   page.cardDetailDialog.showModal();
@@ -223,15 +298,16 @@ function setTextStatus(element, message, kind = 'info') {
 }
 
 function requiredCards(state) {
-  return state.rowLabels.length * state.columnLabels.length;
+  return buildPositionIds(state.rowLabels.length, state.columnLabels.length)
+    .filter(id => !state.inactivePositions.has(id)).length;
 }
 
 function canAddRow(state) {
-  return (state.rowLabels.length + 1) * state.columnLabels.length <= 80;
+  return (state.rowLabels.length + 1) * state.columnLabels.length <= deckCardCount(state);
 }
 
 function canAddColumn(state) {
-  return state.rowLabels.length * (state.columnLabels.length + 1) <= 80;
+  return state.rowLabels.length * (state.columnLabels.length + 1) <= deckCardCount(state);
 }
 
 async function api(path, options = {}) {
@@ -414,6 +490,10 @@ function createReadingController(number) {
     number,
     phase: 'editing',
     question: '',
+    deckId: chosenSettings.deckId,
+    includeTitle: chosenSettings.includeTitle,
+    includeSecondary: chosenSettings.includeSecondary,
+    inactivePositions: new Set(),
     rowLabels: [''],
     columnLabels: ['', '', ''],
     sessionId: null,
@@ -437,6 +517,7 @@ function createReadingController(number) {
   article.innerHTML = `
     <div class="reading-toolbar">
       <span class="reading-index">Reading ${number}</span>
+      <span class="reading-deck-summary" aria-label="使用デッキ"></span>
       <label class="question-field">
         <span class="question-prefix">Q.</span>
         <input class="question-input" type="text" autocomplete="off" aria-label="今回の問い" placeholder="今回の問い">
@@ -447,7 +528,14 @@ function createReadingController(number) {
 
     <div class="pile-panel hidden" aria-label="山選択">
       <span class="pile-label">山</span>
-      <div class="pile-options"></div>
+      <div class="pile-set pile-set-primary">
+        <span class="pile-set-title">Primary（メイン）</span>
+        <div class="pile-options primary-pile-options" aria-label="Primaryの山を選択"></div>
+      </div>
+      <div class="pile-set pile-set-parallel">
+        <span class="pile-set-title">Parallel（別の選び方・任意）</span>
+        <div class="pile-options parallel-pile-options" aria-label="Parallelの山を選択"></div>
+      </div>
       <p class="selection-message helper pile-status" role="status" aria-live="polite"></p>
     </div>
 
@@ -485,6 +573,7 @@ function createReadingController(number) {
 
   const refs = {
     cardCount: article.querySelector('.card-count'),
+    deckSummary: article.querySelector('.reading-deck-summary'),
     copyButton: article.querySelector('.copy-button'),
     copyFeedback: article.querySelector('.copy-feedback'),
     shuffleButton: page.shuffleButton,
@@ -492,7 +581,8 @@ function createReadingController(number) {
     questionInput: article.querySelector('.question-input'),
     layoutMessage: article.querySelector('.layout-message'),
     pilePanel: article.querySelector('.pile-panel'),
-    pileOptions: article.querySelector('.pile-options'),
+    pileOptions: article.querySelector('.primary-pile-options'),
+    parallelPileOptions: article.querySelector('.parallel-pile-options'),
     selectionMessage: article.querySelector('.selection-message'),
     primaryTitle: article.querySelector('.primary-title'),
     primaryPileLabel: article.querySelector('.primary-pile-label'),
@@ -516,8 +606,20 @@ function createReadingController(number) {
     render,
     focusQuestion,
     shuffle,
-    draw
+    draw,
+    applyDeckSettings
   };
+
+  function applyDeckSettings(settings) {
+    if (state.phase !== 'editing' || state.pendingOperation) return false;
+    const max = deckCardCount(settings);
+    if (state.rowLabels.length * state.columnLabels.length > max) return false;
+    state.deckId = settings.deckId;
+    state.includeTitle = settings.includeTitle;
+    state.includeSecondary = settings.includeSecondary;
+    render();
+    return true;
+  }
 
   refs.questionInput.addEventListener('input', event => {
     if (state.pendingOperation || state.phase === 'draw-uncertain' || state.phase === 'completed') return;
@@ -532,7 +634,8 @@ function createReadingController(number) {
   }
 
   function snapshotAxes() {
-    return { rowLabels: [...state.rowLabels], columnLabels: [...state.columnLabels] };
+    return { rowLabels: [...state.rowLabels], columnLabels: [...state.columnLabels],
+      inactivePositions: [...state.inactivePositions] };
   }
 
   function recordAxisHistory() {
@@ -544,6 +647,7 @@ function createReadingController(number) {
   function applyAxes(snapshot) {
     state.rowLabels = [...snapshot.rowLabels];
     state.columnLabels = [...snapshot.columnLabels];
+    state.inactivePositions = new Set(snapshot.inactivePositions ?? []);
   }
 
   function canEditAxes() {
@@ -574,6 +678,15 @@ function createReadingController(number) {
     if (from === to) return false;
     recordAxisHistory();
     state[stateKey] = moveAxisLabel(values, from, to);
+    const order = moveAxisLabel(values.map((_, i) => i), from, to);
+    state.inactivePositions = new Set([...state.inactivePositions].map(id => {
+      const match = /^r(\d+)c(\d+)$/.exec(id);
+      if (!match) return id;
+      let row = Number(match[1]), col = Number(match[2]);
+      if (kind === 'row') row = order.indexOf(row);
+      else col = order.indexOf(col);
+      return `r${row}c${col}`;
+    }));
     render();
     const selector = kind === 'row' ? '.row-header' : '.column-header';
     const target = refs.primaryMatrix.querySelectorAll(selector)[to]?.querySelector('.axis-menu-trigger');
@@ -587,14 +700,14 @@ function createReadingController(number) {
 
     if (kind === 'row') {
       if (!canAddRow(state)) {
-        setTextStatus(refs.layoutMessage, '配置は最大80枚です。これ以上行を追加できません。', 'error');
+        setTextStatus(refs.layoutMessage, `配置は最大${state.includeCustom ? 80 : 78}枚です。これ以上行を追加できません。`, 'error');
         return;
       }
       recordAxisHistory();
       state.rowLabels = appendAxisLabel(state.rowLabels);
     } else {
       if (!canAddColumn(state)) {
-        setTextStatus(refs.layoutMessage, '配置は最大80枚です。これ以上列を追加できません。', 'error');
+        setTextStatus(refs.layoutMessage, `配置は最大${state.includeCustom ? 80 : 78}枚です。これ以上列を追加できません。`, 'error');
         return;
       }
       recordAxisHistory();
@@ -614,6 +727,15 @@ function createReadingController(number) {
     } else {
       state.columnLabels = removeAxisLabel(state.columnLabels, index);
     }
+    state.inactivePositions = new Set([...state.inactivePositions].flatMap(id => {
+      const match = /^r(\d+)c(\d+)$/.exec(id);
+      if (!match) return [];
+      let row = Number(match[1]), col = Number(match[2]);
+      if ((kind === 'row' ? row : col) === index) return [];
+      if (kind === 'row' && row > index) row--;
+      if (kind === 'column' && col > index) col--;
+      return [`r${row}c${col}`];
+    }));
     render();
   }
 
@@ -833,8 +955,8 @@ function createReadingController(number) {
     result.type = 'button';
     result.className = 'card-result-block card-detail-trigger';
 
-    const visual = createCardVisual(card);
-    const parts = cardDisplayParts(card);
+    const visual = createCardVisual(card, { deckId: state.deckId });
+    const parts = cardDisplayParts(card, state.deckId);
 
     const label = document.createElement('span');
     label.className = 'card-result-text';
@@ -850,8 +972,16 @@ function createReadingController(number) {
     label.append(title, orientation);
     result.append(visual, label);
     result.setAttribute('aria-label', `${parts.plainTitle} ${parts.orientation}の詳細を表示`);
-    result.addEventListener('click', () => openCardDetail(card, result));
+    result.addEventListener('click', () => openCardDetail(card, result, state.deckId));
     return result;
+  }
+
+  function toggleCell(positionId) {
+    if (state.pendingOperation || !['editing', 'choosing'].includes(state.phase)) return;
+    recordAxisHistory();
+    if (state.inactivePositions.has(positionId)) state.inactivePositions.delete(positionId);
+    else state.inactivePositions.add(positionId);
+    render();
   }
 
   function createMatrixTable({ result = null, editableHeaders = false, label }) {
@@ -966,8 +1096,37 @@ function createReadingController(number) {
         td.dataset.position = positionId;
 
         const card = result?.positions?.[positionId];
-        if (card) {
+        if (state.inactivePositions.has(positionId)) {
+          td.classList.add('cell-inactive');
+          if ((state.phase === 'editing' || state.phase === 'choosing') && !state.pendingOperation) {
+            const toggle = document.createElement('button');
+            toggle.type = 'button';
+            toggle.className = 'cell-mask-toggle';
+            toggle.textContent = '×';
+            toggle.title = 'このマスを使用する';
+            toggle.setAttribute('aria-label', `行${row + 1}列${column + 1}を使用する（現在×）`);
+            toggle.setAttribute('aria-pressed', 'true');
+            toggle.addEventListener('click', () => toggleCell(positionId));
+            td.append(toggle);
+          } else {
+            const cross = document.createElement('span');
+            cross.className = 'cell-mask-excluded';
+            cross.textContent = '×';
+            cross.setAttribute('aria-label', '使用しないマス');
+            td.append(cross);
+          }
+        } else if (card) {
           td.append(createCardResult(card));
+        } else if ((state.phase === 'editing' || state.phase === 'choosing') && !state.pendingOperation) {
+          const toggle = document.createElement('button');
+          toggle.type = 'button';
+          toggle.className = 'cell-mask-toggle';
+          toggle.textContent = '○';
+          toggle.title = 'このマスを使わない';
+          toggle.setAttribute('aria-label', `行${row + 1}列${column + 1}を使わない（現在○）`);
+          toggle.setAttribute('aria-pressed', 'false');
+          toggle.addEventListener('click', () => toggleCell(positionId));
+          td.append(toggle);
         } else {
           const placeholder = document.createElement('span');
           placeholder.className = 'cell-placeholder';
@@ -1076,68 +1235,64 @@ function createReadingController(number) {
       capacityOf(state.parallelPiles) >= requiredCards(state);
   }
 
-  function selectionStage() {
-    if (!mainReady()) return 'main';
-    if (state.parallelPiles.length && !parallelReady()) return 'parallel';
-    if (!state.parallelPiles.length && state.primaryPiles.length < 3 && requiredCards(state) <= 54) return 'parallel';
-    return 'done';
-  }
-
   function pileHint() {
     const needed = requiredCards(state);
+    if (!needed) return '○のマスがありません。少なくとも1マスを使用してください。';
+    if (!state.primaryPiles.length) return 'Primaryで山を選択してください。順番どおりに配ります。';
     const mainCount = capacityOf(state.primaryPiles);
-    const parallelCount = capacityOf(state.parallelPiles);
-    if (!state.primaryPiles.length) return 'メインの山を選択してください。';
-    if (mainCount < needed) {
-      return `メインの山 ${state.primaryPiles.join(' → ')}（${mainCount}/${needed}枚）。枚数確保の為次の山を選択（あと${needed - mainCount}枚）。`;
+    if (mainCount < needed) return `Primaryの山 ${state.primaryPiles.join(' → ')}（${mainCount}/${needed}枚）。枚数確保の為次の山を選択してください。`;
+    if (state.parallelPiles.length && !parallelReady()) {
+      return `Parallelの山 ${state.parallelPiles.join(' → ')}（${capacityOf(state.parallelPiles)}/${needed}枚）。枚数確保の為次の山を選択してください。`;
     }
-    if (state.parallelPiles.length && parallelCount < needed) {
-      return `Parallelの山 ${state.parallelPiles.join(' → ')}（${parallelCount}/${needed}枚）。枚数確保の為次の山を選択（あと${needed - parallelCount}枚）。`;
-    }
-    if (state.parallelPiles.length) return `メイン ${state.primaryPiles.join(' → ')} / Parallel ${state.parallelPiles.join(' → ')}：引けます。`;
-    if (state.primaryPiles.length === 3) return `メイン ${state.primaryPiles.join(' → ')}：${needed}枚確保。3山すべて使うためParallelは選べません。`;
-    return `メイン ${state.primaryPiles.join(' → ')}：${needed}枚確保。迷ったら別の山を選んででifを確認できます。`;
+    if (state.parallelPiles.length) return `Primary ${state.primaryPiles.join(' → ')}／Parallel ${state.parallelPiles.join(' → ')}：引けます。`;
+    return 'Primaryは準備できました。別の引き方を比べる場合はParallel側で山を選択できます。';
   }
 
+  function pileButtons(side) {
+    const selected = side === 'primary' ? state.primaryPiles : state.parallelPiles;
+    const ready = capacityOf(selected) >= requiredCards(state);
+    const canStart = side === 'primary' || mainReady();
+    return state.piles.map(pile => {
+      const isSelected = selected.includes(pile.pile_id);
+      const button = document.createElement('button');
+      button.type = 'button';
+      button.className = 'pile-button';
+      button.dataset.pile = pile.pile_id;
+      button.dataset.branch = side;
+      button.setAttribute('aria-pressed', String(isSelected));
+      button.disabled = Boolean(state.pendingOperation) ||
+        (!isSelected && (!canStart || ready || requiredCards(state) === 0));
+      const name = document.createElement('span');
+      name.className = 'pile-name';
+      name.textContent = `山 ${pile.pile_id}`;
+      const amount = document.createElement('span');
+      amount.className = 'pile-count';
+      amount.textContent = `${pile.count}枚`;
+      const role = document.createElement('span');
+      role.className = 'pile-role';
+      role.textContent = isSelected ? `${selected.indexOf(pile.pile_id) + 1}番目` : '';
+      button.setAttribute('aria-label', `${side === 'primary' ? 'Primary' : 'Parallel'} 山${pile.pile_id} ${pile.count}枚 ${role.textContent || '未選択'}`);
+      button.append(name, amount, role);
+      button.addEventListener('click', () => selectPile(pile.pile_id, side));
+      return button;
+    });
+  }
 
   function renderPiles() {
-    if (!state.piles.length) { refs.pileOptions.replaceChildren(); return; }
-    const stage = selectionStage();
-    refs.pileOptions.replaceChildren(...state.piles.map(pile => {
-      const id = pile.pile_id, main = state.primaryPiles.includes(id), other = state.parallelPiles.includes(id);
-      const button = document.createElement('button');
-      button.type = 'button'; button.className = 'pile-button';
-      button.setAttribute('aria-pressed', String(main || other));
-      const selected = main || other;
-      button.disabled = Boolean(state.pendingOperation) || (!selected && (stage === 'done' ||
-        (stage === 'parallel' && !state.parallelPiles.length && main)));
-      const name = document.createElement('span'), amount = document.createElement('span'), role = document.createElement('span');
-      name.className = 'pile-name'; name.textContent = `山 ${id}`;
-      amount.className = 'pile-count'; amount.textContent = `${pile.count}枚`;
-      role.className = 'pile-role';
-      role.textContent = main && other ? 'メイン・Parallel' : main ? 'メイン' : other ? 'Parallel' : '';
-      button.setAttribute('aria-label', `山${id} ${pile.count}枚 ${role.textContent || '未選択'}`);
-      button.append(name,amount,role);
-      button.addEventListener('click', () => selectPile(id));
-      return button;
-    }));
-    setTextStatus(refs.selectionMessage, pileHint());
+    refs.pileOptions.replaceChildren(...(state.piles.length ? pileButtons('primary') : []));
+    refs.parallelPileOptions.replaceChildren(...(state.piles.length ? pileButtons('parallel') : []));
+    refs.parallelPileOptions.closest('.pile-set-parallel')?.classList.toggle('pile-set-awaiting', !mainReady());
+    if (state.piles.length) setTextStatus(refs.selectionMessage, pileHint());
   }
 
-  function selectPile(pileId) {
+  function selectPile(pileId, side) {
     if (state.phase !== 'choosing' || state.pendingOperation) return;
-    const stage = selectionStage();
-    const parallelIndex = state.parallelPiles.indexOf(pileId);
-    const mainIndex = state.primaryPiles.indexOf(pileId);
-    if (parallelIndex >= 0) {
-      state.parallelPiles.splice(parallelIndex);
-    } else if (mainIndex >= 0) {
-      state.primaryPiles.splice(mainIndex);
-      state.parallelPiles = [];
-    } else if (stage !== 'done') {
-      const chosen = stage === 'main' ? state.primaryPiles : state.parallelPiles;
-      chosen.push(pileId);
-    } else return;
+    if (side === 'parallel' && !mainReady()) return;
+    const selected = side === 'primary' ? state.primaryPiles : state.parallelPiles;
+    const index = selected.indexOf(pileId);
+    if (index >= 0) selected.splice(index, 1);
+    else if (capacityOf(selected) < requiredCards(state)) selected.push(pileId);
+    else return;
     state.primaryPile = state.primaryPiles[0] ?? null;
     state.parallelPile = state.parallelPiles[0] ?? null;
     render();
@@ -1147,7 +1302,8 @@ function createReadingController(number) {
     const choosing = state.phase === 'choosing';
     if (!readings.length || readings.at(-1) === controller) {
       refs.drawButton.classList.toggle('hidden', !choosing);
-      refs.drawButton.disabled = !choosing || Boolean(state.pendingOperation) || !mainReady() || !parallelReady();
+      refs.drawButton.disabled = !choosing || Boolean(state.pendingOperation) ||
+        requiredCards(state) === 0 || !mainReady() || !parallelReady();
     }
   }
 
@@ -1158,6 +1314,7 @@ function createReadingController(number) {
     refs.redoButton.classList.toggle('hidden', !canUndo || state.redoStack.length === 0);
     refs.historyActions.classList.toggle('hidden', !canUndo || (state.undoStack.length === 0 && state.redoStack.length === 0));
     refs.cardCount.textContent = `計${count}枚`;
+    refs.deckSummary.textContent = describeDeckChoice(state);
 
     if (state.phase === 'editing') {
       if (!canAddRow(state) && !canAddColumn(state)) {
@@ -1167,8 +1324,13 @@ function createReadingController(number) {
       }
     }
 
+    if (count === 0 && state.phase === 'editing') {
+      setTextStatus(refs.layoutMessage, '○のマスがありません。少なくとも1つを使用してください。', 'error');
+    }
+
     if (!readings.length || readings.at(-1) === controller) {
-      refs.shuffleButton.disabled = !runtime.apiAvailable || state.phase !== 'editing' || Boolean(state.pendingOperation);
+      refs.shuffleButton.disabled = !runtime.apiAvailable || state.phase !== 'editing' ||
+        Boolean(state.pendingOperation) || count === 0;
       refs.shuffleButton.classList.toggle('hidden', state.phase !== 'editing');
     }
     refs.copyButton.classList.toggle('hidden', state.phase !== 'completed');
@@ -1197,8 +1359,20 @@ function createReadingController(number) {
       const session = await api('/api/sessions', { method: 'POST', body: '{}' });
       state.sessionId = session.session_id;
       const split = await api(`/api/sessions/${encodeURIComponent(session.session_id)}/shuffle`, {
-        method: 'POST', body: '{}'
+        method: 'POST', body: JSON.stringify({
+          include_title: state.includeTitle, include_secondary: state.includeSecondary, deck_id: state.deckId
+        })
       });
+      const actualCounts = split.piles?.map(pile => pile.count);
+      const expectedCounts = deckCardCount(state) === 80 ? [27, 27, 26]
+        : deckCardCount(state) === 79 ? [27, 26, 26] : [26, 26, 26];
+      if (!actualCounts || actualCounts.length !== 3 ||
+          expectedCounts.some((count, index) => actualCounts[index] !== count) ||
+          (split.include_title !== state.includeTitle || split.include_secondary !== state.includeSecondary) ||
+          (state.deckId === 'A' && split.deck_id !== 'A') ||
+          (split.deck_id !== undefined && split.deck_id !== state.deckId)) {
+        throw new Error('選んだ78/80枚設定を抽選APIが確認できませんでした。現在の結果は使わず、新しい占いからやり直してください。');
+      }
       state.piles = split.piles;
       state.primaryPile = null;
       state.parallelPile = null;
@@ -1261,6 +1435,9 @@ function createReadingController(number) {
   function snapshotDrawIntent() {
     return Object.freeze({
       sessionId: state.sessionId,
+      deckId: state.deckId,
+      includeTitle: state.includeTitle,
+      includeSecondary: state.includeSecondary,
       question: state.question,
       rowLabels: Object.freeze([...state.rowLabels]),
       columnLabels: Object.freeze([...state.columnLabels]),
@@ -1269,13 +1446,15 @@ function createReadingController(number) {
       primaryPiles: Object.freeze([...state.primaryPiles]),
       parallelPiles: Object.freeze([...state.parallelPiles]),
       piles: Object.freeze(state.piles.map(p => Object.freeze({ pile_id: p.pile_id, count: p.count }))),
-      positions: Object.freeze(buildPositionIds(state.rowLabels.length, state.columnLabels.length))
+      positions: Object.freeze(buildPositionIds(state.rowLabels.length, state.columnLabels.length)
+        .filter(id => !state.inactivePositions.has(id))),
+      inactivePositions: Object.freeze([...state.inactivePositions])
     });
   }
 
   async function draw() {
     if (state.phase !== 'choosing' || !mainReady() || !parallelReady() ||
-        !state.sessionId || state.pendingOperation || state.drawOutcome) return;
+        !state.sessionId || state.pendingOperation || state.drawOutcome || requiredCards(state) === 0) return;
 
     const intent = snapshotDrawIntent();
     state.pendingOperation = 'draw';
@@ -1299,6 +1478,7 @@ function createReadingController(number) {
       state.question = intent.question;
       state.rowLabels = [...intent.rowLabels];
       state.columnLabels = [...intent.columnLabels];
+      state.inactivePositions = new Set(intent.inactivePositions);
       state.primaryPile = intent.primaryPile;
       state.parallelPile = intent.parallelPile;
       state.primaryPiles = [...intent.primaryPiles];
@@ -1348,10 +1528,12 @@ function createReadingController(number) {
   async function copyReading() {
     const text = formatReadingMarkdown({
       question: state.question,
+      deckId: state.deckId,
       rowCount: state.rowLabels.length,
       columnCount: state.columnLabels.length,
       rowLabels: state.rowLabels,
       columnLabels: state.columnLabels,
+      inactivePositions: [...state.inactivePositions],
       primary: state.primaryResult,
       parallel: state.parallelResult,
       primaryPile: state.primaryPiles.join(' → '),

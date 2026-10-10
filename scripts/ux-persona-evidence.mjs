@@ -177,8 +177,8 @@ async function noviceTask() {
   click('.axis-add-row-header .axis-add-button');
   click('.axis-add-header .axis-add-button');
   click('.shuffle-button');
-  await poll(() => $$('.pile-button').filter(el => !el.disabled).length >= 2, 'shuffled piles');
-  click('.pile-button:not([disabled])');
+  await poll(() => $$('.primary-pile-options .pile-button').filter(el => !el.disabled).length >= 2, 'shuffled piles');
+  click('.primary-pile-options .pile-button:not([disabled])');
   click('.draw-button');
   await poll(() => $('.reading-status')?.textContent === '抽選完了', 'draw completed');
   const reading = $('.reading-workbench');
@@ -358,10 +358,10 @@ async function expertTask() {
 
   document.querySelector('.shuffle-button').click();
   actions++;
-  await poll(() => [...reading.querySelectorAll('.pile-button')].filter(el => !el.disabled).length >= 2, 'piles ready');
-  const piles = [...reading.querySelectorAll('.pile-button')].filter(el => !el.disabled);
+  await poll(() => [...reading.querySelectorAll('.primary-pile-options .pile-button')].filter(el => !el.disabled).length >= 2, 'piles ready');
+  const piles = [...reading.querySelectorAll('.primary-pile-options .pile-button')].filter(el => !el.disabled);
   piles[0].click();
-  piles[1].click();
+  reading.querySelector('.parallel-pile-options .pile-button:nth-child(2)').click();
   actions += 2;
   document.querySelector('.draw-button').click();
   actions++;
@@ -485,7 +485,7 @@ function axisResetAndShuffle() {
 }
 async function axisAfterShuffle() {
   const reading = [...document.querySelectorAll('.reading-workbench')].at(-1);
-  for (let i=0;i<120 && reading.querySelectorAll('.pile-button').length!==3;i++) await new Promise(r=>setTimeout(r,100));
+  for (let i=0;i<120 && reading.querySelectorAll('.primary-pile-options .pile-button').length!==3;i++) await new Promise(r=>setTimeout(r,100));
   const current = () => [...reading.querySelectorAll('.column-header .axis-inline-label')].map(el=>el.textContent);
   const grip = reading.querySelector('.column-header .axis-menu-trigger');
   const before = current();
@@ -493,7 +493,7 @@ async function axisAfterShuffle() {
   const after = current();
   reading.querySelector('.axis-undo-button').click();
   const undo = current();
-  return { pileCount:reading.querySelectorAll('.pile-button').length, before, after, undo,
+  return { pileCount:reading.querySelectorAll('.primary-pile-options .pile-button').length, before, after, undo,
     addButtonCount:reading.querySelectorAll('.axis-add-button').length,
     canMoveAfterShuffle:before[0]!==after[0] };
 }

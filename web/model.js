@@ -30,6 +30,25 @@ export const CUSTOM_CARD_NOTES = Object.freeze({
   'meta.guarantee': 'GUARANTEE: 世界（XXI）の後、22に対応づける独自カード。正位置・逆位置あり。'
 });
 
+/* Custom card IDs remain immutable for API/backward compatibility.
+   Deck A uses the second slot for an introduction to Pamela Colman Smith,
+   not for the Deck B GUARANTEE meaning. The supplied art and biography are pending. */
+export function customCardPresentation(cardId, deckId = 'B') {
+  if (cardId === 'meta.title') return {
+    title: 'タイトルカード', faceTitle: 'TITLE',
+    note: CUSTOM_CARD_NOTES['meta.title']
+  };
+  if (cardId === 'meta.introduction') return {
+    title: 'パメラ・コールマン・スミス紹介カード', faceTitle: '紹介',
+    note: '紹介カード: パメラ・コールマン・スミスの生涯を記載したデッキAの独自カード。'
+  };
+  if (cardId === 'meta.guarantee') return {
+    title: 'GUARANTEE', faceTitle: 'GUARANTEE',
+    note: CUSTOM_CARD_NOTES['meta.guarantee']
+  };
+  return null;
+}
+
 /** Interpretive framework only: neither branch represents an actual alternate event. */
 export const PARALLEL_READING_NOTE =
   'パラレルリーディングは、別の山を選ぼうか迷ったこと自体にも意味があると捉え、「もしそちらを選んでいたら」という仮の結果を、実際に選んだメインの結果と合わせて観る、この占い独自の方式です。両方の結果は同じシャッフル時点から異なる山に分かれ、それぞれ独立に引いています。';
@@ -112,18 +131,15 @@ export function orientationLabel(value) {
   return value === 'reversed' ? '逆位置' : '正位置';
 }
 
-export function cardDisplayParts(card) {
+export function cardDisplayParts(card, deckId = 'B') {
   if (!card) return { title: '—', titleHtml: null, plainTitle: '—', orientation: '' };
 
   let title = card.name_ja;
   let titleHtml = null;
   let plainTitle = title;
 
-  if (card.card_id === 'meta.guarantee') {
-    title = 'GUARANTEE';
-    plainTitle = title;
-  } else if (card.card_id === 'meta.title') {
-    title = 'タイトルカード';
+  if (card.card_id?.startsWith('meta.')) {
+    title = customCardPresentation(card.card_id, deckId)?.title ?? title;
     plainTitle = title;
   } else if (card.card_id?.startsWith('major.')) {
     const slug = card.card_id.slice('major.'.length);
@@ -142,36 +158,44 @@ export function cardDisplayParts(card) {
   return { title, titleHtml, plainTitle, orientation: orientationLabel(card.orientation) };
 }
 
-export function cardDisplayText(card) {
-  const parts = cardDisplayParts(card);
+export function cardDisplayText(card, deckId = 'B') {
+  const parts = cardDisplayParts(card, deckId);
   // Export compact visible Japanese names without phonetic parenthetical ruby.
   // On-screen ruby HTML and the underlying card identity remain unchanged.
   return parts.orientation ? `${parts.title} ${parts.orientation}` : parts.title;
 }
 
-export function rwsImageUrl(card, width = 128) {
-  if (!card?.card_id || card.card_id.startsWith('meta.')) return null;
-
+export function rwsImageUrl(card, width = 128, deckId = 'B') {
+  if (!card?.card_id) return null;
   const variant = Number(width) > 160 ? 'detail' : 'grid';
+  if (card.card_id.startsWith('meta.')) {
+    if (deckId !== 'A') return null;
+    const filename = card.card_id === 'meta.title' ? 'deck-a-title.svg'
+      : card.card_id === 'meta.introduction' ? 'deck-a-introduction.svg' : null;
+    return filename ? `./assets/cards/${variant}/${filename}` : null;
+  }
+
   const filename = card.card_id.replaceAll('.', '-') + '.webp';
   return `./assets/cards/${variant}/${filename}`;
 }
 
 
-export function customCardNotesForResults(...results) {
+export function customCardNotesForResults(primary, parallel, deckId = 'B') {
   const seen = new Set();
-  for (const result of results) {
+  for (const result of [primary, parallel]) {
     for (const card of Object.values(result?.positions ?? {})) {
-      if (CUSTOM_CARD_NOTES[card?.card_id]) seen.add(card.card_id);
+      if (customCardPresentation(card?.card_id, deckId)) seen.add(card.card_id);
     }
   }
 
-  return ['meta.title', 'meta.guarantee']
+  return ['meta.title', 'meta.introduction', 'meta.guarantee']
     .filter(cardId => seen.has(cardId))
-    .map(cardId => CUSTOM_CARD_NOTES[cardId]);
+    .map(cardId => customCardPresentation(cardId, deckId).note);
 }
 
 export function formatReadingText({
+  deckId = 'B',
+  inactivePositions = [],
   question = '',
   rowCount,
   columnCount,
@@ -180,13 +204,14 @@ export function formatReadingText({
   primary,
   parallel
 }) {
+  const inactive = new Set(inactivePositions);
   const sections = [`Q. ${question.trim()}`];
 
   if (primary) sections.push(formatBranch('Primary', primary));
   if (parallel) sections.push(formatBranch('Parallel', parallel));
   if (parallel) sections.push(['【パラレルリーディング説明】', PARALLEL_READING_NOTE].join('\n'));
 
-  const customNotes = customCardNotesForResults(primary, parallel);
+  const customNotes = customCardNotesForResults(primary, parallel, deckId);
   if (customNotes.length > 0) {
     sections.push(['【独自カード説明】', ...customNotes].join('\n'));
   }
@@ -205,7 +230,7 @@ export function formatReadingText({
       const cells = [labelOrFallback(rowLabels, row, 'row')];
       for (let column = 0; column < columnCount; column += 1) {
         const positionId = `r${row}c${column}`;
-        cells.push(cardDisplayText(result.positions[positionId]));
+        cells.push(inactive.has(positionId) ? '-' : cardDisplayText(result.positions[positionId], deckId));
       }
       lines.push(cells.join('\t'));
     }
@@ -215,6 +240,8 @@ export function formatReadingText({
 
 /** Visible, lossless n×m results expressed as copy/paste-friendly Markdown. */
 export function formatReadingMarkdown({
+  deckId = 'B',
+  inactivePositions = [],
   question = '',
   rowCount,
   columnCount,
@@ -225,6 +252,7 @@ export function formatReadingMarkdown({
   primaryPile = null,
   parallelPile = null
 }) {
+  const inactive = new Set(inactivePositions);
   const blocks = [
     '# タロット占い結果',
     `**問い：** ${markdownCell(question) || '（未入力）'}`
@@ -236,7 +264,7 @@ export function formatReadingMarkdown({
     blocks.push(['### パラレルリーディングについて', PARALLEL_READING_NOTE].join('\n\n'));
   }
 
-  const notes = customCardNotesForResults(primary, parallel);
+  const notes = customCardNotesForResults(primary, parallel, deckId);
   if (notes.length) {
     blocks.push(['### 独自カードについて', ...notes.map(note => `- ${note}`)].join('\n'));
   }
@@ -258,7 +286,8 @@ export function formatReadingMarkdown({
     for (let row = 0; row < rowCount; row += 1) {
       const values = [markdownCell(labelOrFallback(rowLabels, row, 'row'))];
       for (let col = 0; col < columnCount; col += 1) {
-        values.push(markdownCell(cardDisplayText(result.positions[`r${row}c${col}`])));
+        const id = `r${row}c${col}`;
+        values.push(inactive.has(id) ? '-' : markdownCell(cardDisplayText(result.positions[id], deckId)));
       }
       lines.push(`| ${values.join(' | ')} |`);
     }

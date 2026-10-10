@@ -16,6 +16,10 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
+      - name: Generate self-hosted Deck A reconstructed art
+        run: node scripts/generate-deck-a-reconstruction.mjs
+      - name: Verify Deck A print images (alpha, framing, offline source)
+        run: node scripts/check-deck-a-assets.mjs
       - run: npm test
       - run: npm run check
       - run: npm run check:cloudflare
@@ -36,6 +40,22 @@ jobs:
         run: node scripts/ux-p0-race-smoke.mjs --expect-safe
       - name: Verify five-card dialog in local Chromium (desktop/mobile)
         run: node scripts/card-keyword-branch-smoke.mjs
+      - name: Capture full-size Deck A optical proofs for independent print review
+        shell: bash
+        run: |
+          "$CHROME_BIN" --headless=new --no-sandbox --disable-dev-shm-usage --disable-gpu --hide-scrollbars --window-size=1024,1850 --screenshot=deck-a-title-proof.png "file://$PWD/web/assets/cards/detail/deck-a-title.svg"
+          "$CHROME_BIN" --headless=new --no-sandbox --disable-dev-shm-usage --disable-gpu --hide-scrollbars --window-size=1024,1850 --screenshot=deck-a-introduction-proof.png "file://$PWD/web/assets/cards/detail/deck-a-introduction.svg"
+          test -s deck-a-title-proof.png
+          test -s deck-a-introduction-proof.png
+      - name: Upload user-visible Deck A print proof images
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: deck-a-issue83-print-proofs
+          path: |
+            deck-a-title-proof.png
+            deck-a-introduction-proof.png
+          if-no-files-found: warn
       - name: Collect machine-observed child-like/novice/expert UX evidence (baseline, existing failures classified)
         env:
           UX_HEAD_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
