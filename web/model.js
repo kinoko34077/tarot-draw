@@ -178,7 +178,7 @@ export function customCardNotesForResults(primary, parallel, deckId = 'B') {
   const seen = new Set();
   for (const result of [primary, parallel]) {
     for (const card of Object.values(result?.positions ?? {})) {
-      if (CUSTOM_CARD_NOTES[card?.card_id]) seen.add(card.card_id);
+      if (customCardPresentation(card?.card_id, deckId)) seen.add(card.card_id);
     }
   }
 
