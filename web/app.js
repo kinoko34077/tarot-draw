@@ -1225,70 +1225,64 @@ function createReadingController(number) {
       capacityOf(state.parallelPiles) >= requiredCards(state);
   }
 
-  function selectionStage() {
-    if (!mainReady()) return 'main';
-    if (state.parallelPiles.length && !parallelReady()) return 'parallel';
-    if (!state.parallelPiles.length && state.primaryPiles.length < 3 &&
-        requiredCards(state) <= state.piles.reduce((sum, pile) => sum + pile.count, 0) -
-          Math.min(...state.piles.map(pile => pile.count))) return 'parallel';
-    return 'done';
-  }
-
   function pileHint() {
     const needed = requiredCards(state);
+    if (!needed) return '○のマスがありません。少なくとも1マスを使用してください。';
+    if (!state.primaryPiles.length) return 'Primaryで山を選択してください。順番どおりに配ります。';
     const mainCount = capacityOf(state.primaryPiles);
-    const parallelCount = capacityOf(state.parallelPiles);
-    if (!state.primaryPiles.length) return 'メインの山を選択してください。';
-    if (mainCount < needed) {
-      return `メインの山 ${state.primaryPiles.join(' → ')}（${mainCount}/${needed}枚）。枚数確保の為次の山を選択（あと${needed - mainCount}枚）。`;
+    if (mainCount < needed) return `Primaryの山 ${state.primaryPiles.join(' → ')}（${mainCount}/${needed}枚）。次の山を追加してください。`;
+    if (state.parallelPiles.length && !parallelReady()) {
+      return `Parallelの山 ${state.parallelPiles.join(' → ')}（${capacityOf(state.parallelPiles)}/${needed}枚）。次の山を追加してください。`;
     }
-    if (state.parallelPiles.length && parallelCount < needed) {
-      return `Parallelの山 ${state.parallelPiles.join(' → ')}（${parallelCount}/${needed}枚）。枚数確保の為次の山を選択（あと${needed - parallelCount}枚）。`;
-    }
-    if (state.parallelPiles.length) return `メイン ${state.primaryPiles.join(' → ')} / Parallel ${state.parallelPiles.join(' → ')}：引けます。`;
-    if (state.primaryPiles.length === 3) return `メイン ${state.primaryPiles.join(' → ')}：${needed}枚確保。3山すべて使うためParallelは選べません。`;
-    return `メイン ${state.primaryPiles.join(' → ')}：${needed}枚確保。迷ったら別の山を選んででifを確認できます。`;
+    if (state.parallelPiles.length) return `Primary ${state.primaryPiles.join(' → ')}／Parallel ${state.parallelPiles.join(' → ')}：引けます。`;
+    return 'Primaryは準備できました。別の引き方を比べる場合はParallel側で山を選択できます。';
   }
 
+  function pileButtons(side) {
+    const selected = side === 'primary' ? state.primaryPiles : state.parallelPiles;
+    const ready = capacityOf(selected) >= requiredCards(state);
+    const canStart = side === 'primary' || mainReady();
+    return state.piles.map(pile => {
+      const isSelected = selected.includes(pile.pile_id);
+      const button = document.createElement('button');
+      button.type = 'button';
+      button.className = 'pile-button';
+      button.dataset.pile = pile.pile_id;
+      button.dataset.branch = side;
+      button.setAttribute('aria-pressed', String(isSelected));
+      button.disabled = Boolean(state.pendingOperation) ||
+        (!isSelected && (!canStart || ready || requiredCards(state) === 0));
+      const name = document.createElement('span');
+      name.className = 'pile-name';
+      name.textContent = `山 ${pile.pile_id}`;
+      const amount = document.createElement('span');
+      amount.className = 'pile-count';
+      amount.textContent = `${pile.count}枚`;
+      const role = document.createElement('span');
+      role.className = 'pile-role';
+      role.textContent = isSelected ? `${selected.indexOf(pile.pile_id) + 1}番目` : '';
+      button.setAttribute('aria-label', `${side === 'primary' ? 'Primary' : 'Parallel'} 山${pile.pile_id} ${pile.count}枚 ${role.textContent || '未選択'}`);
+      button.append(name, amount, role);
+      button.addEventListener('click', () => selectPile(pile.pile_id, side));
+      return button;
+    });
+  }
 
   function renderPiles() {
-    if (!state.piles.length) { refs.pileOptions.replaceChildren(); return; }
-    const stage = selectionStage();
-    refs.pileOptions.replaceChildren(...state.piles.map(pile => {
-      const id = pile.pile_id, main = state.primaryPiles.includes(id), other = state.parallelPiles.includes(id);
-      const button = document.createElement('button');
-      button.type = 'button'; button.className = 'pile-button';
-      button.setAttribute('aria-pressed', String(main || other));
-      const selected = main || other;
-      button.disabled = Boolean(state.pendingOperation) || (!selected && (stage === 'done' ||
-        (stage === 'parallel' && !state.parallelPiles.length && main)));
-      const name = document.createElement('span'), amount = document.createElement('span'), role = document.createElement('span');
-      name.className = 'pile-name'; name.textContent = `山 ${id}`;
-      amount.className = 'pile-count'; amount.textContent = `${pile.count}枚`;
-      role.className = 'pile-role';
-      role.textContent = main && other ? 'メイン・Parallel' : main ? 'メイン' : other ? 'Parallel' : '';
-      button.setAttribute('aria-label', `山${id} ${pile.count}枚 ${role.textContent || '未選択'}`);
-      button.append(name,amount,role);
-      button.addEventListener('click', () => selectPile(id));
-      return button;
-    }));
-    setTextStatus(refs.selectionMessage, pileHint());
+    refs.pileOptions.replaceChildren(...(state.piles.length ? pileButtons('primary') : []));
+    refs.parallelPileOptions.replaceChildren(...(state.piles.length ? pileButtons('parallel') : []));
+    refs.parallelPileOptions.closest('.pile-set-parallel')?.classList.toggle('pile-set-awaiting', !mainReady());
+    if (state.piles.length) setTextStatus(refs.selectionMessage, pileHint());
   }
 
-  function selectPile(pileId) {
+  function selectPile(pileId, side) {
     if (state.phase !== 'choosing' || state.pendingOperation) return;
-    const stage = selectionStage();
-    const parallelIndex = state.parallelPiles.indexOf(pileId);
-    const mainIndex = state.primaryPiles.indexOf(pileId);
-    if (parallelIndex >= 0) {
-      state.parallelPiles.splice(parallelIndex);
-    } else if (mainIndex >= 0) {
-      state.primaryPiles.splice(mainIndex);
-      state.parallelPiles = [];
-    } else if (stage !== 'done') {
-      const chosen = stage === 'main' ? state.primaryPiles : state.parallelPiles;
-      chosen.push(pileId);
-    } else return;
+    if (side === 'parallel' && !mainReady()) return;
+    const selected = side === 'primary' ? state.primaryPiles : state.parallelPiles;
+    const index = selected.indexOf(pileId);
+    if (index >= 0) selected.splice(index, 1);
+    else if (capacityOf(selected) < requiredCards(state)) selected.push(pileId);
+    else return;
     state.primaryPile = state.primaryPiles[0] ?? null;
     state.parallelPile = state.parallelPiles[0] ?? null;
     render();
