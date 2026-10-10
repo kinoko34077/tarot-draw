@@ -80,7 +80,18 @@ page.settingsDialog.addEventListener('click', event => {
 page.settingsDialog.addEventListener('close', () => page.settingsButton.focus({ preventScroll: true }));
 page.settingsDialog.addEventListener('change', event => {
   if (event.target.name === 'deckId') chosenSettings.deckId = event.target.value;
-  if (event.target === page.includeCustomCards) chosenSettings.includeCustom = event.target.checked;
+  if (event.target === page.includeCustomCards) {
+    const current = readings.at(-1);
+    if (!event.target.checked && current?.state.phase === 'editing' &&
+        current.state.rowLabels.length * current.state.columnLabels.length > 78) {
+      // Never imply that the visible 80-position layout silently became 78.
+      // Preserve both the previous setting and all user-authored axis names.
+      event.target.checked = true;
+      page.settingsScope.textContent = '現在の配置は78枚を超えています。78枚で使うには、先に配置を78枚以下へ減らしてください。';
+      return;
+    }
+    chosenSettings.includeCustom = event.target.checked;
+  }
   applySettingsToCurrent();
 });
 
