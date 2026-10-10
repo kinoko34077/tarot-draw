@@ -247,3 +247,15 @@ test('UX78 square column +/- buttons retain 32px strip while row controls stay u
   assert.ok(css.includes('width: 32px; min-width: 32px; max-width: 32px;'));
   assert.ok(css.includes('.axis-add-actions-column {'));
 });
+
+
+test('UX81 masks are opt-in by position and complete draw snapshot excludes × cells', async () => {
+  const app = await read('../web/app.js');
+  assert.ok(app.includes("toggle.textContent = '○'"));
+  assert.ok(app.includes("toggle.textContent = '×'"));
+  assert.ok(app.includes("function toggleCell(positionId)"));
+  assert.ok(app.includes('.filter(id => !state.inactivePositions.has(id))'));
+  assert.ok(app.includes('inactivePositions: [...state.inactivePositions]'));
+  assert.ok(app.includes('function selectPile(pileId, side)'));
+  assert.ok(app.includes("pileButtons('parallel')"));
+});
