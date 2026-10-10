@@ -52,10 +52,18 @@
           </span>
         </label>
       </fieldset>
-      <label class="settings-custom-choice">
-        <input id="includeCustomCards" type="checkbox" checked>
-        <span><strong>オリジナルカードを使用</strong><small>オン：80枚（独自カード2枚入り）／オフ：78枚</small></span>
-      </label>
+      <fieldset class="settings-special-choices">
+        <legend>独自カードを含める</legend>
+        <label class="settings-custom-choice">
+          <input id="includeTitleCard" type="checkbox" checked>
+          <span><strong>タイトルカード</strong><small>チェックすると抽選に1枚追加</small></span>
+        </label>
+        <label class="settings-custom-choice">
+          <input id="includeSecondaryCard" type="checkbox" checked>
+          <span><strong id="secondaryCardName">保証カード</strong><small>チェックすると抽選に1枚追加</small></span>
+        </label>
+        <p id="selectedDeckCount" class="settings-card-count" aria-live="polite">80枚（通常78枚＋独自カード2枚）</p>
+      </fieldset>
       <p id="settingsScope" class="settings-scope" role="status" aria-live="polite">この設定は次のシャッフルに反映されます。</p>
       <div class="settings-footer"><button id="settingsDone" class="primary" type="button">完了</button></div>
     </div>
