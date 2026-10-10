@@ -89,3 +89,17 @@ export const CARD_CATALOG = Object.freeze([
 ].map(card => Object.freeze({ ...card })));
 
 export const CARD_COUNT = CARD_CATALOG.length;
+
+/** Immutable public card identities differ across physical deck variants.
+ * The intro is a distinct card, not a renamed GUARANTEE draw.
+ * Future user-supplied art can be attached without changing these IDs.
+ */
+export function cardsForDeck(deckId = 'B', includeCustom = true) {
+  const catalog = includeCustom ? CARD_CATALOG : CARD_CATALOG.filter(card => !card.card_id.startsWith('meta.'));
+  if (!includeCustom || deckId === 'B') return catalog;
+  return catalog.map(card => card.card_id === 'meta.guarantee' ? Object.freeze({
+    card_id: 'meta.introduction',
+    name_en: 'Pamela Colman Smith Introduction Card',
+    name_ja: 'パメラ・コールマン・スミス紹介カード'
+  }) : card);
+}
