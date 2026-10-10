@@ -1463,6 +1463,7 @@ function createReadingController(number) {
       state.question = intent.question;
       state.rowLabels = [...intent.rowLabels];
       state.columnLabels = [...intent.columnLabels];
+      state.inactivePositions = new Set(intent.inactivePositions);
       state.primaryPile = intent.primaryPile;
       state.parallelPile = intent.parallelPile;
       state.primaryPiles = [...intent.primaryPiles];
@@ -1517,6 +1518,7 @@ function createReadingController(number) {
       columnCount: state.columnLabels.length,
       rowLabels: state.rowLabels,
       columnLabels: state.columnLabels,
+      inactivePositions: [...state.inactivePositions],
       primary: state.primaryResult,
       parallel: state.parallelResult,
       primaryPile: state.primaryPiles.join(' → '),
