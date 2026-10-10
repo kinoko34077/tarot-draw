@@ -346,7 +346,7 @@ try {
     if (!buttonClosed || !buttonFocusRestored) throw new Error('Close button/focus restore failed.');
 
     const resourceSizes = performance.getEntriesByType('resource')
-      .filter(entry => entry.initiatorType === 'img' && entry.name.includes('/assets/cards/grid/'))
+      .filter(entry => entry.initiatorType === 'img' && entry.name.includes('/assets/cards/grid/') && entry.name.endsWith('.webp'))
       .map(entry => ({
         name: entry.name,
         transferSize: entry.transferSize,
