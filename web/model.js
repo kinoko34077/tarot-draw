@@ -170,8 +170,8 @@ export function rwsImageUrl(card, width = 128, deckId = 'B') {
   const variant = Number(width) > 160 ? 'detail' : 'grid';
   if (card.card_id.startsWith('meta.')) {
     if (deckId !== 'A') return null;
-    const filename = card.card_id === 'meta.title' ? 'deck-a-title.webp'
-      : card.card_id === 'meta.introduction' ? 'deck-a-introduction.webp' : null;
+    const filename = card.card_id === 'meta.title' ? 'deck-a-title.svg'
+      : card.card_id === 'meta.introduction' ? 'deck-a-introduction.svg' : null;
     return filename ? `./assets/cards/${variant}/${filename}` : null;
   }
 
