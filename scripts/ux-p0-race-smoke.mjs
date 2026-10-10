@@ -772,6 +772,12 @@ try {
       const capLabel = one('.layout-count').textContent;
       const eightyIsLimit = one('.axis-add-header .axis-add-button').disabled &&
         one('.axis-add-row-header .axis-add-button').disabled;
+      one('#settingsButton').click();
+      one('#includeCustomCards').click();
+      const rejected78At80 = one('#includeCustomCards').checked === true &&
+        one('.reading-deck-summary').textContent === 'デッキB・80枚' &&
+        one('#settingsScope').textContent.includes('先に配置を78枚以下へ減らしてください');
+      one('#settingsDone').click();
       one('.shuffle-button').click();
       for (let i=0;i<120 && all('.pile-button').length!==3;i++)await sleep(20);
       const a=all('.pile-button');
@@ -796,7 +802,7 @@ try {
       const heading=one('.primary-pile-label').textContent;
       const ids=__p0.drawCalls.flatMap(call=>call.positions);
       const rowName=one('.primary-matrix .row-header');
-      return {capLabel,eightyIsLimit,cueA,cueB,drawingAfterA,drawingAfterB,
+      return {capLabel,eightyIsLimit,rejected78At80,cueA,cueB,drawingAfterA,drawingAfterB,
         drawingAfterC,parallelBlocked,thirdCleared,disabledAfterClear,restoredAfterRetap,cards,rows,heading,unique:new Set(ids).size,
         count:ids.length,piles:__p0.drawCalls.map(call=>call.pile),
         rowWidth:rowName.getBoundingClientRect().width,
@@ -804,6 +810,7 @@ try {
     })()`);
     assert.match(eighty.capLabel,/80枚/);
     assert.equal(eighty.eightyIsLimit,true);
+    assert.equal(eighty.rejected78At80,true,'78-card toggle must explain why a prepared 80-card layout cannot fit');
     assert.match(eighty.cueA,/枚数確保の為次の山を選択/);
     assert.match(eighty.cueB,/枚数確保の為次の山を選択/);
     assert.equal(eighty.drawingAfterA,true);
