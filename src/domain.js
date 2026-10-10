@@ -29,3 +29,11 @@ export function validatePositions(positions) {
   }
   return normalized;
 }
+
+/** Optional shuffle flag: omission preserves the legacy 80-card contract. */
+export function validateIncludeCustom(value = true) {
+  if (typeof value !== 'boolean') {
+    throw new TarotError('INVALID_DECK_OPTIONS', 'include_custom must be boolean.', 400);
+  }
+  return value;
+}
