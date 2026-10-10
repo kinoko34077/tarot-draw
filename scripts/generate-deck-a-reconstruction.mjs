@@ -113,17 +113,17 @@ function typeset(text,x,y,width,size=30,leading=39) {
 }
 function bioCard(photoData) {
   const pd='data:image/jpeg;base64,'+photoData;
-  const top1='Pamela Colman Smith was an illustrator, author, and theatre designer whose artistry transformed the modern tarot. Born in London in 1878 to American parents, she spent her early years moving between England, New York, and Jamaica.';
-  const top2='She studied at the Pratt Institute in Brooklyn. Returning to England, she became part of a creative world of actors, writers, illustrators and makers, drawing upon performance, folklore and music.';
+  const top1='Pamela Colman Smith (1878–1951) was an artist, illustrator and theatre designer. Born in London to American parents, she spent her childhood between England, New York and Jamaica.';
+  const top2='After studying at the Pratt Institute in Brooklyn, she returned to London, joining a lively circle of writers, artists and performers.';
   const right1='Her art embraced stage design, books, and small-press publishing. Its lively figures and decorative patterns tell stories through gesture and shape.';
   const right2='At the Hermetic Order of the Golden Dawn she met A. E. Waite. In 1909 he asked her to draw a new set of tarot pictures.';
   const right3='Her seventy-eight scenes placed symbols in human settings. Their theatrical detail shaped how generations came to read the cards.';
   const bottom1='Her interests extended far beyond tarot. Smith ran a small press, illustrated folklore and literature, and contributed graphic work to the women\'s suffrage movement.';
   const bottom2='For many years the deck was widely known chiefly by the names of its publishers and organiser. Her authorship is now increasingly recognised: the pictures remain among the most familiar images in the history of tarot.';
   const sz=29;
-  const top1Y=223;
-  const top2Y=top1Y + linesOf(top1,785,29).length*40 + 16;
-  const portraitY=top2Y + linesOf(top2,785,29).length*40 + 27;
+  const top1Y=206;
+  const top2Y=top1Y + linesOf(top1,785,29).length*39 + 10;
+  const portraitY=top2Y + linesOf(top2,785,29).length*39 + 12;
   const right1Y=portraitY+24;
   const right2Y=right1Y+linesOf(right1,361,28).length*38+18;
   const right3Y=right2Y+linesOf(right2,361,28).length*38+18;
@@ -135,9 +135,9 @@ function bioCard(photoData) {
     '<g clip-path="url(#cardClip)"><rect x="51" y="35" width="922" height="1683" filter="url(#paperGrain)" opacity=".3"/></g>'+
     '<text x="512" y="148" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="56" font-weight="800" letter-spacing=".2" fill="#141414">PAMELA COLMAN SMITH</text>'+
     typeset(top1,120,top1Y,785,sz,40)+typeset(top2,120,top2Y,785,sz,40)+
-    '<defs><clipPath id="portraitCut"><rect x="122" y="'+portraitY+'" width="398" height="'+(1205-portraitY)+'"/></clipPath></defs>'+
+    '<defs><clipPath id="portraitCut"><rect x="122" y="'+portraitY+'" width="398" height="'+(1205-portraitY)+'"/></clipPath><filter id="archiveBW" color-interpolation-filters="sRGB"><feColorMatrix type="saturate" values="0"/><feComponentTransfer><feFuncR type="linear" slope="1.12" intercept="-.05"/><feFuncG type="linear" slope="1.12" intercept="-.05"/><feFuncB type="linear" slope="1.12" intercept="-.05"/></feComponentTransfer></filter></defs>'+
     '<rect x="122" y="'+portraitY+'" width="398" height="'+(1205-portraitY)+'" fill="#a3a09b"/>'+
-    '<g clip-path="url(#portraitCut)"><image x="122" y="'+portraitY+'" width="398" height="'+(1205-portraitY)+'" preserveAspectRatio="xMidYMid slice" href="'+pd+'"/></g>'+
+    '<g clip-path="url(#portraitCut)"><image x="122" y="'+portraitY+'" width="398" height="'+(1205-portraitY)+'" preserveAspectRatio="xMidYMid slice" filter="url(#archiveBW)" href="'+pd+'"/></g>'+
     '<rect x="122" y="'+portraitY+'" width="398" height="'+(1205-portraitY)+'" fill="none" stroke="#aaa69d" stroke-width="1"/>'+
     typeset(right1,549,right1Y,361,28,38)+typeset(right2,549,right2Y,361,28,38)+
     typeset(right3,549,right3Y,361,28,38)+
