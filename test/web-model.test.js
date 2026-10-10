@@ -250,10 +250,11 @@ test('26, 27, 28, 53, 54, 55 and 80 cells are partitioned once in chosen pile or
 
 
 test('Deck A introduction custom replaces Deck B guarantee only in display/notes/export', () => {
-  const intro={card_id:'meta.guarantee',name_ja:'GUARANTEE（保証カード）',orientation:'upright'};
+  const intro={card_id:'meta.introduction',name_ja:'パメラ・コールマン・スミス紹介カード',orientation:'upright'};
+  const guarantee={card_id:'meta.guarantee',name_ja:'GUARANTEE（保証カード）',orientation:'upright'};
   const result={positions:{r0c0:intro}};
   assert.equal(cardDisplayParts(intro,'A').plainTitle,'パメラ・コールマン・スミス紹介カード');
-  assert.equal(cardDisplayText(intro,'B'),'GUARANTEE 正位置');
+  assert.equal(cardDisplayText(guarantee,'B'),'GUARANTEE 正位置');
   assert.equal(cardDisplayText(intro,'A'),'パメラ・コールマン・スミス紹介カード 正位置');
   assert.ok(customCardNotesForResults(result,null,'A')[0].includes('生涯'));
   assert.ok(!customCardNotesForResults(result,null,'A')[0].includes('GUARANTEE'));
