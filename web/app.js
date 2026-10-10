@@ -1323,8 +1323,13 @@ function createReadingController(number) {
       }
     }
 
+    if (count === 0 && state.phase === 'editing') {
+      setTextStatus(refs.layoutMessage, '○のマスがありません。少なくとも1つを使用してください。', 'error');
+    }
+
     if (!readings.length || readings.at(-1) === controller) {
-      refs.shuffleButton.disabled = !runtime.apiAvailable || state.phase !== 'editing' || Boolean(state.pendingOperation);
+      refs.shuffleButton.disabled = !runtime.apiAvailable || state.phase !== 'editing' ||
+        Boolean(state.pendingOperation) || count === 0;
       refs.shuffleButton.classList.toggle('hidden', state.phase !== 'editing');
     }
     refs.copyButton.classList.toggle('hidden', state.phase !== 'completed');
