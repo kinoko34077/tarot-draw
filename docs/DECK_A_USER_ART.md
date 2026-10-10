@@ -1,3 +1,5 @@
+> **Superseded by Issue #83 (current target).** This document is retained as provenance of the original user-supplied scans and earlier image-transfer blocker, **not** as an instruction to commit or publish the potentially copyrighted modern print. Current implementation independently recreates the two cards via scripts/generate-deck-a-reconstruction.mjs and checks self-hosted SVGs, not the four historic-scan WebPs. See docs/DECK_A_RECONSTRUCTION.md. The old checksum manifest remains archival only.
+
 # Deck A artwork — received assets and release gate (#81)
 
 Two **user-provided** 1024×1536 JPEG card scans were supplied in the ChatGPT conversation on 2026-10-10. They have already been visually normalized in the conversation runtime (no image generation). **These four WebP files have not been committed to GitHub; this document is not evidence that they exist.**
