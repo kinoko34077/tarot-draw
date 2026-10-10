@@ -203,16 +203,18 @@ try {
       const previewCount=all('#settingsDialog .deck-preview-face').length;
       q('input[name="deckId"][value="A"]').click();
       q('#includeTitleCard').click();
+      q('#includeSecondaryCard').click();
       const selectedA=q('.reading-deck-summary').textContent;
       q('#settingsDone').click();
       const closed=!q('#settingsDialog').open;
       q('.shuffle-button').click();
       for(let i=0;i<100&&all('.primary-pile-options .pile-button').length!==3;i++)await sleep(20);
-      const counts=all('.pile-count').map(e=>e.textContent);
+      const counts=all('.primary-pile-options .pile-count').map(e=>e.textContent);
       const modeStatus=q('.reading-deck-summary').textContent;
       q('#settingsButton').click();
       q('input[name="deckId"][value="B"]').click();
       q('#includeTitleCard').click();
+      q('#includeSecondaryCard').click();
       const immutability=q('.reading-deck-summary').textContent;
       const nextNotice=q('#settingsScope').textContent;
       q('#settingsClose').click();
@@ -245,7 +247,7 @@ try {
       q('#settingsDone').click();
       q('.shuffle-button').click();
       for(let i=0;i<100 && all('.primary-pile-options .pile-button').length!==3;i++)await sleep(20);
-      const sizes=all('.pile-count').map(e=>e.textContent);
+      const sizes=all('.primary-pile-options .pile-count').map(e=>e.textContent);
       all('.primary-pile-options .pile-button')[0].click();
       q('.draw-button').click();
       for(let i=0;i<120 && q('.reading-status').textContent!=='抽選完了';i++)await sleep(20);
@@ -369,7 +371,8 @@ try {
     const dims={rows:all('.row-header').length,columns:all('.column-header').length};
     one('.shuffle-button').click();
     for(let i=0;i<100 && all('.primary-pile-options .pile-button').length!==3;i++)await sleep(20);
-    all('.primary-pile-options .pile-button')[0].click();all('.primary-pile-options .pile-button')[1].click();
+    all('.primary-pile-options .pile-button')[0].click();
+    all('.parallel-pile-options .pile-button')[1].click();
     one('.draw-button').click();
     for(let i=0;i<100 && !one('.reading-status').textContent.includes('抽選完了');i++)await sleep(20);
     const cards=all('.card-detail-trigger').length;
@@ -609,19 +612,20 @@ try {
       one('.shuffle-button').click();
       for(let i=0;i<100 && all('.primary-pile-options .pile-button').length!==3;i++)await sleep(20);
       const piles=()=>all('.primary-pile-options .pile-button');
+      const alternatives=()=>all('.parallel-pile-options .pile-button');
       piles()[0].click();
       const primarySelected=piles()[0].getAttribute('aria-pressed')==='true';
       piles()[0].click();
       const cleared=piles().every(b=>b.getAttribute('aria-pressed')==='false');
-      piles()[1].click();piles()[0].click();
-      const roles={main:piles()[1].getAttribute('aria-pressed'),parallel:piles()[0].getAttribute('aria-pressed')};
+      piles()[1].click();alternatives()[0].click();
+      const roles={main:piles()[1].getAttribute('aria-pressed'),parallel:alternatives()[0].getAttribute('aria-pressed')};
       const drawReady=!one('.draw-button').disabled;
       // Regression: #70 previously returned early for a fully selected reading.
-      piles()[0].click();
-      const parallelClearedAfterDone=piles()[0].getAttribute('aria-pressed')==='false';
+      alternatives()[0].click();
+      const parallelClearedAfterDone=alternatives()[0].getAttribute('aria-pressed')==='false';
       piles()[1].click();
       const mainClearedAfterDone=piles().every(p=>p.getAttribute('aria-pressed')==='false');
-      piles()[1].click();piles()[0].click();
+      piles()[1].click();alternatives()[0].click();
       const drawEnabledAfterReselect=!one('.draw-button').disabled;
       const right=()=>one('.heading-right-controls').getBoundingClientRect().right;
       const initialRight=right();
@@ -717,7 +721,7 @@ try {
       __p0.failDrawPiles=['B'];
       one('.shuffle-button').click();
       for(let i=0;i<100 && all('.primary-pile-options .pile-button').length!==3;i++)await sleep(20);
-      all('.primary-pile-options .pile-button')[0].click(); all('.primary-pile-options .pile-button')[1].click();
+      all('.primary-pile-options .pile-button')[0].click(); all('.parallel-pile-options .pile-button')[1].click();
       one('.draw-button').click();
       for(let i=0;i<100 && !one('.reading-status').textContent.includes('確定状況が不明');i++)await sleep(20);
       const before=__p0.drawCalls.length;
@@ -765,7 +769,7 @@ try {
       const all=q=>[...document.querySelectorAll(q)];
       one('.shuffle-button').click();
       for(let i=0;i<100 && all('.primary-pile-options .pile-button').length!==3;i++)await sleep(20);
-      all('.primary-pile-options .pile-button')[0].click(); all('.primary-pile-options .pile-button')[1].click();
+      all('.primary-pile-options .pile-button')[0].click(); all('.parallel-pile-options .pile-button')[1].click();
       one('.draw-button').click();
       for(let i=0;i<100 && __p0.deferredDraw.length!==2;i++)await sleep(20);
       const releases=__p0.deferredDraw.splice(0);
@@ -825,7 +829,7 @@ try {
       one('#includeTitleCard').click();
       const rejected78At80 = one('#includeTitleCard').checked === true &&
         one('.reading-deck-summary').textContent === 'デッキB・80枚' &&
-        one('#settingsScope').textContent.includes('先に配置を78枚以下へ減らしてください');
+        one('#settingsScope').textContent.includes('先に配置を減らしてください');
       one('#settingsDone').click();
       one('.shuffle-button').click();
       for (let i=0;i<120 && all('.primary-pile-options .pile-button').length!==3;i++)await sleep(20);
@@ -838,7 +842,7 @@ try {
       const drawingAfterB=one('.draw-button').disabled;
       a[2].click();
       const drawingAfterC=one('.draw-button').disabled;
-      const parallelBlocked=all('.primary-pile-options .pile-button').every(button => button.disabled || button.getAttribute('aria-pressed')==='true');
+      const parallelBlocked=all('.parallel-pile-options .pile-button').every(button => button.disabled);
       all('.primary-pile-options .pile-button')[2].click();
       const thirdCleared=all('.primary-pile-options .pile-button')[2].getAttribute('aria-pressed')==='false';
       const disabledAfterClear=one('.draw-button').disabled;
@@ -860,12 +864,12 @@ try {
     assert.match(eighty.capLabel,/80枚/);
     assert.equal(eighty.eightyIsLimit,true);
     assert.equal(eighty.rejected78At80,true,'78-card toggle must explain why a prepared 80-card layout cannot fit');
-    assert.match(eighty.cueA,/枚数確保の為次の山を選択/);
-    assert.match(eighty.cueB,/枚数確保の為次の山を選択/);
+    assert.match(eighty.cueA,/次の山を追加/);
+    assert.match(eighty.cueB,/次の山を追加/);
     assert.equal(eighty.drawingAfterA,true);
     assert.equal(eighty.drawingAfterB,true);
     assert.equal(eighty.drawingAfterC,false);
-    assert.equal(eighty.parallelBlocked,true);
+    assert.equal(eighty.parallelBlocked,false,'Separate Parallel selector allows all three piles, even when Primary consumes all three');
     assert.equal(eighty.thirdCleared,true);
     assert.equal(eighty.disabledAfterClear,true);
     assert.equal(eighty.restoredAfterRetap,true);
