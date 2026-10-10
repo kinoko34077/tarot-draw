@@ -275,7 +275,7 @@ export function formatReadingMarkdown({
     for (let row = 0; row < rowCount; row += 1) {
       const values = [markdownCell(labelOrFallback(rowLabels, row, 'row'))];
       for (let col = 0; col < columnCount; col += 1) {
-        values.push(markdownCell(cardDisplayText(result.positions[`r${row}c${col}`])));
+        values.push(markdownCell(cardDisplayText(result.positions[`r${row}c${col}`], deckId)));
       }
       lines.push(`| ${values.join(' | ')} |`);
     }
