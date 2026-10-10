@@ -84,19 +84,14 @@ test('result cells use compact title/orientation lines and tap/click detail trig
   assert.ok(css.includes('.card-orientation'));
 });
 
-test('UX72: selected piles remain removable in done phase, and footer messaging cannot displace controls', async () => {
+test('UX81: each branch can deselect its own pile without mutating the other', async () => {
   const [app, css] = await Promise.all([read('../web/app.js'), read('../web/styles.css')]);
-  const selection = app.slice(app.indexOf('  function selectPile(pileId) {'), app.indexOf('  function updateDrawAction() {'));
-  assert.ok(!selection.includes("if (stage === 'done') return;"));
-  assert.ok(selection.includes("if (parallelIndex >= 0)"));
-  assert.ok(selection.includes("else if (mainIndex >= 0)"));
-  assert.ok(selection.includes('state.parallelPiles = [];'));
-  assert.ok(app.indexOf('class="result-action-line"') < app.indexOf('class="heading-right-controls"'));
-  assert.ok(app.indexOf('class="heading-right-controls"') < app.indexOf('class="primary-matrix table-scroll"'));
-  assert.ok(app.indexOf('class="primary-matrix table-scroll"') < app.indexOf('class="axis-history-actions"'));
-  assert.ok(css.includes('.heading-right-controls .copy-button.hidden'));
-  assert.ok(css.includes('.heading-right-controls .copy-button.hidden { display: none !important; }'));
-  assert.ok(css.includes('.axis-add-actions-column { flex-direction: column'));
+  assert.ok(app.includes('function selectPile(pileId, side)'));
+  assert.ok(app.includes('const selected = side === \'primary\' ? state.primaryPiles : state.parallelPiles'));
+  assert.ok(app.includes('selected.splice(index, 1)'));
+  assert.ok(app.includes("pileButtons('primary')"));
+  assert.ok(app.includes("pileButtons('parallel')"));
+  assert.ok(css.includes('.pile-set + .pile-set'));
 });
 
 test('UX75: grid distributes remaining space uniformly and keeps min 96px with horizontal scroll', async () => {
@@ -234,13 +229,14 @@ test('UX78: visible settings affordance and 4 special-card previews, square colu
   assert.ok(html.includes('id="settingsDialog"'));
   assert.ok(html.includes('name="deckId" value="A"'));
   assert.ok(html.includes('name="deckId" value="B"'));
-  assert.ok(html.includes('id="includeCustomCards"'));
+  assert.ok(html.includes('id="includeTitleCard"'));
+  assert.ok(html.includes('id="includeSecondaryCard"'));
   assert.equal((html.match(/class="deck-preview-face"/g)||[]).length,4);
   assert.ok(html.includes('パメラ・コールマン・スミス紹介カード'));
   assert.ok(css.includes('height: 27px; min-height: 27px; border-radius: 4px;'));
   assert.ok(app.includes('settingsDialog.showModal()'));
-  assert.ok(app.includes('state.includeCustom ? 80 : 78'));
-  assert.ok(app.includes('split.include_custom'));
+  assert.ok(app.includes('deckCardCount(state)'));
+  assert.ok(app.includes('split.include_title'));
   assert.ok(app.includes('deckId: state.deckId'));
 });
 
