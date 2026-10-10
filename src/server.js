@@ -68,7 +68,13 @@ async function serveStatic(pathname, res) {
   const cardAsset = pathname.match(/^\/assets\/cards\/(grid|detail)\/([a-z0-9-]+\.webp)$/);
   if (cardAsset) {
     const [, variant, filename] = cardAsset;
-    const data = await readFile(resolve(WEB_ROOT, 'assets', 'cards', variant, filename));
+    let data;
+    try {
+      data = await readFile(resolve(WEB_ROOT, 'assets', 'cards', variant, filename));
+    } catch (error) {
+      if (error.code === 'ENOENT') return false; // Missing optional art is a clean 404.
+      throw error;
+    }
     setCommonHeaders(res);
     res.statusCode = 200;
     res.setHeader('Content-Type', 'image/webp');
