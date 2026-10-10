@@ -116,8 +116,9 @@ function createCardVisual(card, { detail = false, deckId = 'B' } = {}) {
   face.className = detail ? 'custom-card-face detail-custom-card-face' : 'custom-card-face';
   if (card.orientation === 'reversed') face.classList.add('is-reversed');
 
+  face.dataset.deck = deckId;
   const eyebrow = document.createElement('span');
-  eyebrow.textContent = 'CUSTOM';
+  eyebrow.textContent = deckId === 'A' ? 'DECK A · 画像準備中' : 'CUSTOM';
 
   const title = document.createElement('strong');
   title.textContent = customCardPresentation(card.card_id, deckId)?.faceTitle ?? 'CARD';
@@ -1249,13 +1250,15 @@ function createReadingController(number) {
       const session = await api('/api/sessions', { method: 'POST', body: '{}' });
       state.sessionId = session.session_id;
       const split = await api(`/api/sessions/${encodeURIComponent(session.session_id)}/shuffle`, {
-        method: 'POST', body: JSON.stringify({ include_custom: state.includeCustom })
+        method: 'POST', body: JSON.stringify({ include_custom: state.includeCustom, deck_id: state.deckId })
       });
       const actualCounts = split.piles?.map(pile => pile.count);
       const expectedCounts = state.includeCustom ? [27, 27, 26] : [26, 26, 26];
       if (!actualCounts || actualCounts.length !== 3 ||
           expectedCounts.some((count, index) => actualCounts[index] !== count) ||
-          (split.include_custom !== undefined && split.include_custom !== state.includeCustom)) {
+          (split.include_custom !== undefined && split.include_custom !== state.includeCustom) ||
+          (state.deckId === 'A' && split.deck_id !== 'A') ||
+          (split.deck_id !== undefined && split.deck_id !== state.deckId)) {
         throw new Error('選んだ78/80枚設定を抽選APIが確認できませんでした。現在の結果は使わず、新しい占いからやり直してください。');
       }
       state.piles = split.piles;
