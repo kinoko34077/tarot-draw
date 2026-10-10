@@ -288,15 +288,16 @@ function setTextStatus(element, message, kind = 'info') {
 }
 
 function requiredCards(state) {
-  return state.rowLabels.length * state.columnLabels.length;
+  return buildPositionIds(state.rowLabels.length, state.columnLabels.length)
+    .filter(id => !state.inactivePositions.has(id)).length;
 }
 
 function canAddRow(state) {
-  return (state.rowLabels.length + 1) * state.columnLabels.length <= (state.includeCustom ? 80 : 78);
+  return (state.rowLabels.length + 1) * state.columnLabels.length <= deckCardCount(state);
 }
 
 function canAddColumn(state) {
-  return state.rowLabels.length * (state.columnLabels.length + 1) <= (state.includeCustom ? 80 : 78);
+  return state.rowLabels.length * (state.columnLabels.length + 1) <= deckCardCount(state);
 }
 
 async function api(path, options = {}) {
@@ -480,7 +481,9 @@ function createReadingController(number) {
     phase: 'editing',
     question: '',
     deckId: chosenSettings.deckId,
-    includeCustom: chosenSettings.includeCustom,
+    includeTitle: chosenSettings.includeTitle,
+    includeSecondary: chosenSettings.includeSecondary,
+    inactivePositions: new Set(),
     rowLabels: [''],
     columnLabels: ['', '', ''],
     sessionId: null,
@@ -515,7 +518,14 @@ function createReadingController(number) {
 
     <div class="pile-panel hidden" aria-label="山選択">
       <span class="pile-label">山</span>
-      <div class="pile-options"></div>
+      <div class="pile-set pile-set-primary">
+        <span class="pile-set-title">Primary（メイン）</span>
+        <div class="pile-options primary-pile-options" aria-label="Primaryの山を選択"></div>
+      </div>
+      <div class="pile-set pile-set-parallel">
+        <span class="pile-set-title">Parallel（別の選び方・任意）</span>
+        <div class="pile-options parallel-pile-options" aria-label="Parallelの山を選択"></div>
+      </div>
       <p class="selection-message helper pile-status" role="status" aria-live="polite"></p>
     </div>
 
@@ -561,7 +571,8 @@ function createReadingController(number) {
     questionInput: article.querySelector('.question-input'),
     layoutMessage: article.querySelector('.layout-message'),
     pilePanel: article.querySelector('.pile-panel'),
-    pileOptions: article.querySelector('.pile-options'),
+    pileOptions: article.querySelector('.primary-pile-options'),
+    parallelPileOptions: article.querySelector('.parallel-pile-options'),
     selectionMessage: article.querySelector('.selection-message'),
     primaryTitle: article.querySelector('.primary-title'),
     primaryPileLabel: article.querySelector('.primary-pile-label'),
@@ -591,10 +602,11 @@ function createReadingController(number) {
 
   function applyDeckSettings(settings) {
     if (state.phase !== 'editing' || state.pendingOperation) return false;
-    const max = settings.includeCustom ? 80 : 78;
-    if (requiredCards(state) > max) return false;
+    const max = deckCardCount(settings);
+    if (state.rowLabels.length * state.columnLabels.length > max) return false;
     state.deckId = settings.deckId;
-    state.includeCustom = settings.includeCustom;
+    state.includeTitle = settings.includeTitle;
+    state.includeSecondary = settings.includeSecondary;
     render();
     return true;
   }
@@ -1229,7 +1241,8 @@ function createReadingController(number) {
     const choosing = state.phase === 'choosing';
     if (!readings.length || readings.at(-1) === controller) {
       refs.drawButton.classList.toggle('hidden', !choosing);
-      refs.drawButton.disabled = !choosing || Boolean(state.pendingOperation) || !mainReady() || !parallelReady();
+      refs.drawButton.disabled = !choosing || Boolean(state.pendingOperation) ||
+        requiredCards(state) === 0 || !mainReady() || !parallelReady();
     }
   }
 
@@ -1240,7 +1253,7 @@ function createReadingController(number) {
     refs.redoButton.classList.toggle('hidden', !canUndo || state.redoStack.length === 0);
     refs.historyActions.classList.toggle('hidden', !canUndo || (state.undoStack.length === 0 && state.redoStack.length === 0));
     refs.cardCount.textContent = `計${count}枚`;
-    refs.deckSummary.textContent = describeDeckChoice(state.deckId, state.includeCustom);
+    refs.deckSummary.textContent = describeDeckChoice(state);
 
     if (state.phase === 'editing') {
       if (!canAddRow(state) && !canAddColumn(state)) {
@@ -1280,13 +1293,16 @@ function createReadingController(number) {
       const session = await api('/api/sessions', { method: 'POST', body: '{}' });
       state.sessionId = session.session_id;
       const split = await api(`/api/sessions/${encodeURIComponent(session.session_id)}/shuffle`, {
-        method: 'POST', body: JSON.stringify({ include_custom: state.includeCustom, deck_id: state.deckId })
+        method: 'POST', body: JSON.stringify({
+          include_title: state.includeTitle, include_secondary: state.includeSecondary, deck_id: state.deckId
+        })
       });
       const actualCounts = split.piles?.map(pile => pile.count);
-      const expectedCounts = state.includeCustom ? [27, 27, 26] : [26, 26, 26];
+      const expectedCounts = deckCardCount(state) === 80 ? [27, 27, 26]
+        : deckCardCount(state) === 79 ? [27, 26, 26] : [26, 26, 26];
       if (!actualCounts || actualCounts.length !== 3 ||
           expectedCounts.some((count, index) => actualCounts[index] !== count) ||
-          (split.include_custom !== undefined && split.include_custom !== state.includeCustom) ||
+          (split.include_title !== state.includeTitle || split.include_secondary !== state.includeSecondary) ||
           (state.deckId === 'A' && split.deck_id !== 'A') ||
           (split.deck_id !== undefined && split.deck_id !== state.deckId)) {
         throw new Error('選んだ78/80枚設定を抽選APIが確認できませんでした。現在の結果は使わず、新しい占いからやり直してください。');
@@ -1354,7 +1370,8 @@ function createReadingController(number) {
     return Object.freeze({
       sessionId: state.sessionId,
       deckId: state.deckId,
-      includeCustom: state.includeCustom,
+      includeTitle: state.includeTitle,
+      includeSecondary: state.includeSecondary,
       question: state.question,
       rowLabels: Object.freeze([...state.rowLabels]),
       columnLabels: Object.freeze([...state.columnLabels]),
@@ -1363,13 +1380,15 @@ function createReadingController(number) {
       primaryPiles: Object.freeze([...state.primaryPiles]),
       parallelPiles: Object.freeze([...state.parallelPiles]),
       piles: Object.freeze(state.piles.map(p => Object.freeze({ pile_id: p.pile_id, count: p.count }))),
-      positions: Object.freeze(buildPositionIds(state.rowLabels.length, state.columnLabels.length))
+      positions: Object.freeze(buildPositionIds(state.rowLabels.length, state.columnLabels.length)
+        .filter(id => !state.inactivePositions.has(id))),
+      inactivePositions: Object.freeze([...state.inactivePositions])
     });
   }
 
   async function draw() {
     if (state.phase !== 'choosing' || !mainReady() || !parallelReady() ||
-        !state.sessionId || state.pendingOperation || state.drawOutcome) return;
+        !state.sessionId || state.pendingOperation || state.drawOutcome || requiredCards(state) === 0) return;
 
     const intent = snapshotDrawIntent();
     state.pendingOperation = 'draw';
