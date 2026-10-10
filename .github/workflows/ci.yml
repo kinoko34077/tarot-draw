@@ -16,6 +16,10 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
+      - name: Generate self-hosted Deck A reconstructed art
+        run: node scripts/generate-deck-a-reconstruction.mjs
+      - name: Verify Deck A print images (alpha, framing, offline source)
+        run: node scripts/check-deck-a-assets.mjs
       - run: npm test
       - run: npm run check
       - run: npm run check:cloudflare
