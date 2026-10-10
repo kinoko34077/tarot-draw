@@ -62,9 +62,11 @@ const mock = `(() => {
     }
     if (/^\\/api\\/sessions\\/[^/]+\\/shuffle$/.test(path)) {
       p0.shuffleCalls++;
-      const custom=JSON.parse(init.body||'{}').include_custom!==false;
+      const options=JSON.parse(init.body||'{}');
+      const custom=options.include_custom!==false;
+      const deckId=options.deck_id||'B';
       const reply=()=>ok({
-        include_custom:custom,total_cards:custom?80:78,
+        include_custom:custom,deck_id:deckId,total_cards:custom?80:78,
         piles:[
           {pile_id:'A',count:custom?27:26},
           {pile_id:'B',count:custom?27:26},
