@@ -941,8 +941,8 @@ try {
     assert.match(eighty.capLabel,/80枚/);
     assert.equal(eighty.eightyIsLimit,true);
     assert.equal(eighty.rejected78At80,true,'78-card toggle must explain why a prepared 80-card layout cannot fit');
-    assert.match(eighty.cueA,/次の山を追加/);
-    assert.match(eighty.cueB,/次の山を追加/);
+    assert.match(eighty.cueA,/枚数確保の為次の山を選択/);
+    assert.match(eighty.cueB,/枚数確保の為次の山を選択/);
     assert.equal(eighty.drawingAfterA,true);
     assert.equal(eighty.drawingAfterB,true);
     assert.equal(eighty.drawingAfterC,false);
