@@ -84,3 +84,26 @@ test('80-card user-selected multi-pile plan consumes each oriented card exactly 
   assert.ok(Object.values(resolved).every(card =>
     card.orientation === 'upright' || card.orientation === 'reversed'));
 });
+
+
+test('78-card session has no original cards and preserves optional second branch', () => {
+  const store = makeStore();
+  const session = store.createSession();
+  assert.throws(() => store.shuffleSession(session.session_id, { include_custom: 'false' }),
+    error => error.code === 'INVALID_DECK_OPTIONS');
+  const split = store.shuffleSession(session.session_id, { include_custom:false });
+  assert.equal(split.total_cards,78);
+  assert.equal(split.include_custom,false);
+  assert.deepEqual(split.piles.map(p=>p.count),[26,26,26]);
+  const primary = store.createBranch(session.session_id,'A');
+  const parallel = store.createBranch(session.session_id,'B');
+  const positions = Array.from({length:26},(_,i)=>'p'+i);
+  for (const branch of [primary,parallel]) {
+    const result = store.draw(branch.branch_id,positions);
+    assert.equal(Object.keys(result.positions).length,26);
+    assert.ok(Object.values(result.positions).every(card=>!card.card_id.startsWith('meta.')));
+  }
+  const session80=store.createSession();
+  const legacy=store.shuffleSession(session80.session_id);
+  assert.deepEqual(legacy.piles.map(p=>p.count),[27,27,26]);
+});
