@@ -1257,3 +1257,18 @@ input:focus-visible {
 .cell-mask-excluded { display: inline-block; font-size: 1rem; color: var(--muted); padding: 3px; }
 .settings-deck-preview-image { width: 40px; height: 66px; flex: 0 0 auto; object-fit: contain; }
 @media (max-width: 420px) { .settings-deck-preview-image { width: 33px; height: 54px; } }
+
+
+/* Two explicit and independently operable triple piles, readable at 320px. */
+.pile-panel { display: grid; grid-template-columns: 50px minmax(0, 1fr); align-items: start; }
+.pile-panel .pile-label { grid-column: 1; }
+.pile-panel .pile-set { grid-column: 2; }
+.pile-panel .pile-status { grid-column: 1 / -1; margin-left: 0; text-align: left; }
+.pile-panel .pile-set + .pile-set { margin-top: 0; }
+.pile-panel .pile-set-title { display: block; }
+@media(max-width: 720px) {
+  .pile-panel { grid-template-columns: 1fr; gap: 6px; }
+  .pile-panel .pile-label, .pile-panel .pile-set, .pile-panel .pile-status { grid-column: 1; }
+  .pile-panel .pile-options { gap: 5px; }
+  .pile-panel .pile-button { padding: 4px 6px; gap: 4px; }
+}
