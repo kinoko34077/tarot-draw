@@ -1,5 +1,5 @@
 import { CARD_CATALOG } from './cards.js';
-import { TarotError, requireStringId, validatePositions, validateIncludeCustom } from './domain.js';
+import { TarotError, requireStringId, validatePositions, validateShuffleOptions } from './domain.js';
 import { PILE_IDS, shuffleAndOrient, splitThreeWays } from './engine.js';
 
 const PAGES_ORIGIN = 'https://kinoko34077.github.io';
@@ -136,7 +136,7 @@ export class TarotSession {
           throw new TarotError('SESSION_ALREADY_SHUFFLED', 'Create a new reading to shuffle again.', 409);
         }
 
-        const includeCustom = validateIncludeCustom(options.include_custom);
+        const includeCustom = validateShuffleOptions(options);
         const source = includeCustom ? CARD_CATALOG : CARD_CATALOG.filter(card => !card.card_id.startsWith('meta.'));
         const deck = shuffleAndOrient(source);
         session.piles = splitThreeWays(deck);
@@ -292,7 +292,7 @@ export const worker = {
       if (request.method === 'POST' && match) {
         const sessionId = decodeURIComponent(match[1]);
         const options = await parseJson(request);
-        validateIncludeCustom(options.include_custom);
+        validateShuffleOptions(options);
         return forward(getSessionStub(env, sessionId), '/shuffle', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
