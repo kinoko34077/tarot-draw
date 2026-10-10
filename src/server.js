@@ -65,7 +65,7 @@ function errorPayload(error) {
 }
 
 async function serveStatic(pathname, res) {
-  const cardAsset = pathname.match(/^\/assets\/cards\/(grid|detail)\/([a-z0-9-]+\.webp)$/);
+  const cardAsset = pathname.match(/^\/assets\/cards\/(grid|detail)\/([a-z0-9-]+\.(?:webp|svg))$/);
   if (cardAsset) {
     const [, variant, filename] = cardAsset;
     let data;
@@ -77,7 +77,7 @@ async function serveStatic(pathname, res) {
     }
     setCommonHeaders(res);
     res.statusCode = 200;
-    res.setHeader('Content-Type', 'image/webp');
+    res.setHeader('Content-Type', filename.endsWith('.svg') ? 'image/svg+xml; charset=utf-8' : 'image/webp');
     res.setHeader('Cache-Control', 'public, max-age=31536000, immutable');
     res.end(data);
     return true;
