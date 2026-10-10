@@ -30,8 +30,8 @@ export class TarotStore {
       throw new TarotError('SESSION_ALREADY_SHUFFLED', 'Create a new reading to shuffle again.', 409);
     }
 
-    const { includeCustom, deckId } = validateShuffleOptions(options);
-    const source = cardsForDeck(deckId, includeCustom);
+    const { includeCustom, includeTitle, includeSecondary, deckId } = validateShuffleOptions(options);
+    const source = cardsForDeck(deckId, { includeTitle, includeSecondary });
     const deck = shuffleAndOrient(source, this.randomIndex);
     session.piles = splitThreeWays(deck);
     session.state = 'split';
@@ -40,6 +40,8 @@ export class TarotStore {
       session_id: session.id,
       state: session.state,
       include_custom: includeCustom,
+      include_title: includeTitle,
+      include_secondary: includeSecondary,
       deck_id: deckId,
       total_cards: deck.length,
       piles: PILE_IDS.map(pileId => ({ pile_id: pileId, count: session.piles[pileId].length }))
