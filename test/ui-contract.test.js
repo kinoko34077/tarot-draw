@@ -243,3 +243,11 @@ test('UX78: visible settings affordance and 4 special-card previews, square colu
   assert.ok(app.includes('split.include_custom'));
   assert.ok(app.includes('deckId: state.deckId'));
 });
+
+test('UX78 square column +/- buttons retain 32px strip while row controls stay unchanged', async () => {
+  const css=await read('../web/styles.css');
+  assert.ok(css.includes('width: 27px; min-width: 27px;'));
+  assert.ok(css.includes('height: 27px; min-height: 27px; border-radius: 4px;'));
+  assert.ok(css.includes('width: 32px; min-width: 32px; max-width: 32px;'));
+  assert.ok(css.includes('.axis-add-actions-column {'));
+});
