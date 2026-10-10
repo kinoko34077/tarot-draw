@@ -1,4 +1,4 @@
-import { CARD_CATALOG } from './cards.js';
+import { cardsForDeck } from './cards.js';
 import { TarotError, requireStringId, validatePositions, validateShuffleOptions } from './domain.js';
 import { PILE_IDS, shuffleAndOrient, splitThreeWays } from './engine.js';
 
@@ -136,8 +136,8 @@ export class TarotSession {
           throw new TarotError('SESSION_ALREADY_SHUFFLED', 'Create a new reading to shuffle again.', 409);
         }
 
-        const includeCustom = validateShuffleOptions(options);
-        const source = includeCustom ? CARD_CATALOG : CARD_CATALOG.filter(card => !card.card_id.startsWith('meta.'));
+        const { includeCustom, deckId } = validateShuffleOptions(options);
+        const source = cardsForDeck(deckId, includeCustom);
         const deck = shuffleAndOrient(source);
         session.piles = splitThreeWays(deck);
         session.state = 'split';
@@ -148,6 +148,7 @@ export class TarotSession {
           session_id: session.id,
           state: session.state,
           include_custom: includeCustom,
+          deck_id: deckId,
           total_cards: deck.length,
           piles: PILE_IDS.map(pileId => ({ pile_id: pileId, count: session.piles[pileId].length }))
         });
@@ -292,11 +293,11 @@ export const worker = {
       if (request.method === 'POST' && match) {
         const sessionId = decodeURIComponent(match[1]);
         const options = await parseJson(request);
-        validateShuffleOptions(options);
+        const validated = validateShuffleOptions(options);
         return forward(getSessionStub(env, sessionId), '/shuffle', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ include_custom: options.include_custom ?? true })
+          body: JSON.stringify({ include_custom: validated.includeCustom, deck_id: validated.deckId })
         }, origin);
       }
 
