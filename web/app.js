@@ -3,7 +3,7 @@ import {
   buildPositionIds,
   cardDisplayParts,
   cardDisplayText,
-  CUSTOM_CARD_NOTES,
+  customCardPresentation,
   formatReadingMarkdown,
   labelOrFallback,
   moveAxisLabel,
@@ -42,15 +42,49 @@ const page = {
   cardDetailUprightBlock: document.querySelector('#cardDetailUprightBlock'),
   cardDetailReversedBlock: document.querySelector('#cardDetailReversedBlock'),
   cardDetailCustom: document.querySelector('#cardDetailCustom'),
-  cardDetailCustomText: document.querySelector('#cardDetailCustomText')
+  cardDetailCustomText: document.querySelector('#cardDetailCustomText'),
+  settingsButton: document.querySelector('#settingsButton'),
+  settingsDialog: document.querySelector('#settingsDialog'),
+  settingsClose: document.querySelector('#settingsClose'),
+  settingsDone: document.querySelector('#settingsDone'),
+  settingsScope: document.querySelector('#settingsScope'),
+  includeCustomCards: document.querySelector('#includeCustomCards')
 };
 
 const readings = [];
 let nextReadingNumber = 1;
 let axisMenuContext = null;
 let lastCardTrigger = null;
+const chosenSettings = { deckId: 'B', includeCustom: true };
 
-function createCardVisual(card, { detail = false } = {}) {
+function describeDeckChoice(deckId, includeCustom) {
+  return `デッキ${deckId}・${includeCustom ? '80枚' : '78枚'}`;
+}
+function applySettingsToCurrent() {
+  const current = readings.at(-1);
+  const applied = current?.applyDeckSettings(chosenSettings) ?? false;
+  page.settingsScope.textContent = applied
+    ? 'この設定で次のシャッフルを行います。'
+    : 'この設定は次の新しい占いから反映されます。進行中・完了済みの抽選は変更しません。';
+}
+page.settingsButton.addEventListener('click', () => {
+  page.settingsDialog.showModal();
+  page.settingsDialog.querySelector('input[name="deckId"]:checked')?.focus({ preventScroll: true });
+});
+function closeSettings() { page.settingsDialog.close(); }
+page.settingsClose.addEventListener('click', closeSettings);
+page.settingsDone.addEventListener('click', closeSettings);
+page.settingsDialog.addEventListener('click', event => {
+  if (event.target === page.settingsDialog) closeSettings();
+});
+page.settingsDialog.addEventListener('close', () => page.settingsButton.focus({ preventScroll: true }));
+page.settingsDialog.addEventListener('change', event => {
+  if (event.target.name === 'deckId') chosenSettings.deckId = event.target.value;
+  if (event.target === page.includeCustomCards) chosenSettings.includeCustom = event.target.checked;
+  applySettingsToCurrent();
+});
+
+function createCardVisual(card, { detail = false, deckId = 'B' } = {}) {
   const visual = document.createElement('div');
   visual.className = detail ? 'card-visual detail-card-visual' : 'card-visual';
 
@@ -86,7 +120,7 @@ function createCardVisual(card, { detail = false } = {}) {
   eyebrow.textContent = 'CUSTOM';
 
   const title = document.createElement('strong');
-  title.textContent = card.card_id === 'meta.guarantee' ? 'GUARANTEE' : 'TITLE';
+  title.textContent = customCardPresentation(card.card_id, deckId)?.faceTitle ?? 'CARD';
 
   face.append(eyebrow, title);
   visual.append(face);
@@ -156,14 +190,14 @@ function renderKeywordGrid(cardId) {
   }
 }
 
-function openCardDetail(card, trigger) {
-  const parts = cardDisplayParts(card);
+function openCardDetail(card, trigger, deckId = 'B') {
+  const parts = cardDisplayParts(card, deckId);
   const detail = cardDetail(card.card_id);
   lastCardTrigger = trigger;
 
   setCardTitle(page.cardDetailTitle, parts);
   page.cardDetailOrientation.textContent = parts.orientation;
-  page.cardDetailVisual.replaceChildren(createCardVisual(card, { detail: true }));
+  page.cardDetailVisual.replaceChildren(createCardVisual(card, { detail: true, deckId }));
   renderKeywordGrid(detail ? card.card_id : null);
 
   if (detail) {
@@ -182,7 +216,7 @@ function openCardDetail(card, trigger) {
   } else {
     page.cardDetailReference.classList.add('hidden');
     page.cardDetailCustom.classList.remove('hidden');
-    page.cardDetailCustomText.textContent = CUSTOM_CARD_NOTES[card.card_id] ?? '独自カード';
+    page.cardDetailCustomText.textContent = customCardPresentation(card.card_id, deckId)?.note ?? '独自カード';
   }
 
   page.cardDetailDialog.showModal();
@@ -227,11 +261,11 @@ function requiredCards(state) {
 }
 
 function canAddRow(state) {
-  return (state.rowLabels.length + 1) * state.columnLabels.length <= 80;
+  return (state.rowLabels.length + 1) * state.columnLabels.length <= (state.includeCustom ? 80 : 78);
 }
 
 function canAddColumn(state) {
-  return state.rowLabels.length * (state.columnLabels.length + 1) <= 80;
+  return state.rowLabels.length * (state.columnLabels.length + 1) <= (state.includeCustom ? 80 : 78);
 }
 
 async function api(path, options = {}) {
@@ -414,6 +448,8 @@ function createReadingController(number) {
     number,
     phase: 'editing',
     question: '',
+    deckId: chosenSettings.deckId,
+    includeCustom: chosenSettings.includeCustom,
     rowLabels: [''],
     columnLabels: ['', '', ''],
     sessionId: null,
@@ -437,6 +473,7 @@ function createReadingController(number) {
   article.innerHTML = `
     <div class="reading-toolbar">
       <span class="reading-index">Reading ${number}</span>
+      <span class="reading-deck-summary" aria-label="使用デッキ"></span>
       <label class="question-field">
         <span class="question-prefix">Q.</span>
         <input class="question-input" type="text" autocomplete="off" aria-label="今回の問い" placeholder="今回の問い">
@@ -485,6 +522,7 @@ function createReadingController(number) {
 
   const refs = {
     cardCount: article.querySelector('.card-count'),
+    deckSummary: article.querySelector('.reading-deck-summary'),
     copyButton: article.querySelector('.copy-button'),
     copyFeedback: article.querySelector('.copy-feedback'),
     shuffleButton: page.shuffleButton,
@@ -516,8 +554,19 @@ function createReadingController(number) {
     render,
     focusQuestion,
     shuffle,
-    draw
+    draw,
+    applyDeckSettings
   };
+
+  function applyDeckSettings(settings) {
+    if (state.phase !== 'editing' || state.pendingOperation) return false;
+    const max = settings.includeCustom ? 80 : 78;
+    if (requiredCards(state) > max) return false;
+    state.deckId = settings.deckId;
+    state.includeCustom = settings.includeCustom;
+    render();
+    return true;
+  }
 
   refs.questionInput.addEventListener('input', event => {
     if (state.pendingOperation || state.phase === 'draw-uncertain' || state.phase === 'completed') return;
@@ -587,14 +636,14 @@ function createReadingController(number) {
 
     if (kind === 'row') {
       if (!canAddRow(state)) {
-        setTextStatus(refs.layoutMessage, '配置は最大80枚です。これ以上行を追加できません。', 'error');
+        setTextStatus(refs.layoutMessage, `配置は最大${state.includeCustom ? 80 : 78}枚です。これ以上行を追加できません。`, 'error');
         return;
       }
       recordAxisHistory();
       state.rowLabels = appendAxisLabel(state.rowLabels);
     } else {
       if (!canAddColumn(state)) {
-        setTextStatus(refs.layoutMessage, '配置は最大80枚です。これ以上列を追加できません。', 'error');
+        setTextStatus(refs.layoutMessage, `配置は最大${state.includeCustom ? 80 : 78}枚です。これ以上列を追加できません。`, 'error');
         return;
       }
       recordAxisHistory();
@@ -833,8 +882,8 @@ function createReadingController(number) {
     result.type = 'button';
     result.className = 'card-result-block card-detail-trigger';
 
-    const visual = createCardVisual(card);
-    const parts = cardDisplayParts(card);
+    const visual = createCardVisual(card, { deckId: state.deckId });
+    const parts = cardDisplayParts(card, state.deckId);
 
     const label = document.createElement('span');
     label.className = 'card-result-text';
@@ -850,7 +899,7 @@ function createReadingController(number) {
     label.append(title, orientation);
     result.append(visual, label);
     result.setAttribute('aria-label', `${parts.plainTitle} ${parts.orientation}の詳細を表示`);
-    result.addEventListener('click', () => openCardDetail(card, result));
+    result.addEventListener('click', () => openCardDetail(card, result, state.deckId));
     return result;
   }
 
@@ -1079,7 +1128,9 @@ function createReadingController(number) {
   function selectionStage() {
     if (!mainReady()) return 'main';
     if (state.parallelPiles.length && !parallelReady()) return 'parallel';
-    if (!state.parallelPiles.length && state.primaryPiles.length < 3 && requiredCards(state) <= 54) return 'parallel';
+    if (!state.parallelPiles.length && state.primaryPiles.length < 3 &&
+        requiredCards(state) <= state.piles.reduce((sum, pile) => sum + pile.count, 0) -
+          Math.min(...state.piles.map(pile => pile.count))) return 'parallel';
     return 'done';
   }
 
@@ -1158,6 +1209,7 @@ function createReadingController(number) {
     refs.redoButton.classList.toggle('hidden', !canUndo || state.redoStack.length === 0);
     refs.historyActions.classList.toggle('hidden', !canUndo || (state.undoStack.length === 0 && state.redoStack.length === 0));
     refs.cardCount.textContent = `計${count}枚`;
+    refs.deckSummary.textContent = describeDeckChoice(state.deckId, state.includeCustom);
 
     if (state.phase === 'editing') {
       if (!canAddRow(state) && !canAddColumn(state)) {
@@ -1197,8 +1249,15 @@ function createReadingController(number) {
       const session = await api('/api/sessions', { method: 'POST', body: '{}' });
       state.sessionId = session.session_id;
       const split = await api(`/api/sessions/${encodeURIComponent(session.session_id)}/shuffle`, {
-        method: 'POST', body: '{}'
+        method: 'POST', body: JSON.stringify({ include_custom: state.includeCustom })
       });
+      const actualCounts = split.piles?.map(pile => pile.count);
+      const expectedCounts = state.includeCustom ? [27, 27, 26] : [26, 26, 26];
+      if (!actualCounts || actualCounts.length !== 3 ||
+          expectedCounts.some((count, index) => actualCounts[index] !== count) ||
+          (split.include_custom !== undefined && split.include_custom !== state.includeCustom)) {
+        throw new Error('選んだ78/80枚設定を抽選APIが確認できませんでした。現在の結果は使わず、新しい占いからやり直してください。');
+      }
       state.piles = split.piles;
       state.primaryPile = null;
       state.parallelPile = null;
@@ -1261,6 +1320,8 @@ function createReadingController(number) {
   function snapshotDrawIntent() {
     return Object.freeze({
       sessionId: state.sessionId,
+      deckId: state.deckId,
+      includeCustom: state.includeCustom,
       question: state.question,
       rowLabels: Object.freeze([...state.rowLabels]),
       columnLabels: Object.freeze([...state.columnLabels]),
@@ -1348,6 +1409,7 @@ function createReadingController(number) {
   async function copyReading() {
     const text = formatReadingMarkdown({
       question: state.question,
+      deckId: state.deckId,
       rowCount: state.rowLabels.length,
       columnCount: state.columnLabels.length,
       rowLabels: state.rowLabels,
