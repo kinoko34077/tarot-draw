@@ -260,3 +260,28 @@ test('Durable Object accepts 79 custom-card subset after rejected invalid flag',
   }
   assert.equal(found.filter(x=>x.startsWith('meta.')).join(','),'meta.introduction');
 });
+
+
+test('Durable Object returns 24-card major-only deck and distinct Deck A introduction', async()=>{
+  const session=new TarotSession({storage:new FakeStorage()}, {});
+  await session.fetch(jsonRequest('/create','POST',undefined,{'X-Tarot-Session-Id':'major-only-24'}));
+  const bad=await json(await session.fetch(jsonRequest('/shuffle','POST',{major_only:1})));
+  assert.equal(bad.status,400);
+  const result=await json(await session.fetch(jsonRequest('/shuffle','POST',{
+    deck_id:'A', major_only:true, include_title:true, include_secondary:true
+  })));
+  assert.equal(result.body.major_only,true);
+  assert.equal(result.body.total_cards,24);
+  assert.deepEqual(result.body.piles.map(p=>p.count),[8,8,8]);
+  const ids=[];
+  for (const pile of result.body.piles){
+    const branch=await json(await session.fetch(jsonRequest('/branches','POST',{pile:pile.pile_id})));
+    const cards=await json(await session.fetch(jsonRequest('/draw','POST',{
+      branch_id:branch.body.branch_id.split('~')[1],
+      positions:Array.from({length:pile.count},(_,i)=>'pos'+i)
+    })));
+    ids.push(...Object.values(cards.body.positions).map(x=>x.card_id));
+  }
+  assert.ok(ids.includes('meta.title')&&ids.includes('meta.introduction'));
+  assert.ok(!ids.includes('meta.guarantee') && !ids.some(x=>x.startsWith('minor.')));
+});
