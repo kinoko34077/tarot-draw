@@ -49,7 +49,8 @@ const page = {
   settingsClose: document.querySelector('#settingsClose'),
   settingsDone: document.querySelector('#settingsDone'),
   settingsScope: document.querySelector('#settingsScope'),
-  selectedDeckCount: document.querySelector('#selectedDeckCount')
+  selectedDeckCount: document.querySelector('#selectedDeckCount'),
+  majorOnlyCheckbox: document.querySelector('#majorOnlyCheckbox')
 };
 
 const readings = [];
@@ -60,14 +61,15 @@ const deckSelections = {
   A: { includeTitle: true, includeSecondary: true },
   B: { includeTitle: true, includeSecondary: true }
 };
-const chosenSettings = { deckId: 'B', ...deckSelections.B };
+const chosenSettings = { deckId: 'B', ...deckSelections.B, majorOnly: false };
 function deckCardCount(value) {
-  return 78 + Number(value.includeTitle) + Number(value.includeSecondary);
+  return (value.majorOnly ? 22 : 78) + Number(value.includeTitle) + Number(value.includeSecondary);
 }
 function describeDeckChoice(value) {
-  return `デッキ${value.deckId}・${deckCardCount(value)}枚`;
+  return `デッキ${value.deckId}${value.majorOnly ? '・大アルカナ' : ''}・${deckCardCount(value)}枚`;
 }
 function syncSettingsControls() {
+  page.majorOnlyCheckbox.checked = chosenSettings.majorOnly;
   for (const input of page.settingsDialog.querySelectorAll('input[name="deckId"]')) {
     input.checked = input.value === chosenSettings.deckId;
   }
@@ -79,7 +81,7 @@ function syncSettingsControls() {
 }
 function renderSettingsSummary() {
   page.selectedDeckCount.textContent =
-    `${deckCardCount(chosenSettings)}枚（通常78枚＋独自カード${deckCardCount(chosenSettings) - 78}枚）`;
+    `${deckCardCount(chosenSettings)}枚（${chosenSettings.majorOnly ? '大アルカナ22枚' : '通常78枚'}＋独自カード${Number(chosenSettings.includeTitle) + Number(chosenSettings.includeSecondary)}枚）`;
 }
 function applySettingsToCurrent() {
   syncSettingsControls();
@@ -112,12 +114,14 @@ page.settingsDialog.addEventListener('click', event => {
 page.settingsDialog.addEventListener('close', () => page.settingsButton.focus({ preventScroll: true }));
 page.settingsDialog.addEventListener('change', event => {
   const target = event.target;
-  if (target.name !== 'deckId' && !target.classList.contains('deck-preview-checkbox')) return;
+  if (target.name !== 'deckId' && target.name !== 'majorOnly' && !target.classList.contains('deck-preview-checkbox')) return;
   const next = { ...chosenSettings };
   if (target.name === 'deckId') {
     if (!Object.hasOwn(deckSelections, target.value)) { syncSettingsControls(); return; }
     next.deckId = target.value;
     Object.assign(next, deckSelections[next.deckId]);
+  } else if (target.name === 'majorOnly') {
+    next.majorOnly = target.checked;
   } else {
     if (target.disabled || target.dataset.deck !== chosenSettings.deckId) {
       syncSettingsControls();
@@ -559,6 +563,7 @@ function createReadingController(number) {
     deckId: chosenSettings.deckId,
     includeTitle: chosenSettings.includeTitle,
     includeSecondary: chosenSettings.includeSecondary,
+    majorOnly: chosenSettings.majorOnly,
     inactivePositions: new Set(),
     rowLabels: [''],
     columnLabels: ['', '', ''],
@@ -681,6 +686,7 @@ function createReadingController(number) {
     state.deckId = settings.deckId;
     state.includeTitle = settings.includeTitle;
     state.includeSecondary = settings.includeSecondary;
+    state.majorOnly = settings.majorOnly;
     render();
     return true;
   }
@@ -1324,7 +1330,7 @@ function createReadingController(number) {
   function independentPileChoices() {
     // Only 27+ active (○) cells need two independent ordered pile selectors.
     // Rectangular dimensions or the number of cards in the deck are irrelevant.
-    return requiredCards(state) >= 27;
+    return requiredCards(state) >= 27 || (state.majorOnly && requiredCards(state) > Math.max(...state.piles.map(pile => pile.count), 0));
   }
 
   function pileHint() {
@@ -1512,15 +1518,18 @@ function createReadingController(number) {
       state.sessionId = session.session_id;
       const split = await api(`/api/sessions/${encodeURIComponent(session.session_id)}/shuffle`, {
         method: 'POST', body: JSON.stringify({
-          include_title: state.includeTitle, include_secondary: state.includeSecondary, deck_id: state.deckId
+          include_title: state.includeTitle, include_secondary: state.includeSecondary,
+          major_only: state.majorOnly, deck_id: state.deckId
         })
       });
       const actualCounts = split.piles?.map(pile => pile.count);
-      const expectedCounts = deckCardCount(state) === 80 ? [27, 27, 26]
-        : deckCardCount(state) === 79 ? [27, 26, 26] : [26, 26, 26];
+      const count = deckCardCount(state);
+      const base = Math.floor(count / 3), extra = count % 3;
+      const expectedCounts = [base + (extra > 0 ? 1 : 0), base + (extra > 1 ? 1 : 0), base];
       if (!actualCounts || actualCounts.length !== 3 ||
           expectedCounts.some((count, index) => actualCounts[index] !== count) ||
-          (split.include_title !== state.includeTitle || split.include_secondary !== state.includeSecondary) ||
+          (split.include_title !== state.includeTitle || split.include_secondary !== state.includeSecondary ||
+           split.major_only !== state.majorOnly) ||
           (state.deckId === 'A' && split.deck_id !== 'A') ||
           (split.deck_id !== undefined && split.deck_id !== state.deckId)) {
         throw new Error('選んだ78/80枚設定を抽選APIが確認できませんでした。現在の結果は使わず、新しい占いからやり直してください。');
@@ -1590,6 +1599,7 @@ function createReadingController(number) {
       deckId: state.deckId,
       includeTitle: state.includeTitle,
       includeSecondary: state.includeSecondary,
+      majorOnly: state.majorOnly,
       question: state.question,
       rowLabels: Object.freeze([...state.rowLabels]),
       columnLabels: Object.freeze([...state.columnLabels]),
