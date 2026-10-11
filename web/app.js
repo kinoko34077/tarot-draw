@@ -770,14 +770,14 @@ function createReadingController(number) {
 
     if (kind === 'row') {
       if (!canAddRow(state)) {
-        setTextStatus(refs.layoutMessage, `配置は最大${state.includeCustom ? 80 : 78}枚です。これ以上行を追加できません。`, 'error');
+        setTextStatus(refs.layoutMessage, `配置は最大${deckCardCount(state)}枚です。これ以上行を追加できません。`, 'error');
         return;
       }
       recordAxisHistory();
       state.rowLabels = appendAxisLabel(state.rowLabels);
     } else {
       if (!canAddColumn(state)) {
-        setTextStatus(refs.layoutMessage, `配置は最大${state.includeCustom ? 80 : 78}枚です。これ以上列を追加できません。`, 'error');
+        setTextStatus(refs.layoutMessage, `配置は最大${deckCardCount(state)}枚です。これ以上列を追加できません。`, 'error');
         return;
       }
       recordAxisHistory();
