@@ -3,7 +3,7 @@
 import assert from 'node:assert/strict';
 import { spawn, spawnSync } from 'node:child_process';
 import { once } from 'node:events';
-import { mkdtemp, readFile, rm } from 'node:fs/promises';
+import { mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { createTarotServer } from '../src/server.js';
@@ -201,13 +201,25 @@ try {
       q('#settingsButton').click();
       const opened=q('#settingsDialog').open;
       const previewCount=all('#settingsDialog .deck-preview-face').length;
+      const initialDisabled = all('.deck-preview-checkbox[data-deck="A"]').every(e=>e.disabled) &&
+        all('.deck-preview-checkbox[data-deck="B"]').every(e=>!e.disabled);
+      const dialogFits = q('#settingsDialog').scrollWidth <= q('#settingsDialog').clientWidth + 1;
+      const cardFaceWidth = q('.deck-preview-face').getBoundingClientRect().width;
       for(let i=0;i<100 && all('[data-deck-a-image] img').length!==2;i++)await sleep(20);
       const aArt=all('[data-deck-a-image] img').map(im=>({
         src:im.getAttribute('src'),ok:im.complete&&im.naturalWidth===1024&&im.naturalHeight===1755
       }));
       q('input[name="deckId"][value="A"]').click();
-      q('#includeTitleCard').click();
-      q('#includeSecondaryCard').click();
+      const selectedEnabled = all('.deck-preview-checkbox[data-deck="A"]').every(e=>!e.disabled) &&
+        all('.deck-preview-checkbox[data-deck="B"]').every(e=>e.disabled);
+      const cardRects = all('.deck-preview-checkbox[data-deck="A"]').map(e=>{
+        const box=e.getBoundingClientRect(),face=e.parentElement.querySelector('.deck-preview-face').getBoundingClientRect();
+        return {input:{x:box.x,y:box.y,width:box.width,height:box.height},face:{x:face.x,y:face.y,width:face.width,height:face.height}};
+      });
+      const controlOnCard = cardRects.every(({input,face})=> input.x>=face.x-1&&
+        input.x+input.width<=face.x+face.width+1&&input.y>=face.y-1&&input.y+input.height<=face.y+face.height+1);
+      q('#includeTitleCardA').click();
+       q('#includeSecondaryCardA').click();
       const selectedA=q('.reading-deck-summary').textContent;
       q('#settingsDone').click();
       const closed=!q('#settingsDialog').open;
@@ -222,7 +234,7 @@ try {
       const immutability=q('.reading-deck-summary').textContent;
       const nextNotice=q('#settingsScope').textContent;
       q('#settingsClose').click();
-      return {opened,closed,previewCount,aArt,
+      return {opened,closed,previewCount,aArt,initialDisabled,dialogFits,cardFaceWidth,selectedEnabled,controlOnCard,cardRects,
         squarePlus:Math.abs(plus.width-plus.height)<1&&plus.width>=26,
         squareMinus:Math.abs(minus.width-minus.height)<1&&minus.width>=26,
         selectedA,counts,modeStatus,immutability,nextNotice};
@@ -230,6 +242,11 @@ try {
     assert.equal(settings.opened,true);
     assert.equal(settings.closed,true);
     assert.equal(settings.previewCount,4);
+    assert.equal(settings.initialDisabled,true,'Inactive Deck A checkboxes must initially be disabled');
+    assert.equal(settings.selectedEnabled,true,'Radio selection enables only active deck cards');
+    assert.equal(settings.controlOnCard,true,'Checkbox overlay geometry '+JSON.stringify(settings.cardRects));
+    assert.equal(settings.dialogFits,true,'Settings must have no horizontal clipping on mobile');
+    assert.ok(settings.cardFaceWidth>=190,'Selected mobile cards need nearly detail-card width');
     assert.equal(settings.aArt.length,2);
     assert.ok(settings.aArt.every(a=>a.ok&&a.src.endsWith('.svg')),'Both independently reconstructed Deck A cards must load as self-hosted SVG in actual browser');
     assert.equal(settings.squarePlus,true);
@@ -240,6 +257,27 @@ try {
     assert.equal(settings.immutability,'デッキA・78枚');
     assert.ok(settings.nextNotice.includes('次の新しい占い'));
     report('UX78-DECK-SETTINGS',{status:'PASS',...settings});
+
+    await navigate(320);
+    const mobileSettings=await evalInPage(`(() => {
+      document.querySelector('#settingsButton').click();
+      const d=document.querySelector('#settingsDialog');
+      const face=d.querySelector('.deck-preview-face').getBoundingClientRect();
+      return {width:face.width,fits:d.scrollWidth<=d.clientWidth+1,
+        labels:[...d.querySelectorAll('.deck-preview-name')].length};
+    })()`);
+    assert.ok(mobileSettings.width>=190,'Large card previews must remain near detail size at 320px');
+    assert.equal(mobileSettings.fits,true,'320px settings dialog must not scroll sideways');
+    assert.equal(mobileSettings.labels,4);
+    report('UX87-SETTINGS-320',{status:'PASS',...mobileSettings});
+    const settings320Proof = await cdp.call('Page.captureScreenshot',{format:'png'});
+    await writeFile('settings-deck-320.png',Buffer.from(settings320Proof.data,'base64'));
+
+
+    await evalInPage(`(() => document.querySelector('#settingsButton').click())()`);
+    const settings390Proof = await cdp.call('Page.captureScreenshot',{format:'png'});
+    await writeFile('settings-deck-390.png',Buffer.from(settings390Proof.data,'base64'));
+    await evalInPage(`(() => document.querySelector('#settingsClose').click())()`);
 
     // A/80 is not a mere B-label alias: its introduction ID, display/detail
     // and copied notes must match, with no GUARANTEE or invented biography.

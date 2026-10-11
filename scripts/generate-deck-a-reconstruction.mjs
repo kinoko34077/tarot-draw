@@ -26,74 +26,71 @@ function cardBorder() {
   return '<rect x="51" y="35" width="922" height="1683" rx="58" fill="#efece3" stroke="#bab6a9" stroke-width="2.1"/>'+
     '<rect x="101" y="91" width="822" height="1567" rx="43" fill="url(#purple)" stroke="#1d174e" stroke-width="2"/>';
 }
-function titleText(text, y, size) {
-  return '<text x="512" y="'+y+'" text-anchor="middle" font-family="Georgia, Times New Roman, serif" font-weight="bold" font-variant="small-caps" letter-spacing="-1.1" font-size="'+size+'" fill="#f6e8b8">'+esc(text)+'</text>';
+function titleText(text, y, size, targetWidth) {
+  // Preserve tall period capitals but follow the reference's narrower line measure.
+  return '<text x="512" y="'+y+'" text-anchor="middle" font-family="Georgia, Times New Roman, serif" font-weight="bold" font-variant="small-caps" letter-spacing="-1.1" font-size="'+size+'" textLength="'+targetWidth+'" lengthAdjust="spacingAndGlyphs" fill="#f6e8b8">'+esc(text)+'</text>';
 }
 function ouroboros() {
-  const x=510,y=910,rx=196,ry=200;
-  const g=[];
-  g.push('<g fill="none" stroke="#f1dfa5" stroke-linecap="round" stroke-linejoin="round">');
-  g.push('<ellipse cx="'+x+'" cy="'+y+'" rx="'+rx+'" ry="'+ry+'" stroke-width="52"/>');
-  g.push('<ellipse cx="'+x+'" cy="'+y+'" rx="174" ry="178" stroke="#211a55" stroke-width="1.7"/>');
-  g.push('<ellipse cx="'+x+'" cy="'+y+'" rx="181" ry="185" stroke="#332663" stroke-width="3.5"/>');
-  g.push('<ellipse cx="'+x+'" cy="'+y+'" rx="207" ry="211" stroke-width="1.5"/>');
-  g.push('<ellipse cx="'+x+'" cy="'+y+'" rx="216" ry="220" stroke-width="1.2" opacity=".6"/>');
-  g.push('</g>');
-  // Small hatches engraved radially inside the independently illustrated ring.
+  // Original restrained single-headed engraved serpent. The old monster-like
+  // tongue, excessive eye and ragged extra rings are deliberately removed.
+  // PD comparison reference: Wikimedia Commons Ouroboros-simple.svg (AnonMoos).
+  const cx=512,cy=872,rx=189,ry=194;
+  const p=[];
+  p.push('<g fill="none" stroke-linecap="round" stroke-linejoin="round">');
+  p.push('<ellipse cx="'+cx+'" cy="'+cy+'" rx="'+rx+'" ry="'+ry+'" stroke="#f3e5af" stroke-width="39"/>');
+  p.push('<ellipse cx="'+cx+'" cy="'+cy+'" rx="170" ry="175" stroke="#483672" stroke-width="2.5" opacity=".85"/>');
+  p.push('<ellipse cx="'+cx+'" cy="'+cy+'" rx="209" ry="214" stroke="#f3e5af" stroke-width="1.7"/>');
+  p.push('<ellipse cx="'+cx+'" cy="'+cy+'" rx="184" ry="189" stroke="#322260" stroke-width="1.4"/>');
+  // Fine irregular ink engravings cross the body without changing the silhouette.
   const hatch=[];
-  for (let a=0;a<360;a+=4.1) {
-    if (a>249 && a<301) continue;
-    const q=a*Math.PI/180;const r1=181+(Math.sin(a*2.1)*2);const r2=202+(Math.sin(a*1.3)*1.5);
-    hatch.push('M'+(x+Math.cos(q)*r1).toFixed(1)+' '+(y+Math.sin(q)*r1*1.017).toFixed(1)+
-      'L'+(x+Math.cos(q+.018)*r2).toFixed(1)+' '+(y+Math.sin(q+.018)*r2*1.017).toFixed(1));
+  for(let a=0;a<360;a+=6.8){
+    if(a>242&&a<313)continue;
+    const t=a*Math.PI/180;
+    const inner=175+(Math.sin(a*1.7)*1.4),outer=202+(Math.sin(a*2.1)*.9);
+    hatch.push('M'+(cx+Math.cos(t)*inner).toFixed(1)+' '+(cy+Math.sin(t)*inner*1.026).toFixed(1)+
+      'L'+(cx+Math.cos(t+.015)*outer).toFixed(1)+' '+(cy+Math.sin(t+.015)*outer*1.026).toFixed(1));
   }
-  g.push('<path d="'+hatch.join(' ')+'" stroke="#3d2d70" fill="none" stroke-width=".9" opacity=".63"/>');
+  p.push('<path d="'+hatch.join(' ')+'" stroke="#413267" stroke-width=".85" opacity=".67"/>');
+  p.push('</g>');
+  // Classical horizontal head at the top, mouth touching its own fine tail.
+  p.push('<path d="M457 690 Q486 666 525 665 Q546 665 565 674 Q585 673 602 680 L611 690 Q600 699 584 701 Q558 699 542 691 Q500 686 468 709 Z" fill="#f3e5af" stroke="#3e2d66" stroke-width="2.5"/>');
+  p.push('<path d="M571 678 Q582 674 594 681 M584 701 Q598 698 611 690" stroke="#3e2d66" stroke-width="1.3" fill="none"/>');
+  p.push('<circle cx="568" cy="681" r="3.3" fill="#39285f"/>');
+  p.push('<path d="M610 691 Q623 685 634 682" stroke="#f3e5af" stroke-width="3.8" fill="none"/>');
   const dots=[];
-  for(let i=0;i<225;i++){
-    const angle=(i*137.508)%360*Math.PI/180;
-    const r=184+(i*37%20);
-    const dx=x+Math.cos(angle)*r,dy=y+Math.sin(angle)*r*1.018;
-    if(dy<746 && dx>420&&dx<650)continue;
-    dots.push('<circle cx="'+dx.toFixed(1)+'" cy="'+dy.toFixed(1)+'" r="'+(i%5===0?1.7:.75)+'" fill="#352662" opacity=".82"/>');
+  for(let i=0;i<150;i++){
+    const t=((i*137.508)%360)*Math.PI/180;
+    const rr=176+(i*31%23);
+    const px=cx+Math.cos(t)*rr,py=cy+Math.sin(t)*rr*1.027;
+    if(py<713&&px>440&&px<637)continue;
+    dots.push('<circle cx="'+px.toFixed(1)+'" cy="'+py.toFixed(1)+'" r="'+(i%4===0?1.3:.67)+'" fill="#45346b" opacity=".7"/>');
   }
-  g.push(dots.join(''));
-  // Serpent's independently drawn head, eye, neck and narrow forked tongue.
-  g.push('<path d="M431 725 C459 702 509 694 549 710 C576 722 587 738 618 741 C638 742 648 728 652 715 C656 735 645 752 628 758 C600 766 577 748 550 748 C500 742 467 742 431 757Z" fill="#f2e0aa" stroke="#34235c" stroke-width="2.6"/>');
-  g.push('<path d="M559 719 C576 724 578 734 594 735 M478 718 C496 709 511 710 522 715" stroke="#4a3673" stroke-width="1.9" fill="none"/>');
-  g.push('<path d="M625 737 Q649 729 678 697 M649 728 L674 703 M649 728 L680 714" stroke="#f5e7b5" stroke-width="3.2" fill="none"/>');
-  g.push('<ellipse cx="554" cy="725" rx="10" ry="9" fill="#453168"/><circle cx="558" cy="722" r="3.2" fill="#f5e6b2"/>');
-  for(let i=0;i<65;i++){
-    const px=449+(i*37%157),py=718+(i*19%30);
-    if(px>573&&py>740)continue;
-    g.push('<circle cx="'+px+'" cy="'+py+'" r="'+(i%3?1:1.5)+'" fill="#5b477b" opacity=".62"/>');
-  }
-  return '<g>'+g.join('')+'</g>';
+  return '<g>'+p.join('')+dots.join('')+'</g>';
 }
 function titleCard() {
   return base('title',grainDefs()+
-    '<title id="titletitle">The Original Rider Waite Tarot Deck — reconstructed title card</title>'+
-    '<desc id="titledesc">Vintage indigo and cream title, engraved ouroboros, Arthur E. Waite and Pamela Colman Smith historical credits. New independent design.</desc>'+
+    '<title id="titletitle">The Original Rider Waite Tarot Deck — independently reconstructed title</title>'+
+    '<desc id="titledesc">Deep-indigo vintage-style three-line cream serif title, single-head ouroboros ring, historical Waite and Smith credits. Independently authored.</desc>'+
     cardBorder()+
-    '<g clip-path="url(#cardClip)"><rect x="51" y="35" width="922" height="1683" filter="url(#paperGrain)" opacity=".47"/></g>'+
-    titleText('THE ORIGINAL',252,94)+titleText('RIDER WAITE',379,103)+titleText('TAROT DECK',508,110)+
+    '<g clip-path="url(#cardClip)"><rect x="51" y="35" width="922" height="1683" filter="url(#paperGrain)" opacity=".28"/></g>'+
+    titleText('THE ORIGINAL',245,104,587)+titleText('RIDER WAITE',378,114,566)+titleText('TAROT DECK',513,114,557)+
     ouroboros()+
-    '<g fill="#f3e3b2" font-family="Georgia, Times New Roman, serif" text-anchor="middle" font-weight="bold">'+
-    '<text x="512" y="1326" font-size="50">Conceived by</text>'+
-    '<text x="512" y="1394" font-size="51" font-variant="small-caps">A. E. Waite</text>'+
-    '<text x="512" y="1521" font-size="49">Cards designed by</text>'+
-    '<text x="512" y="1592" font-size="43" font-variant="small-caps">Pamela Colman Smith</text></g>'+
-    '<path d="M314 1650H710" stroke="#f4e5b5" stroke-width="1.2" opacity=".56"/>');
+    '<g fill="#f8ebc2" font-family="Georgia, Times New Roman, serif" text-anchor="middle" font-weight="bold">'+
+    '<text x="512" y="1248" font-size="55">Conceived by</text>'+
+    '<text x="512" y="1319" font-size="56" font-variant="small-caps">A. E. Waite</text>'+
+    '<text x="512" y="1460" font-size="54">Cards designed by</text>'+
+    '<text x="512" y="1528" font-size="48" font-variant="small-caps">Pamela Colman Smith</text></g>');
 }
 function textWidth(s,size) {
   let sum=0;
   for(const c of s){
-    if(c===' ')sum+=.27;
+    if(c===' ')sum+=.28;
     else if('mwMW@'.includes(c))sum+=.82;
-    else if('ilI.,;:\'!'.includes(c))sum+=.3;
+    else if('ilI.,;:\'!'.includes(c))sum+=.31;
     else if(c===c.toUpperCase())sum+=.61;
     else sum+=.49;
   }
-  return sum*size;
+  return sum*size*1.04;
 }
 function linesOf(text,width,size) {
   const words=text.split(/\s+/);
@@ -106,45 +103,60 @@ function linesOf(text,width,size) {
   if(cur.length)lines.push(cur.join(' '));
   return lines;
 }
-function typeset(text,x,y,width,size=30,leading=39) {
-  return linesOf(text,width,size).map((line,i)=>{
-    return '<text x="'+x+'" y="'+(y+i*leading)+'" xml:space="preserve" font-family="Arial, Helvetica, sans-serif" font-size="'+size+'" letter-spacing=".05" fill="#20201f">'+esc(line)+'</text>';
-  }).join('');
+function typeset(text,x,y,width,size=26,leading=30) {
+  const lines=linesOf(text,width,size);
+  // Natural browser-shaped words remain legible. Prior forced tspan offsets
+  // could fuse neighbouring words; glyph-space stretching distorted letters.
+  return lines.map((line,i)=>
+    '<text x="'+x+'" y="'+(y+i*leading)+'" xml:space="preserve" font-family="Arial, Helvetica, sans-serif" font-size="'+size+'" fill="#0b0b0b">'+esc(line)+'</text>'
+  ).join('');
 }
 function bioCard(photoData) {
   const pd='data:image/jpeg;base64,'+photoData;
-  const top1='Pamela Colman Smith (1878–1951) was an artist, illustrator and theatre designer. Born in London to American parents, she spent her childhood between England, New York and Jamaica.';
-  const top2='After studying at the Pratt Institute in Brooklyn, she returned to London, joining a lively circle of writers, artists and performers.';
-  const right1='Her art embraced stage design, books, and small-press publishing. Its lively figures and decorative patterns tell stories through gesture and shape.';
-  const right2='At the Hermetic Order of the Golden Dawn she met A. E. Waite. In 1909 he asked her to draw a new set of tarot pictures.';
-  const right3='Her seventy-eight scenes placed symbols in human settings. Their theatrical detail shaped how generations came to read the cards.';
-  const bottom1='Her interests extended far beyond tarot. Smith ran a small press, illustrated folklore and literature, and contributed graphic work to the women\'s suffrage movement.';
-  const bottom2='For many years the deck was widely known chiefly by the names of its publishers and organiser. Her authorship is now increasingly recognised: the pictures remain among the most familiar images in the history of tarot.';
-  const sz=29;
-  const top1Y=206;
-  const top2Y=top1Y + linesOf(top1,785,29).length*39 + 10;
-  const portraitY=top2Y + linesOf(top2,785,29).length*39 + 12;
-  const right1Y=portraitY+24;
-  const right2Y=right1Y+linesOf(right1,361,28).length*38+18;
-  const right3Y=right2Y+linesOf(right2,361,28).length*38+18;
-  const lower1Y=1345,lower2Y=1479;
+  // Independent historical composition: matches the reference's ~310-word
+  // density and factual coverage, not Kaplan's sentence syntax or sequence.
+  const top1="Pamela Colman Smith was born in Middlesex, England, on 16 February 1878, into an American family. Her childhood moved among London, New York and Kingston, Jamaica, giving her a transatlantic upbringing that later informed her varied visual work.";
+  const top2="During her adolescence, the touring theatrical circle of Ellen Terry and Henry Irving exposed her to stagecraft and performance. Smith then trained at the Pratt Institute in Brooklyn, completing her formal studies in 1897 and returning to an active artistic life in England.";
+  const right1="Smith designed miniature theatres and theatrical settings while also providing illustrations for books, magazines and posters. Her bold outlines, lively figures and dramatic compositions brought a performer's eye to printed pictures and stories.";
+  const right2="By about 1903 she had joined the Hermetic Order of the Golden Dawn, an organisation concerned with ceremonial magic and symbolism. She also described images arising in response to music, which she translated into vivid artwork.";
+  const right3="Her association with Arthur Edward Waite led to the 1909 tarot commission. She created pictures for all seventy-eight cards, including narrative scenes on the numbered suit cards, rather than relying only on conventional symbols. The pack was published that year by William Rider.";
+  const bottom1="Beyond the tarot, Smith worked with publishers, illustrated legends and literature, edited and produced a small magazine, and exhibited her pictures. Despite exhibitions and encouraging notices, sales remained uncertain, and sustained financial security did not follow her artistic achievements.";
+  const bottom2="She never married and later lived in Cornwall, where she died on 18 September 1951. Many of her illustrations, paintings and stage designs are now scattered or lost; much of her wider career was overlooked for decades after her death.";
+  const bottom3="Today the widely circulated tarot illustrations are increasingly recognised as Smith's work rather than solely the product of the publisher and Waite. Their distinctive fusion of ordinary human gestures, storytelling and esoteric symbols has influenced generations of tarot readers and artists.";
+  const prose=[top1,top2,right1,right2,right3,bottom1,bottom2,bottom3];
+  const words=prose.join(' ').split(/\s+/).length;
+  if(words<290||words>345)throw Error('Biography density drift from the reference: '+words);
+  const topSize=26,topLead=28,rightSize=25,rightLead=26,bottomSize=25,bottomLead=27;
+  const top1Y=179;
+  const top2Y=top1Y+linesOf(top1,784,topSize).length*topLead+12;
+  const portraitY=top2Y+linesOf(top2,784,topSize).length*topLead+14;
+  const r1Y=portraitY+19;
+  const r2Y=r1Y+linesOf(right1,357,rightSize).length*rightLead+10;
+  const r3Y=r2Y+linesOf(right2,357,rightSize).length*rightLead+10;
+  const rightEnd=r3Y+linesOf(right3,357,rightSize).length*rightLead;
+  const portraitBottom=1150;
+  const lower1Y=Math.max(portraitBottom+33,rightEnd+8);
+  const lower2Y=lower1Y+linesOf(bottom1,788,bottomSize).length*bottomLead+9;
+  const lower3Y=lower2Y+linesOf(bottom2,788,bottomSize).length*bottomLead+9;
+  const lastY=lower3Y+(linesOf(bottom3,788,bottomSize).length-1)*bottomLead;
+  if(portraitY>590||lastY>1646)throw Error('Biography typesetting overflows: photoY='+portraitY+' last='+lastY);
   return base('bio',grainDefs()+
-    '<title id="biotitle">Pamela Colman Smith — artist biography</title>'+
-    '<desc id="biodesc">Original biographical text, period newspaper-inspired typography, and public-domain portrait first published in The Craftsman, October 1912.</desc>'+
-    '<rect x="51" y="35" width="922" height="1683" rx="58" fill="#f2f0e8" stroke="#c7c3b9" stroke-width="2"/>'+
-    '<g clip-path="url(#cardClip)"><rect x="51" y="35" width="922" height="1683" filter="url(#paperGrain)" opacity=".3"/></g>'+
-    '<text x="512" y="148" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="56" font-weight="800" letter-spacing=".2" fill="#141414">PAMELA COLMAN SMITH</text>'+
-    typeset(top1,120,top1Y,785,sz,40)+typeset(top2,120,top2Y,785,sz,40)+
-    '<defs><clipPath id="portraitCut"><rect x="122" y="'+portraitY+'" width="398" height="'+(1205-portraitY)+'"/></clipPath><filter id="archiveBW" color-interpolation-filters="sRGB"><feColorMatrix type="saturate" values="0"/><feComponentTransfer><feFuncR type="linear" slope="1.12" intercept="-.05"/><feFuncG type="linear" slope="1.12" intercept="-.05"/><feFuncB type="linear" slope="1.12" intercept="-.05"/></feComponentTransfer></filter></defs>'+
-    '<rect x="122" y="'+portraitY+'" width="398" height="'+(1205-portraitY)+'" fill="#a3a09b"/>'+
-    '<g clip-path="url(#portraitCut)"><image x="122" y="'+portraitY+'" width="398" height="'+(1205-portraitY)+'" preserveAspectRatio="xMidYMid slice" filter="url(#archiveBW)" href="'+pd+'"/></g>'+
-    '<rect x="122" y="'+portraitY+'" width="398" height="'+(1205-portraitY)+'" fill="none" stroke="#aaa69d" stroke-width="1"/>'+
-    typeset(right1,549,right1Y,361,28,38)+typeset(right2,549,right2Y,361,28,38)+
-    typeset(right3,549,right3Y,361,28,38)+
-    typeset(bottom1,120,lower1Y,786,29,39)+
-    typeset(bottom2,120,lower2Y,786,29,39)+
-    '<path d="M125 1663H900" stroke="#8d897f" stroke-width=".75"/>'+
-    '<text x="512" y="1687" text-anchor="middle" font-family="Georgia, Times New Roman, serif" font-size="20" font-style="italic" fill="#45433d">Portrait: The Craftsman, October 1912 · Historical sources: Whitney, Morgan &amp; British Museum</text>');
+    '<title id="biotitle">Pamela Colman Smith — illustrated biography</title>'+
+    '<desc id="biodesc">Original independently written biographical text with archival 1912 portrait; black print on pale ivory.</desc>'+
+    '<rect x="51" y="35" width="922" height="1683" rx="58" fill="#fbfaf6" stroke="#a7a49d" stroke-width="2"/>'+
+    '<g clip-path="url(#cardClip)"><rect x="51" y="35" width="922" height="1683" filter="url(#paperGrain)" opacity=".09"/></g>'+
+    '<text x="512" y="142" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="58" font-weight="900" letter-spacing="-.65" fill="#080808">PAMELA COLMAN SMITH</text>'+
+    typeset(top1,121,top1Y,784,topSize,topLead)+typeset(top2,121,top2Y,784,topSize,topLead)+
+    '<defs><clipPath id="portraitCut"><rect x="122" y="'+portraitY+'" width="391" height="'+(portraitBottom-portraitY)+'"/></clipPath><filter id="archiveBW" color-interpolation-filters="sRGB"><feColorMatrix type="saturate" values="0"/><feComponentTransfer><feFuncR type="linear" slope="1.38" intercept="-.14"/><feFuncG type="linear" slope="1.38" intercept="-.14"/><feFuncB type="linear" slope="1.38" intercept="-.14"/></feComponentTransfer></filter></defs>'+
+    '<rect x="122" y="'+portraitY+'" width="391" height="'+(portraitBottom-portraitY)+'" fill="#767676"/>'+
+    '<g clip-path="url(#portraitCut)"><image x="122" y="'+portraitY+'" width="391" height="'+(portraitBottom-portraitY)+'" preserveAspectRatio="xMidYMid slice" filter="url(#archiveBW)" href="'+pd+'"/></g>'+
+    '<rect x="122" y="'+portraitY+'" width="391" height="'+(portraitBottom-portraitY)+'" fill="none" stroke="#555" stroke-width="1"/>'+
+    typeset(right1,549,r1Y,357,rightSize,rightLead)+typeset(right2,549,r2Y,357,rightSize,rightLead)+
+    typeset(right3,549,r3Y,357,rightSize,rightLead)+
+    typeset(bottom1,120,lower1Y,788,bottomSize,bottomLead)+
+    typeset(bottom2,120,lower2Y,788,bottomSize,bottomLead)+
+    typeset(bottom3,120,lower3Y,788,bottomSize,bottomLead)+
+    '<text x="512" y="1685" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="17" fill="#323232">Independent biography · Archival portrait: The Craftsman, October 1912</text>');
 }
 async function archivalPhoto() {
   const response=await fetch(ARCHIVE_PHOTO,{headers:{'User-Agent':'TarotDrawArtworkBuild/1.0 (PD archival illustration recreation)'}});

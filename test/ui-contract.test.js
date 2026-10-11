@@ -259,3 +259,23 @@ test('UX81 masks are opt-in by position and complete draw snapshot excludes × c
   assert.ok(app.includes('function selectPile(pileId, side)'));
   assert.ok(app.includes("pileButtons('parallel')"));
 });
+
+test('Issue 87: radio-owned large special-card previews each have a local checkbox', async () => {
+  const [html,css,app] = await Promise.all([
+    read('../web/index.html'), read('../web/styles.css'), read('../web/app.js')
+  ]);
+  assert.equal((html.match(/class="deck-preview"/g)||[]).length,4);
+  assert.equal((html.match(/class="deck-preview-checkbox"/g)||[]).length,4);
+  assert.equal((html.match(/class="deck-choice" data-deck-option=/g)||[]).length,2);
+  assert.ok(html.includes('data-deck="A" data-special="title"'));
+  assert.ok(html.includes('data-deck="B" data-special="secondary"'));
+  assert.ok(html.includes('disabled>'));
+  assert.doesNotMatch(html,/class="settings-special-choices"/);
+  assert.match(css,/width: min\(940px/);
+  assert.match(css,/aspect-ratio: 1024 \/ 1755/);
+  assert.match(css,/\.deck-preview-checkbox:disabled/);
+  assert.match(app,/const deckSelections =/);
+  assert.match(app,/input.disabled = input.dataset.deck !== chosenSettings.deckId/);
+  assert.match(app,/if \(target.disabled \|\| target.dataset.deck !== chosenSettings.deckId\)/);
+  assert.match(app,/Object.assign\(deckSelections\[next.deckId\]/);
+});

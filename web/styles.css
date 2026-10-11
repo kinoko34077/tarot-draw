@@ -1143,11 +1143,11 @@ input:focus-visible {
 .settings-dialog {
   border: 1px solid var(--border); border-radius: 8px;
   padding: 0; color: inherit; background: var(--surface);
-  width: min(540px, calc(100vw - 24px)); max-height: min(88dvh, 740px);
-  overflow: auto;
+  width: min(940px, calc(100vw - 20px)); max-height: min(94dvh, 1080px);
+  overflow-y: auto; overflow-x: hidden;
 }
 .settings-dialog::backdrop { background: rgb(0 0 0 / 45%); }
-.settings-panel { padding: 0 12px 12px; }
+.settings-panel { padding: 0 14px 14px; }
 .settings-heading {
   position: sticky; top: 0; z-index: 3; background: var(--surface);
   display: flex; align-items: center; justify-content: space-between;
@@ -1156,42 +1156,58 @@ input:focus-visible {
 .settings-heading h2 { font-size: 1rem; margin: 0; }
 .settings-close { width: 34px; min-height: 34px; font-size: 1.3rem; padding: 0; }
 .settings-help { margin: 10px 0; color: var(--muted); font-size: .81rem; }
-.deck-choices { margin: 0; padding: 0; border: 0; display: grid; gap: 9px; min-width: 0; }
+.deck-choices { margin: 0; padding: 0; border: 0; display: grid; gap: 14px; min-width: 0; }
 .deck-choices legend { font-size: .85rem; font-weight: 700; margin-bottom: 6px; }
 .deck-choice {
-  display: block; border: 1px solid var(--border); border-radius: 6px;
-  padding: 9px; cursor: pointer; min-width: 0;
+  border: 1px solid var(--border); border-radius: 7px;
+  padding: 12px; min-width: 0;
 }
-.deck-choice:has(input:checked) { border-color: var(--accent); background: var(--accent-soft); }
-.deck-choice-line { display: flex; align-items: center; flex-wrap: wrap; gap: 6px; font-size: .85rem; }
-.deck-choice-line input { width: 18px; height: 18px; accent-color: var(--accent); }
-.deck-choice-line > span { color: var(--muted); font-size: .76rem; }
-.deck-preview-list { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; margin: 8px 0 0 24px; }
-.deck-preview { min-width: 0; display: flex; gap: 7px; align-items: center; font-size: .75rem; line-height: 1.3; }
+.deck-choice:has(> .deck-choice-line > input:checked) { border-color: var(--accent); background: var(--accent-soft); }
+.deck-choice-line {
+  display: flex; align-items: center; flex-wrap: wrap; gap: 8px;
+  font-size: .93rem; cursor: pointer;
+}
+.deck-choice-line input { width: 20px; height: 20px; accent-color: var(--accent); }
+.deck-choice-line > span { color: var(--muted); font-size: .78rem; }
+.deck-preview-list {
+  display: grid; grid-template-columns: repeat(2,minmax(0,1fr));
+  gap: 16px; max-width: 580px; margin: 12px auto 0;
+}
+.deck-preview {
+  min-width: 0; display: block; position: relative;
+  font-size: .8rem; line-height: 1.35; text-align: center;
+  cursor: pointer;
+}
+.deck-preview:has(.deck-preview-checkbox:disabled) { cursor: default; opacity: .67; }
 .deck-preview-face {
-  flex: 0 0 auto; width: 40px; height: 66px; padding: 4px;
-  border: 1px solid var(--border-strong); border-radius: 2px;
-  background: var(--surface); color: var(--muted); font-size: .61rem;
+  width: 100%; aspect-ratio: 1024 / 1755;
+  padding: 0; overflow: hidden; border: 1px solid var(--border-strong); border-radius: 7px;
+  background: var(--surface); color: var(--muted); font-size: .81rem;
   display: grid; place-items: center; text-align: center;
 }
-.settings-custom-choice {
-  display: flex; gap: 10px; align-items: flex-start;
-  margin: 13px 0 0; padding: 11px;
-  border: 1px solid var(--border); border-radius: 6px;
+.deck-preview-checkbox {
+  position: absolute; top: 9px; right: 9px; z-index: 1;
+  width: 25px; height: 25px; margin: 0; accent-color: var(--accent);
+  cursor: pointer; filter: drop-shadow(0 1px 2px rgb(0 0 0 / 65%));
 }
-.settings-custom-choice input { flex: 0 0 auto; width: 20px; height: 20px; accent-color: var(--accent); }
-.settings-custom-choice span { display: grid; gap: 3px; font-size: .86rem; }
-.settings-custom-choice small { color: var(--muted); font-size: .76rem; }
+.deck-preview-checkbox:disabled { cursor: not-allowed; }
+.deck-preview-checkbox:focus-visible { outline: 3px solid var(--accent); outline-offset: 3px; }
+.deck-preview-name { display: block; padding: 7px 2px 0; font-weight: 600; overflow-wrap: anywhere; }
+.settings-card-count { font-size: .84rem; font-weight: 650; margin: 5px 0 0; }
 .settings-scope { color: var(--muted); font-size: .8rem; min-height: 1.3em; margin: 9px 0 0; }
 .settings-footer { display: flex; justify-content: flex-end; padding-top: 9px; }
 .settings-footer button { min-height: 36px; padding-inline: 16px; }
-.reading-deck-summary { color: var(--muted); font-size: .73rem; flex: 0 0 auto; white-space: nowrap; }
 @media (max-width: 420px) {
   .topbar .settings-open { padding-inline: 7px; }
-  .deck-preview-list { margin-left: 0; gap: 5px; }
-  .deck-preview { gap: 4px; font-size: .68rem; }
-  .deck-preview-face { width: 33px; height: 54px; font-size: .56rem; }
+  .settings-panel { padding-inline: 9px; }
+  .deck-choice { padding: 8px; }
+  .deck-preview-list {
+    grid-template-columns: minmax(0, 1fr);
+    width: min(100%, 244px); gap: 16px; margin: 12px auto 0;
+  }
+  .deck-preview-checkbox { width: 24px; height: 24px; top: 5px; right: 5px; }
 }
+.reading-deck-summary { color: var(--muted); font-size: .73rem; flex: 0 0 auto; white-space: nowrap; }
 
 /* Ruby-base and ordinary kana share one line box and baseline.
    Readings float outside normal flow; no browser ruby layout box contributes
@@ -1240,10 +1256,6 @@ input:focus-visible {
 .pile-set + .pile-set { border-top: 1px solid var(--border); padding-top: 9px; margin-top: 7px; }
 .pile-set-title { font-size: .8rem; font-weight: 600; }
 .pile-set-awaiting { opacity: .7; }
-.settings-special-choices { border: 0; padding: 0; margin: 12px 0 0; display: grid; gap: 7px; }
-.settings-special-choices legend { font-weight: 650; font-size: .85rem; }
-.settings-special-choices .settings-custom-choice { margin: 0; }
-.settings-card-count { font-size: .8rem; color: var(--muted); margin: 2px 0; }
 .cell-mask-toggle {
   display: grid; place-items: center; margin: 2px auto;
   width: 28px; height: 28px; padding: 0;
@@ -1255,8 +1267,7 @@ input:focus-visible {
 .cell-mask-toggle:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 .cell-inactive { background: var(--surface); }
 .cell-mask-excluded { display: inline-block; font-size: 1rem; color: var(--muted); padding: 3px; }
-.settings-deck-preview-image { width: 40px; height: 66px; flex: 0 0 auto; object-fit: contain; }
-@media (max-width: 420px) { .settings-deck-preview-image { width: 33px; height: 54px; } }
+.settings-deck-preview-image { width: 100%; height: 100%; object-fit: contain; display: block; }
 
 
 /* Two explicit and independently operable triple piles, readable at 320px. */
