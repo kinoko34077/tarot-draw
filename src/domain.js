@@ -53,5 +53,9 @@ export function validateShuffleOptions(options = {}) {
   if (typeof includeTitle !== 'boolean' || typeof includeSecondary !== 'boolean') {
     throw new TarotError('INVALID_DECK_OPTIONS', 'include_title and include_secondary must be boolean.', 400);
   }
-  return { includeCustom: includeTitle && includeSecondary, includeTitle, includeSecondary, deckId };
+  const majorOnly = options.major_only ?? false;
+  if (typeof majorOnly !== 'boolean') {
+    throw new TarotError('INVALID_DECK_OPTIONS', 'major_only must be boolean.', 400);
+  }
+  return { includeCustom: includeTitle && includeSecondary, includeTitle, includeSecondary, deckId, majorOnly };
 }
