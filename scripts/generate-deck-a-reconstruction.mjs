@@ -10,6 +10,9 @@ import { resolve, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { createHash } from 'node:crypto';
 import sharp from 'sharp';
+import opentype from 'opentype.js';
+import { spawnSync } from 'node:child_process';
+import { readFileSync } from 'node:fs';
 
 const CARD_DIR = resolve(fileURLToPath(new URL('../web/assets/cards/', import.meta.url)));
 const W = 1024, H = 1755;
@@ -27,21 +30,46 @@ function cardBorder() {
   return '<rect x="51" y="35" width="922" height="1683" rx="58" fill="#efece3" stroke="#bab6a9" stroke-width="2.1"/>'+
     '<rect x="101" y="91" width="822" height="1567" rx="43" fill="url(#purple)" stroke="#1d174e" stroke-width="2"/>';
 }
-function titleText(words, y, capSize, smallSize, targetWidth, wordWidths) {
-  // The reference has individually taller first capitals but separate word
-  // measures. The previous single textLength across multiple tspans and dx
-  // caused glyph collisions and a mispositioned title in settings previews.
-  // Each word owns a disjoint horizontal box; font substitution cannot make
-  // words overprint because each gets a fixed independent width.
-  const gap = (targetWidth - wordWidths.reduce((a,b) => a+b, 0)) / (words.length-1);
-  let left = (1024-targetWidth)/2;
-  return words.map((word, index) => {
-    const x = left;
-    left += wordWidths[index] + gap;
-    return '<text x="'+x+'" y="'+y+'" font-family="Liberation Serif, Times New Roman, serif" font-weight="bold" textLength="'+wordWidths[index]+'" lengthAdjust="spacingAndGlyphs" fill="#f6e8b8">'+
-      '<tspan font-size="'+capSize+'">'+esc(word[0])+'</tspan>'+
-      '<tspan font-size="'+smallSize+'">'+esc(word.slice(1).toUpperCase())+'</tspan></text>';
-  }).join('');
+// Reconstructed letterpress typography: render actual font outlines ONCE at
+// build. Never ask each browser (or libvips textLength/shaping) to reposition text.
+const liberationMatch = spawnSync('fc-match',
+  ['-f','%{family}|%{file}', 'Liberation Serif:style=Bold'], { encoding: 'utf8' });
+if (liberationMatch.status !== 0 || !liberationMatch.stdout.startsWith('Liberation Serif|')) {
+  throw Error('Build requires system Liberation Serif Bold (fonts-liberation) for fixed print glyphs');
+}
+const liberationFont = (() => {
+  const file=liberationMatch.stdout.split('|').slice(1).join('|').trim();
+  const buffer=readFileSync(file);
+  return opentype.parse(buffer.buffer.slice(buffer.byteOffset,buffer.byteOffset+buffer.byteLength));
+})();
+
+/** Exact independent ink rectangles measured from user-provided 1024x1536
+ * scan *after normalizing to our 1024x1755 master canvas*. These are numerical
+ * geometry observations only, NOT pixels taken from that reference image.
+ * A large initial and smaller remaining caps mimic the user's letterpress.
+ */
+const TITLE_INK_BOXES = [
+  [['T',230,166,289,250],['HE',290,183,391,250],
+   ['O',424,166,490,250],['RIGINAL',491,183,793,250]],
+  [['R',252,300,313,383],['IDER',314,318,491,382],
+   ['W',524,300,599,383],['AITE',600,318,772,382]],
+  [['T',263,435,328,520],['AROT',329,452,518,520],
+   ['D',552,435,617,520],['ECK',618,452,764,520]]
+];
+function typePathInBox([letters,x1,y1,x2,y2]) {
+  const path=liberationFont.getPath(letters,0,0,120,{kerning:true});
+  const bb=path.getBoundingBox();
+  if (!Number.isFinite(bb.x1)||bb.x2<=bb.x1||bb.y2<=bb.y1) throw Error('invalid font outline '+letters);
+  const sx=(x2-x1)/(bb.x2-bb.x1),sy=(y2-y1)/(bb.y2-bb.y1);
+  // Horizontal AND vertical stretch are calibrated separately for each segment.
+  // Fixed glyph geometry forbids collisions/overflow from font substitutions.
+  return '<path d="'+path.toPathData(2)+'" fill="#f6e8b8" transform="translate('+
+    x1+' '+y1+') scale('+sx.toFixed(7)+' '+sy.toFixed(7)+') translate('+
+    (-bb.x1).toFixed(3)+' '+(-bb.y1).toFixed(3)+')"/>';
+}
+function titleText() {
+  return '<g aria-label="The Original Rider Waite Tarot Deck">'+
+    TITLE_INK_BOXES.flatMap(row=>row.map(typePathInBox)).join('')+'</g>';
 }
 function ouroboros() {
   // Adapted directly from AnonMoos's PD "Ouroboros-simple.svg", originally
@@ -65,10 +93,8 @@ function titleCard() {
     '<desc id="titledesc">Deep-indigo vintage-style three-line cream serif title, public-domain AnonMoos ouroboros ring, historical Waite and Smith credits. Independently authored.</desc>'+
     cardBorder()+
     '<g clip-path="url(#cardClip)"><rect x="51" y="35" width="922" height="1683" filter="url(#paperGrain)" opacity=".28"/></g>'+
-    '<g transform="translate(0 20) translate(0 245) scale(1 1.29) translate(0 -245)">'+titleText(['The','Original'],245,116,92,568,[173,353])+'</g>'+
-    '<g transform="translate(0 29) translate(0 378) scale(1 1.24) translate(0 -378)">'+titleText(['Rider','Waite'],378,124,94,525,[244,239])+'</g>'+
-    '<g transform="translate(0 44) translate(0 513) scale(1 1.45) translate(0 -513)">'+titleText(['Tarot','Deck'],513,124,94,507,[229,238])+'</g>'+
-    ouroboros()+
+    titleText()+
+        ouroboros()+
     '<g fill="#f8ebc2" font-family="Georgia, Times New Roman, serif" text-anchor="middle" font-weight="bold">'+
     '<text x="512" y="1248" font-size="55">Conceived by</text>'+
     '<text x="512" y="1319" font-size="56" font-variant="small-caps">A. E. Waite</text>'+
