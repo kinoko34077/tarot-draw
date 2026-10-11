@@ -28,3 +28,19 @@ test('Issue 83 reconstructs Deck A without reusing modern physical card scan',as
   assert.match(workflow,/node scripts\/check-deck-a-assets.mjs/);
   assert.match(spec,/Copyright|copyrighted|later edition/i);
 });
+
+test('Issue 86 uses independent dense source-language biography and guarded vintage layout', async () => {
+  const generator=await read('scripts/generate-deck-a-reconstruction.mjs');
+  const doc=await read('docs/DECK_A_RECONSTRUCTION.md');
+  const blocks=[...generator.matchAll(/const (?:top[12]|right[123]|bottom[123])="([^"]*)";/g)];
+  assert.equal(blocks.length,8,'Eight independently authored reference-density paragraphs');
+  const count=blocks.flatMap(([,paragraph])=>paragraph.split(/\s+/)).length;
+  assert.ok(count>=290&&count<=345,'Biographical wording must retain near-reference density');
+  assert.match(generator,/if\(portraitY>590\|\|lastY>1646\)throw Error/);
+  assert.match(generator,/textLength/);
+  assert.match(generator,/slope="1\.38"/);
+  assert.match(generator,/font-size="58" font-weight="900"/);
+  assert.doesNotMatch(generator,/Made in China|Reprinted from The Encyclopedia/i);
+  assert.match(doc,/Ouroboros-simple\.svg/);
+  assert.match(doc,/313/);
+});
