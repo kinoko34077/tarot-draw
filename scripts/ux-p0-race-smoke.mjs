@@ -457,6 +457,29 @@ try {
     assert.deepEqual(thirty.drawMap.filter(x=>x.pile==='C').map(x=>x.count),[26]);
     assert.deepEqual(thirty.drawMap.filter(x=>x.pile==='A').map(x=>x.count).sort((a,b)=>a-b),[4,27]);
     report('UX81-PARALLEL-30-INDEPENDENT',{status:'PASS',...thirty});
+    await navigate(390);
+    const maskBoth = await evalInPage(`(async()=>{
+      const q=s=>document.querySelector(s),all=s=>[...document.querySelectorAll(s)];
+      const wait=ms=>new Promise(r=>setTimeout(r,ms));
+      __p0.deferDraw=false;
+      for(let i=1;i<10;i++)q('.axis-add-row-header .axis-add-button').click();
+      for(const id of ['r0c0','r9c2'])q('.primary-matrix [data-position="'+id+'"] .cell-mask-toggle').click();
+      q('.shuffle-button').click();
+      for(let i=0;i<100&&all('.primary-pile-options .pile-button').length!==3;i++)await wait(20);
+      for(const i of [0,1])all('.primary-pile-options .pile-button')[i].click();
+      for(const i of [2,0])all('.parallel-pile-options .pile-button')[i].click();
+      q('.draw-button').click();
+      for(let i=0;i<120&&q('.reading-status').textContent!=='抽選完了';i++)await wait(20);
+      const positions=s=>all('.'+s+'-matrix .cell-inactive').map(e=>e.dataset.position);
+      return {p:positions('primary'),q:positions('parallel'),
+        pCards:all('.primary-matrix .card-detail-trigger').length,
+        qCards:all('.parallel-matrix .card-detail-trigger').length};
+    })()`);
+    assert.deepEqual(maskBoth.p,['r0c0','r9c2']);
+    assert.deepEqual(maskBoth.q,maskBoth.p,'Parallel must use exactly the Primary exclusion mask');
+    assert.deepEqual([maskBoth.pCards,maskBoth.qCards],[28,28]);
+    report('UX97-PARALLEL-MASK',{status:'PASS',...maskBoth});
+
 
     await navigate(390);
     const mask = await evalInPage(`(async()=>{
