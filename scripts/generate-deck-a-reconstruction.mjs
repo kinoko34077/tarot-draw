@@ -169,7 +169,14 @@ for(const [dir] of [['grid'],['detail']]){
     ['deck-a-title.svg',titleCard()],
     ['deck-a-introduction.svg',bioCard(photo)]
   ]) {
+    // Keep SVG as the editable master, but the app consumes font-resolved
+    // raster WebP. Browser/device font substitution cannot shift this title.
     await writeFile(join(CARD_DIR,dir,name),svg,'utf8');
-    console.log('Built '+dir+'/'+name+' '+Buffer.byteLength(svg)+' bytes');
+    const size = dir === 'detail' ? { width: 512, height: 878 } : { width: 256, height: 439 };
+    const image = await sharp(Buffer.from(svg)).resize(size.width,size.height,{fit:'fill'})
+      .webp({ quality: 92, effort: 5 }).toBuffer();
+    const rasterName = name.replace('.svg','.webp');
+    await writeFile(join(CARD_DIR,dir,rasterName),image);
+    console.log('Built '+dir+'/'+name+' master, raster '+rasterName+' '+image.byteLength+' bytes');
   }
 }
