@@ -1205,12 +1205,6 @@ input:focus-visible {
   .deck-preview-checkbox { width: 24px; height: 24px; top: 5px; right: 5px; }
 }
 .reading-deck-summary { color: var(--muted); font-size: .73rem; flex: 0 0 auto; white-space: nowrap; }
-@media (max-width: 420px) {
-  .topbar .settings-open { padding-inline: 7px; }
-  .deck-preview-list { margin-left: 0; gap: 5px; }
-  .deck-preview { gap: 4px; font-size: .68rem; }
-  .deck-preview-face { width: 33px; height: 54px; font-size: .56rem; }
-}
 
 /* Ruby-base and ordinary kana share one line box and baseline.
    Readings float outside normal flow; no browser ruby layout box contributes
