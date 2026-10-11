@@ -90,7 +90,7 @@ function textWidth(s,size) {
     else if(c===c.toUpperCase())sum+=.61;
     else sum+=.49;
   }
-  return sum*size;
+  return sum*size*1.04;
 }
 function linesOf(text,width,size) {
   const words=text.split(/\s+/);
@@ -105,24 +105,11 @@ function linesOf(text,width,size) {
 }
 function typeset(text,x,y,width,size=26,leading=30) {
   const lines=linesOf(text,width,size);
-  return lines.map((line,i)=>{
-    const words=line.split(' ');
-    const baseline=y+i*leading;
-    // Justification adjusts WORD spacing only. SVG textLength would spread
-    // the spacing between every glyph, producing unnatural stretched letters.
-    if(i<lines.length-1 && words.length>1) {
-      const lengths=words.map(w=>textWidth(w,size));
-      const gap=Math.max(4,(width-lengths.reduce((a,b)=>a+b,0))/(words.length-1));
-      let left=x;
-      const spans=words.map((word,j)=>{
-        const span='<tspan x="'+left.toFixed(1)+'" y="'+baseline+'">'+esc(word)+'</tspan>';
-        left+=lengths[j]+gap;
-        return span;
-      }).join('');
-      return '<text font-family="Arial, Helvetica, sans-serif" font-size="'+size+'" fill="#0b0b0b">'+spans+'</text>';
-    }
-    return '<text x="'+x+'" y="'+baseline+'" xml:space="preserve" font-family="Arial, Helvetica, sans-serif" font-size="'+size+'" fill="#0b0b0b">'+esc(line)+'</text>';
-  }).join('');
+  // Natural browser-shaped words remain legible. Prior forced tspan offsets
+  // could fuse neighbouring words; glyph-space stretching distorted letters.
+  return lines.map((line,i)=>
+    '<text x="'+x+'" y="'+(y+i*leading)+'" xml:space="preserve" font-family="Arial, Helvetica, sans-serif" font-size="'+size+'" fill="#0b0b0b">'+esc(line)+'</text>'
+  ).join('');
 }
 function bioCard(photoData) {
   const pd='data:image/jpeg;base64,'+photoData;
