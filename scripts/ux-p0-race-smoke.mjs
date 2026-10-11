@@ -489,6 +489,7 @@ try {
     await navigate(390);
     const headingStable = await evalInPage(`(()=>{
       const q=s=>document.querySelector(s), m=q('.primary-matrix');
+      q('.axis-add-row-header .axis-add-button').click();
       const initial=m.getBoundingClientRect().top;
       const key=q('.row-header .axis-menu-trigger');
       key.dispatchEvent(new KeyboardEvent('keydown',{key:'ArrowDown',bubbles:true}));
