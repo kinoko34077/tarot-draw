@@ -38,6 +38,18 @@ for(const dir of ['grid','detail']) {
         if(jpeg.length<12000 || jpeg[0]!==0xff || jpeg[1]!==0xd8)throw Error('invalid embedded archival portrait');
         console.log('Public-domain 1912 portrait SHA256: '+createHash('sha256').update(jpeg).digest('hex'));
       }
+      const rasterPath=resolve(root,dir,entry.name.replace('.svg','.webp'));
+      const raster=await readFile(rasterPath);
+      if(raster.length<1200 || raster.length>1_200_000 ||
+         raster.toString('ascii',0,4)!=='RIFF' || raster.toString('ascii',8,12)!=='WEBP')
+         throw Error('missing or invalid font-baked WebP raster');
+      const targetSize=dir==='grid' ? [256,439] : [512,878];
+      // Decode metadata using the same pinned rasterizer as the generator.
+      const sharp=(await import('sharp')).default;
+      const dimensions=await sharp(raster).metadata();
+      if(dimensions.width!==targetSize[0] || dimensions.height!==targetSize[1])
+         throw Error('incorrect raster dimensions '+dimensions.width+'x'+dimensions.height);
+      console.log('PASS '+dir+'/'+entry.name.replace('.svg','.webp')+' '+raster.length+' bytes WebP '+targetSize.join('x'));
       console.log('PASS '+name+' '+bytes.length+' bytes SVG 1024x1755, archival/ornament, no hotlinks');
     }catch(err){
       failed++;

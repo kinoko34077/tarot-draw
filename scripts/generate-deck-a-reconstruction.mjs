@@ -9,6 +9,10 @@ import { mkdir, writeFile } from 'node:fs/promises';
 import { resolve, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { createHash } from 'node:crypto';
+import sharp from 'sharp';
+import opentype from 'opentype.js';
+import { spawnSync } from 'node:child_process';
+import { readFileSync } from 'node:fs';
 
 const CARD_DIR = resolve(fileURLToPath(new URL('../web/assets/cards/', import.meta.url)));
 const W = 1024, H = 1755;
@@ -26,21 +30,46 @@ function cardBorder() {
   return '<rect x="51" y="35" width="922" height="1683" rx="58" fill="#efece3" stroke="#bab6a9" stroke-width="2.1"/>'+
     '<rect x="101" y="91" width="822" height="1567" rx="43" fill="url(#purple)" stroke="#1d174e" stroke-width="2"/>';
 }
-function titleText(words, y, capSize, smallSize, targetWidth, wordWidths) {
-  // The reference has individually taller first capitals but separate word
-  // measures. The previous single textLength across multiple tspans and dx
-  // caused glyph collisions and a mispositioned title in settings previews.
-  // Each word owns a disjoint horizontal box; font substitution cannot make
-  // words overprint because each gets a fixed independent width.
-  const gap = (targetWidth - wordWidths.reduce((a,b) => a+b, 0)) / (words.length-1);
-  let left = (1024-targetWidth)/2;
-  return words.map((word, index) => {
-    const x = left;
-    left += wordWidths[index] + gap;
-    return '<text x="'+x+'" y="'+y+'" font-family="Liberation Serif, Times New Roman, serif" font-weight="bold" textLength="'+wordWidths[index]+'" lengthAdjust="spacingAndGlyphs" fill="#f6e8b8">'+
-      '<tspan font-size="'+capSize+'">'+esc(word[0])+'</tspan>'+
-      '<tspan font-size="'+smallSize+'">'+esc(word.slice(1).toUpperCase())+'</tspan></text>';
-  }).join('');
+// Reconstructed letterpress typography: render actual font outlines ONCE at
+// build. Never ask each browser (or libvips textLength/shaping) to reposition text.
+const liberationMatch = spawnSync('fc-match',
+  ['-f','%{family}|%{file}', 'Liberation Serif:style=Bold'], { encoding: 'utf8' });
+if (liberationMatch.status !== 0 || !liberationMatch.stdout.startsWith('Liberation Serif|')) {
+  throw Error('Build requires system Liberation Serif Bold (fonts-liberation) for fixed print glyphs');
+}
+const liberationFont = (() => {
+  const file=liberationMatch.stdout.split('|').slice(1).join('|').trim();
+  const buffer=readFileSync(file);
+  return opentype.parse(buffer.buffer.slice(buffer.byteOffset,buffer.byteOffset+buffer.byteLength));
+})();
+
+/** Exact independent ink rectangles measured from user-provided 1024x1536
+ * scan *after normalizing to our 1024x1755 master canvas*. These are numerical
+ * geometry observations only, NOT pixels taken from that reference image.
+ * A large initial and smaller remaining caps mimic the user's letterpress.
+ */
+const TITLE_INK_BOXES = [
+  [['T',230,166,289,250],['HE',290,183,391,250],
+   ['O',424,166,490,250],['RIGINAL',491,183,793,250]],
+  [['R',252,300,313,383],['IDER',314,318,491,382],
+   ['W',524,300,599,383],['AITE',600,318,772,382]],
+  [['T',263,435,328,520],['AROT',329,452,518,520],
+   ['D',552,435,617,520],['ECK',618,452,764,520]]
+];
+function typePathInBox([letters,x1,y1,x2,y2]) {
+  const path=liberationFont.getPath(letters,0,0,120,{kerning:true});
+  const bb=path.getBoundingBox();
+  if (!Number.isFinite(bb.x1)||bb.x2<=bb.x1||bb.y2<=bb.y1) throw Error('invalid font outline '+letters);
+  const sx=(x2-x1)/(bb.x2-bb.x1),sy=(y2-y1)/(bb.y2-bb.y1);
+  // Horizontal AND vertical stretch are calibrated separately for each segment.
+  // Fixed glyph geometry forbids collisions/overflow from font substitutions.
+  return '<path d="'+path.toPathData(2)+'" fill="#f6e8b8" transform="translate('+
+    x1+' '+y1+') scale('+sx.toFixed(7)+' '+sy.toFixed(7)+') translate('+
+    (-bb.x1).toFixed(3)+' '+(-bb.y1).toFixed(3)+')"/>';
+}
+function titleText() {
+  return '<g aria-label="The Original Rider Waite Tarot Deck">'+
+    TITLE_INK_BOXES.flatMap(row=>row.map(typePathInBox)).join('')+'</g>';
 }
 function ouroboros() {
   // Adapted directly from AnonMoos's PD "Ouroboros-simple.svg", originally
@@ -53,9 +82,10 @@ function ouroboros() {
     '<path d="m 604,24 c 231,47 396,246 396,476 0,276 -224,500 -500,500 C 224,1000 0,776 0,500 0,283 146,92 358,30 c 5,-1 7,-2 12,-2 18,0 33,-13 53,-13 10,0 35,3 45,3 30,0 74,-18 104,-18 13,0 28,10 32,24 z M 357,43 C 152,104 12,290 12,500 12,770 230,988 500,988 770,988 988,770 988,500 988,269 818,72 585,32 c -36,-6 -86,16 -86,23 0,5 21,12 25,14 C 763,81 950,270 950,500 950,749 749,950 500,950 251,950 50,749 50,500 50,346 133,202 268,123 c 13,-6 37,-7 47,-7 10,0 46,2 56,7 10,5 49,10 69,15 20,5 47,9 62,9 25,0 48,-15 56,-14 v 2 c 0,3 9,5 27,5 20,0 41,-7 39,-23 l -24,-9 C 580,102 571,103 561,99 536,91 530,80 507,70 484,60 450,60 450,55 c 0,-3 15,-4 25,-5 25,-3 50,-23 80,-26 20,-2 25,-1 39,0 -1,-5 -9,-15 -22,-15 -32,0 -72,19 -99,19 -15,0 -26,-6 -41,-6 -22,0 -47,18 -67,30 -5,3 -10,6 -15,6 -5,0 -5,-1 -5,-2 0,-4 20,-10 20,-13 0,-2 -3,-1 -8,0 z M 572,92 C 772,127 917,299 917,500 917,730 730,917 500,917 270,917 83,730 83,500 83,337 183,189 337,125 313,122 285,124 272,130 139,208 58,348 58,500 58,744 256,942 500,942 744,942 942,744 942,500 942,280 767,97 539,78 c 5,2 13,12 33,14 z M 342,136 C 192,198 95,341 95,500 95,724 276,905 500,905 724,905 905,724 905,500 905,328 795,176 632,120 c 1,18 -22,29 -48,29 -14,0 -27,-5 -34,-5 -10,0 -28,11 -46,11 -20,0 -54,-8 -84,-13 -30,-5 -63,-12 -78,-6 z m 104,-16 c 0,-2 4,-3 14,-3 15,-1 18,-13 30,-13 21,0 30,9 37,9 l 10,-2 1,2 c -10,7 -25,17 -35,17 -5,0 -10,-1 -20,-4 -15,-4 -37,-4 -37,-6 z m 134,7 c 18,-3 17,-9 27,-9 3,0 5,2 5,5 0,3 -12,6 -31,7 z" fill="#32245b"/>',
     '<path d="m 472,119 15,3 c 0,-5 3,-10 5,-13 -9,0 -15,8 -20,10 z m 50,-2 -17,-7 c 1,5 1,10 0,15 8,-2 12,-5 17,-8 z" fill="#fff2c5"/>'
   ];
-  // Original SVG was flipped Y; rotate another 180 degrees to position the
-  // bite/head at the top, as in the user's print reference.
-  return '<g transform="translate(512 874) rotate(0) scale(.40) translate(-500 -500)">'+
+  // Keep the head pointing DOWN per the user's explicit visual instruction.
+  // The measured center and scale may be adjusted for scan alignment, but the
+  // original orientation is preserved; no additional 180-degree rotation.
+  return '<g transform="translate(512 840) rotate(0) scale(.385) translate(-500 -500)">'+
     '<g transform="translate(0 1000) scale(1 -1)">'+paths.join('')+'</g></g>';
 }
 function titleCard() {
@@ -64,13 +94,13 @@ function titleCard() {
     '<desc id="titledesc">Deep-indigo vintage-style three-line cream serif title, public-domain AnonMoos ouroboros ring, historical Waite and Smith credits. Independently authored.</desc>'+
     cardBorder()+
     '<g clip-path="url(#cardClip)"><rect x="51" y="35" width="922" height="1683" filter="url(#paperGrain)" opacity=".28"/></g>'+
-    titleText(['The','Original'],245,116,92,587,[178,367])+titleText(['Rider','Waite'],378,124,94,566,[263,261])+titleText(['Tarot','Deck'],513,124,94,557,[252,265])+
-    ouroboros()+
+    titleText()+
+        ouroboros()+
     '<g fill="#f8ebc2" font-family="Georgia, Times New Roman, serif" text-anchor="middle" font-weight="bold">'+
-    '<text x="512" y="1248" font-size="55">Conceived by</text>'+
-    '<text x="512" y="1319" font-size="56" font-variant="small-caps">A. E. Waite</text>'+
-    '<text x="512" y="1460" font-size="54">Cards designed by</text>'+
-    '<text x="512" y="1528" font-size="48" font-variant="small-caps">Pamela Colman Smith</text></g>');
+    '<text x="512" y="1169" font-size="55">Conceived by</text>'+
+    '<text x="512" y="1240" font-size="56" font-variant="small-caps">A. E. Waite</text>'+
+    '<text x="512" y="1396" font-size="54">Cards designed by</text>'+
+    '<text x="512" y="1464" font-size="48" font-variant="small-caps">Pamela Colman Smith</text></g>');
 }
 function textWidth(s,size) {
   let sum=0;
@@ -166,7 +196,14 @@ for(const [dir] of [['grid'],['detail']]){
     ['deck-a-title.svg',titleCard()],
     ['deck-a-introduction.svg',bioCard(photo)]
   ]) {
+    // Keep SVG as the editable master, but the app consumes font-resolved
+    // raster WebP. Browser/device font substitution cannot shift this title.
     await writeFile(join(CARD_DIR,dir,name),svg,'utf8');
-    console.log('Built '+dir+'/'+name+' '+Buffer.byteLength(svg)+' bytes');
+    const size = dir === 'detail' ? { width: 512, height: 878 } : { width: 256, height: 439 };
+    const image = await sharp(Buffer.from(svg)).resize(size.width,size.height,{fit:'fill'})
+      .webp({ quality: 92, effort: 5 }).toBuffer();
+    const rasterName = name.replace('.svg','.webp');
+    await writeFile(join(CARD_DIR,dir,rasterName),image);
+    console.log('Built '+dir+'/'+name+' master, raster '+rasterName+' '+image.byteLength+' bytes');
   }
 }

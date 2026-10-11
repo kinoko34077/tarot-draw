@@ -43,7 +43,7 @@ test('card display text is compact and uses major roman numerals where available
   );
   assert.equal(
     cardDisplayText({ card_id: 'meta.guarantee', name_ja: 'GUARANTEE（保証カード）', orientation: 'upright' }),
-    'GUARANTEE 正位置'
+    '23 GUARANTEE 正位置'
   );
 });
 
@@ -82,7 +82,7 @@ test('custom-card notes include only custom cards that occurred', () => {
   const normal = { positions: { r0c0: { card_id: 'major.sun' } } };
   assert.deepEqual(customCardNotesForResults(normal), []);
   assert.deepEqual(customCardNotesForResults(title), [
-    'タイトルカード: 愚者（0）より前に位置づける独自カード。正位置・逆位置あり。'
+    '22 タイトルカード：独自カード。正位置・逆位置あり。'
   ]);
 });
 
@@ -108,10 +108,10 @@ test('bulk copy starts with question, preserves TSV geometry, and appends custom
 
   assert.match(text, /^Q\. 今後の活動をどう進める？\n\n【Primary】/);
   assert.match(text, /\t開発\t作品/);
-  assert.match(text, /優先度\tXII 吊るされた男 逆位置\tGUARANTEE 正位置/);
+  assert.match(text, /優先度\tXII 吊るされた男 逆位置\t23 GUARANTEE 正位置/);
   assert.match(text, /【独自カード説明】/);
-  assert.match(text, /タイトルカード: 愚者（0）より前/);
-  assert.match(text, /GUARANTEE: 世界（XXI）の後、22に対応づける/);
+  assert.match(text, /22 タイトルカード：独自カード/);
+  assert.match(text, /23 保証カード：独自カード/);
 });
 
 test('bulk copy supports the user-facing 3x6 table shape without flattening', () => {
@@ -175,8 +175,8 @@ test('Markdown is legible 2x2 GFM, preserves orientation and conditional custom-
   assert.match(output, /## メインリーディング（山A）/);
   assert.match(output, /\| 項目 \| 仕事 \| 創作 \|\n\| --- \| --- \| --- \|/);
   assert.match(output, /\| 以前 \| XIX 太陽 正位置 \| 杖の騎士 逆位置 \|/);
-  assert.match(output, /\| これから \| タイトルカード 正位置 \| XXI 世界 逆位置 \|/);
-  assert.match(output, /### 独自カードについて\n- タイトルカード:/);
+  assert.match(output, /\| これから \| 22 タイトルカード 正位置 \| XXI 世界 逆位置 \|/);
+  assert.match(output, /### 独自カードについて\n- 22 タイトルカード：/);
   assert.ok(!output.includes('### パラレルリーディングについて'));
   assert.ok(!output.includes('GUARANTEE:'));
   assert.ok(!output.includes('\t'));
@@ -193,14 +193,14 @@ test('Markdown paired results distinguish actual and alternate pile and explain 
   const markdown = formatReadingMarkdown(data);
   const tsv = formatReadingText(data);
   assert.match(markdown, /## メインリーディング（山A）[\s\S]*?\| 可能性 \| XIX 太陽 正位置 \|/);
-  assert.match(markdown, /## パラレルリーディング（山C）[\s\S]*?\| 可能性 \| GUARANTEE 逆位置 \|/);
+  assert.match(markdown, /## パラレルリーディング（山C）[\s\S]*?\| 可能性 \| 23 GUARANTEE 逆位置 \|/);
   assert.match(markdown, /### パラレルリーディングについて\n\n/);
   assert.ok(markdown.includes(PARALLEL_READING_NOTE));
-  assert.match(markdown, /### 独自カードについて[\s\S]*- GUARANTEE:/);
+  assert.match(markdown, /### 独自カードについて[\s\S]*- 23 保証カード：/);
   assert.match(tsv, /【Parallel】/);
   assert.match(tsv, /【パラレルリーディング説明】\n/);
   assert.ok(tsv.includes(PARALLEL_READING_NOTE));
-  assert.match(tsv, /【独自カード説明】[\s\S]*GUARANTEE:/);
+  assert.match(tsv, /【独自カード説明】[\s\S]*23 保証カード：/);
   assert.equal(formatReadingText({ ...data, parallel: null }).includes('【パラレルリーディング説明】'), false);
 });
 
@@ -250,13 +250,13 @@ test('26, 27, 28, 53, 54, 55 and 80 cells are partitioned once in chosen pile or
 
 
 test('Deck A introduction custom replaces Deck B guarantee only in display/notes/export', () => {
-  const intro={card_id:'meta.introduction',name_ja:'パメラ・コールマン・スミス紹介カード',orientation:'upright'};
+  const intro={card_id:'meta.introduction',name_ja:'23 パメラ・コールマン・スミス紹介カード',orientation:'upright'};
   const guarantee={card_id:'meta.guarantee',name_ja:'GUARANTEE（保証カード）',orientation:'upright'};
   const result={positions:{r0c0:intro}};
-  assert.equal(cardDisplayParts(intro,'A').plainTitle,'パメラ・コールマン・スミス紹介カード');
-  assert.equal(cardDisplayText(guarantee,'B'),'GUARANTEE 正位置');
-  assert.equal(cardDisplayText(intro,'A'),'パメラ・コールマン・スミス紹介カード 正位置');
-  assert.ok(customCardNotesForResults(result,null,'A')[0].includes('生涯'));
+  assert.equal(cardDisplayParts(intro,'A').plainTitle,'23 パメラ・コールマン・スミス紹介カード');
+  assert.equal(cardDisplayText(guarantee,'B'),'23 GUARANTEE 正位置');
+  assert.equal(cardDisplayText(intro,'A'),'23 パメラ・コールマン・スミス紹介カード 正位置');
+  assert.ok(customCardNotesForResults(result,null,'A')[0].includes('23 紹介カード'));
   assert.ok(!customCardNotesForResults(result,null,'A')[0].includes('GUARANTEE'));
   const markdown=formatReadingMarkdown({
     deckId:'A',rowCount:1,columnCount:1,rowLabels:['項'],columnLabels:['題'],primary:result

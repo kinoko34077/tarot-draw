@@ -26,24 +26,25 @@ const MAJOR_NUMBERS = Object.freeze({
 });
 
 export const CUSTOM_CARD_NOTES = Object.freeze({
-  'meta.title': 'タイトルカード: 愚者（0）より前に位置づける独自カード。正位置・逆位置あり。',
-  'meta.guarantee': 'GUARANTEE: 世界（XXI）の後、22に対応づける独自カード。正位置・逆位置あり。'
+  'meta.title': '22 タイトルカード：独自カード。正位置・逆位置あり。',
+  'meta.guarantee': '23 保証カード：独自カード。正位置・逆位置あり。',
+  'meta.introduction': '23 紹介カード：独自カード。正位置・逆位置あり。'
 });
 
-/* Custom card IDs remain immutable for API/backward compatibility.
-   Deck A uses the second slot for an introduction to Pamela Colman Smith,
-   not for the Deck B GUARANTEE meaning. The supplied art and biography are pending. */
+/** Both second special cards occupy slot 23 regardless of deck identity.
+ * Their contents/art remain distinct, while copy treatment matches GUARANTEE.
+ */
 export function customCardPresentation(cardId, deckId = 'B') {
   if (cardId === 'meta.title') return {
-    title: 'タイトルカード', faceTitle: 'TITLE',
+    title: '22 タイトルカード', faceTitle: '22 TITLE',
     note: CUSTOM_CARD_NOTES['meta.title']
   };
   if (cardId === 'meta.introduction') return {
-    title: 'パメラ・コールマン・スミス紹介カード', faceTitle: '紹介',
-    note: '紹介カード: パメラ・コールマン・スミスの生涯を記載したデッキAの独自カード。'
+    title: '23 パメラ・コールマン・スミス紹介カード', faceTitle: '23 紹介',
+    note: CUSTOM_CARD_NOTES['meta.introduction']
   };
   if (cardId === 'meta.guarantee') return {
-    title: 'GUARANTEE', faceTitle: 'GUARANTEE',
+    title: '23 GUARANTEE', faceTitle: '23 GUARANTEE',
     note: CUSTOM_CARD_NOTES['meta.guarantee']
   };
   return null;
@@ -170,8 +171,8 @@ export function rwsImageUrl(card, width = 128, deckId = 'B') {
   const variant = Number(width) > 160 ? 'detail' : 'grid';
   if (card.card_id.startsWith('meta.')) {
     if (deckId !== 'A') return null;
-    const filename = card.card_id === 'meta.title' ? 'deck-a-title.svg'
-      : card.card_id === 'meta.introduction' ? 'deck-a-introduction.svg' : null;
+    const filename = card.card_id === 'meta.title' ? 'deck-a-title.webp'
+      : card.card_id === 'meta.introduction' ? 'deck-a-introduction.webp' : null;
     return filename ? `./assets/cards/${variant}/${filename}` : null;
   }
 

@@ -67,7 +67,8 @@ const MINOR = SUITS.flatMap(([suitId, suitEn, suitJa]) =>
 const TITLE = {
   card_id: 'meta.title',
   arcana: 'meta',
-  sequence_hint: 'before-fool',
+  symbolic_number: 22,
+  sequence_hint: 'after-world',
   name_en: 'Title Card',
   name_ja: 'タイトルカード'
 };
@@ -75,8 +76,8 @@ const TITLE = {
 const GUARANTEE = {
   card_id: 'meta.guarantee',
   arcana: 'meta',
-  symbolic_number: 22,
-  sequence_hint: 'after-world',
+  symbolic_number: 23,
+  sequence_hint: 'after-title',
   name_en: 'GUARANTEE',
   name_ja: 'GUARANTEE（保証カード）'
 };
@@ -96,14 +97,18 @@ export const CARD_COUNT = CARD_CATALOG.length;
  */
 export function cardsForDeck(deckId = 'B', options = true) {
   const includeTitle = typeof options === 'boolean' ? options : options.includeTitle;
+  const majorOnly = typeof options === 'boolean' ? false : Boolean(options.majorOnly);
   const includeSecondary = typeof options === 'boolean' ? options : options.includeSecondary;
   const catalog = CARD_CATALOG.filter(card =>
     card.card_id === 'meta.title' ? includeTitle :
-    card.card_id === 'meta.guarantee' ? includeSecondary : true);
+    card.card_id === 'meta.guarantee' ? includeSecondary :
+    card.arcana === 'minor' ? !majorOnly : true);
   if (deckId === 'B') return catalog;
   return catalog.map(card => card.card_id === 'meta.guarantee' ? Object.freeze({
     card_id: 'meta.introduction',
     arcana: 'meta',
+    symbolic_number: 23,
+    sequence_hint: 'after-title',
     name_en: 'Pamela Colman Smith Introduction Card',
     name_ja: 'パメラ・コールマン・スミス紹介カード'
   }) : card);

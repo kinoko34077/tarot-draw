@@ -16,6 +16,11 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
+      - name: Install deterministic SVG rasterizer
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq fonts-liberation
+          npm install --no-audit --no-fund
       - name: Generate self-hosted Deck A reconstructed art
         run: node scripts/generate-deck-a-reconstruction.mjs
       - name: Verify Deck A print images (alpha, framing, offline source)
@@ -55,6 +60,10 @@ jobs:
           path: |
             deck-a-title-proof.png
             deck-a-introduction-proof.png
+            web/assets/cards/detail/deck-a-title.webp
+            web/assets/cards/detail/deck-a-introduction.webp
+            web/assets/cards/grid/deck-a-title.webp
+            web/assets/cards/grid/deck-a-introduction.webp
           if-no-files-found: warn
       - name: Collect machine-observed child-like/novice/expert UX evidence (baseline, existing failures classified)
         env:

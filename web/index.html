@@ -42,12 +42,12 @@
           <label class="deck-choice-line" for="deckRadioA"><input id="deckRadioA" type="radio" name="deckId" value="A"><strong>デッキ A</strong><span>タイトル ＋ 紹介カード</span></label>
           <div class="deck-preview-list">
             <label class="deck-preview" for="includeTitleCardA">
-              <span class="deck-preview-face" data-deck-a-image="deck-a-title.svg">画像読込中</span>
+              <span class="deck-preview-face" data-deck-a-image="deck-a-title.webp">画像読込中</span>
               <input id="includeTitleCardA" class="deck-preview-checkbox" data-deck="A" data-special="title" type="checkbox" aria-label="デッキAのタイトルカードを抽選に含める" checked disabled>
               <span class="deck-preview-name">タイトルカード</span>
             </label>
             <label class="deck-preview" for="includeSecondaryCardA">
-              <span class="deck-preview-face" data-deck-a-image="deck-a-introduction.svg">画像読込中</span>
+              <span class="deck-preview-face" data-deck-a-image="deck-a-introduction.webp">画像読込中</span>
               <input id="includeSecondaryCardA" class="deck-preview-checkbox" data-deck="A" data-special="secondary" type="checkbox" aria-label="デッキAのパメラ・コールマン・スミス紹介カードを抽選に含める" checked disabled>
               <span class="deck-preview-name">パメラ・コールマン・スミス紹介カード</span>
             </label>
@@ -68,6 +68,7 @@
             </label>
           </div>
         </section>
+        <label class="settings-major-choice" for="majorOnlyCheckbox"><input id="majorOnlyCheckbox" name="majorOnly" type="checkbox"><span>大アルカナのみで占う</span><small>通常22枚＋選択したタイトルカード（22）・保証／紹介カード（23）</small></label>
         <p id="selectedDeckCount" class="settings-card-count" aria-live="polite">80枚（通常78枚＋独自カード2枚）</p>
       </fieldset>
       <p id="settingsScope" class="settings-scope" role="status" aria-live="polite">この設定は次のシャッフルに反映されます。</p>

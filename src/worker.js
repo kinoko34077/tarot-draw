@@ -136,8 +136,8 @@ export class TarotSession {
           throw new TarotError('SESSION_ALREADY_SHUFFLED', 'Create a new reading to shuffle again.', 409);
         }
 
-        const { includeCustom, includeTitle, includeSecondary, deckId } = validateShuffleOptions(options);
-        const source = cardsForDeck(deckId, { includeTitle, includeSecondary });
+        const { includeCustom, includeTitle, includeSecondary, deckId, majorOnly } = validateShuffleOptions(options);
+        const source = cardsForDeck(deckId, { includeTitle, includeSecondary, majorOnly });
         const deck = shuffleAndOrient(source);
         session.piles = splitThreeWays(deck);
         session.state = 'split';
@@ -150,6 +150,7 @@ export class TarotSession {
           include_custom: includeCustom,
           include_title: includeTitle,
           include_secondary: includeSecondary,
+          major_only: majorOnly,
           deck_id: deckId,
           total_cards: deck.length,
           piles: PILE_IDS.map(pileId => ({ pile_id: pileId, count: session.piles[pileId].length }))
@@ -301,6 +302,7 @@ export const worker = {
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             include_title: validated.includeTitle, include_secondary: validated.includeSecondary,
+            major_only: validated.majorOnly,
             deck_id: validated.deckId
           })
         }, origin);

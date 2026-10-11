@@ -66,17 +66,19 @@ const mock = `(() => {
       const includeTitle=options.include_title ?? options.include_custom ?? true;
       const includeSecondary=options.include_secondary ?? options.include_custom ?? true;
       const custom=includeTitle && includeSecondary;
-      const total=78+Number(includeTitle)+Number(includeSecondary);
+      const majorOnly=options.major_only??false;
+      const total=(majorOnly?22:78)+Number(includeTitle)+Number(includeSecondary);
+      const each=Math.floor(total/3), remainder=total%3;
       const deckId=options.deck_id||'B';
       p0.deckId=deckId;
       p0.includeCustom=custom;
       const reply=()=>ok({
         include_custom:custom,include_title:includeTitle,include_secondary:includeSecondary,
-        deck_id:deckId,total_cards:total,
+        deck_id:deckId,major_only:majorOnly,total_cards:total,
         piles:[
-          {pile_id:'A',count:total>=79?27:26},
-          {pile_id:'B',count:total===80?27:26},
-          {pile_id:'C',count:26}
+          {pile_id:'A',count:each+Number(remainder>0)},
+          {pile_id:'B',count:each+Number(remainder>1)},
+          {pile_id:'C',count:each}
         ]
       });
       if (p0.deferShuffle) return new Promise(resolve=>p0.deferredShuffle.push(()=>resolve(reply())));
@@ -207,7 +209,7 @@ try {
       const cardFaceWidth = q('.deck-preview-face').getBoundingClientRect().width;
       for(let i=0;i<100 && all('[data-deck-a-image] img').length!==2;i++)await sleep(20);
       const aArt=all('[data-deck-a-image] img').map(im=>({
-        src:im.getAttribute('src'),ok:im.complete&&im.naturalWidth===1024&&im.naturalHeight===1755
+        src:im.getAttribute('src'),ok:im.complete&&im.naturalWidth===512&&im.naturalHeight===878
       }));
       q('input[name="deckId"][value="A"]').click();
       const selectedEnabled = all('.deck-preview-checkbox[data-deck="A"]').every(e=>!e.disabled) &&
@@ -248,7 +250,7 @@ try {
     assert.equal(settings.dialogFits,true,'Settings must have no horizontal clipping on mobile');
     assert.ok(settings.cardFaceWidth>=190,'Selected mobile cards need nearly detail-card width');
     assert.equal(settings.aArt.length,2);
-    assert.ok(settings.aArt.every(a=>a.ok&&a.src.endsWith('.svg')),'Both independently reconstructed Deck A cards must load as self-hosted SVG in actual browser');
+    assert.ok(settings.aArt.every(a=>a.ok&&a.src.endsWith('.webp')),'Both Deck A cards must load as fixed-font self-hosted WebP in browser');
     assert.equal(settings.squarePlus,true);
     assert.equal(settings.squareMinus,true);
     assert.equal(settings.selectedA,'デッキA・78枚');
@@ -305,6 +307,59 @@ try {
     assert.ok(axisFollow.deltas.every(d=>Math.abs(d.left-d.max)<2 && d.visible),
       'Each column + must keep controls visible at the new far right: '+JSON.stringify(axisFollow.deltas));
     report('UX93-COLUMN-PLUS-AUTOFOLLOW',{status:'PASS',...axisFollow});
+
+
+    // #99: major-only option is not a CSS filter. The mock returns server
+    // metadata (including mode) and all three authoritative pile capacities.
+    for(const flags of [[false,false,22],[true,false,23],[false,true,23],[true,true,24]]) {
+      await navigate(390);
+      const mode = await evalInPage(`(async (flags)=>{
+        const q=s=>document.querySelector(s), all=s=>[...document.querySelectorAll(s)];
+        const wait=ms=>new Promise(r=>setTimeout(r,ms));
+        q('#settingsButton').click();
+        q('#majorOnlyCheckbox').click();
+        if(!flags[0])q('#includeTitleCard').click();
+        if(!flags[1])q('#includeSecondaryCard').click();
+        const setting=q('#selectedDeckCount').textContent;
+        q('#settingsDone').click();
+        q('.shuffle-button').click();
+        for(let i=0;i<100&&all('.primary-pile-options .pile-button').length<3;i++)await wait(20);
+        return {setting,summary:q('.reading-deck-summary').textContent,
+          counts:all('.primary-pile-options .pile-count').map(x=>x.textContent)};
+      })(${JSON.stringify(flags)})`);
+      assert.ok(mode.setting.startsWith(String(flags[2])+'枚'),JSON.stringify(mode));
+      assert.ok(mode.summary.includes('大アルカナ'));
+      assert.deepEqual(mode.counts,
+        flags[2]===22?['8枚','7枚','7枚']:flags[2]===23?['8枚','8枚','7枚']:['8枚','8枚','8枚']);
+      report('UX99-MAJOR-'+flags.join('-'),{status:'PASS',...mode});
+    }
+
+
+    await navigate(390);
+    const complete24 = await evalInPage(`(async()=>{
+      const q=s=>document.querySelector(s), all=s=>[...document.querySelectorAll(s)];
+      const wait=ms=>new Promise(r=>setTimeout(r,ms));
+      __p0.deferDraw=false;
+      q('#settingsButton').click(); q('#majorOnlyCheckbox').click(); q('#settingsDone').click();
+      for(let i=0;i<2;i++)q('.axis-add-row-header .axis-add-button').click();
+      for(let i=0;i<5;i++)q('.axis-add-header .axis-add-button').click();
+      q('.shuffle-button').click();
+      for(let i=0;i<100&&all('.primary-pile-options .pile-button').length<3;i++)await wait(20);
+      const independent=!q('.pile-set-parallel').classList.contains('hidden');
+      for(let i=0;i<3;i++)all('.primary-pile-options .pile-button')[i].click();
+      const ready=!q('.draw-button').disabled;
+      q('.draw-button').click();
+      for(let i=0;i<120&&q('.reading-status').textContent!=='抽選完了';i++)await wait(20);
+      return {independent,ready,count:all('.primary-matrix .card-detail-trigger').length,
+        piles:__p0.drawCalls.map(d=>[d.pile,d.positions.length]),
+        excluded:all('.primary-matrix .cell-mask-excluded').length};
+    })()`);
+    assert.equal(complete24.independent,true);
+    assert.equal(complete24.ready,true);
+    assert.equal(complete24.count,24);
+    assert.deepEqual(complete24.piles,[['A',8],['B',8],['C',8]]);
+    assert.equal(complete24.excluded,0);
+    report('UX99-MAJOR-24-FULL-DRAW',{status:'PASS',...complete24});
 
     // #90: <=26 keeps one shared selector, 27+ restores independent selectors.
     await navigate(320);
@@ -412,7 +467,7 @@ try {
     assert.equal(intro.summary,'デッキA・80枚');
     assert.ok(intro.visualTitle.includes('パメラ・コールマン・スミス紹介カード'));
     assert.equal(intro.detailOpen,true);
-    assert.ok(intro.detailText.includes('生涯を記載したデッキA'));
+    assert.ok(intro.detailText.includes('23 紹介カード'));
     assert.equal(intro.copyIntro,true);
     assert.equal(intro.copyGuarantee,false);
     report('UX78-DECK-A-INTRO-DRAW',{status:'PASS',...intro});

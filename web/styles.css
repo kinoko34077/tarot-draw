@@ -1373,3 +1373,7 @@ input:focus-visible {
   height: 29px; min-height: 29px; line-height: 1.05;
 }
 .reading-table .card-orientation { line-height: 13px; }
+
+.settings-major-choice { display:flex; gap:8px; align-items:center; flex-wrap:wrap; margin:12px 0 7px; font-weight:650; cursor:pointer; }
+.settings-major-choice input { min-width:20px; width:20px; height:20px; accent-color:var(--accent); }
+.settings-major-choice small { flex-basis:100%; padding-left:28px; color:var(--muted); font-size:.77rem; font-weight:400; }
