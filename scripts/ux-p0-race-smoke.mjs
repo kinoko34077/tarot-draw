@@ -290,6 +290,9 @@ try {
     await writeFile('settings-deck-320.png',Buffer.from(settings320Proof.data,'base64'));
 
 
+    // Re-navigate at the claimed 390px viewport; otherwise this proof would
+    // silently duplicate the preceding 320px screenshot.
+    await navigate(390);
     await evalInPage(`(() => document.querySelector('#settingsButton').click())()`);
     const settings390Proof = await cdp.call('Page.captureScreenshot',{format:'png'});
     await writeFile('settings-deck-390.png',Buffer.from(settings390Proof.data,'base64'));
