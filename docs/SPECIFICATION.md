@@ -201,3 +201,11 @@ The card previews scale to available dialog width instead of 33–40px thumbnail
 - Deck status for the most recent Reading is displayed in the global app header, right aligned immediately before the settings button. Do not repeat the deck text in every Reading row; changes to next-reading settings must not mislabel a previously frozen reading.
 - Deck A title image now uses the user's chosen **public-domain AnonMoos `Ouroboros-simple.svg`** vector outlines, rather than the previously home-drawn ellipse/head. PD original, locally embedded; documented in `docs/DECK_A_RECONSTRUCTION.md`.
 - Ordinary Pages publication authorization is standing for this repo: see persistent `tarot-draw#92`. Tested, reversible releases may proceed without per-release approval. Destructive/security-sensitive/irreversible actions still require separate human authorization.
+
+## UX93 corrections (2026-10-12)
+- Place the six-dot row reorder control below the row name, reserving the bottom part of the 36px-wide row label, without overlapping the vertical glyphs. Keyboard, drag, focus and editing remain available.
+- Restore the historical alternate reading hint `迷ったら別の山を選んでifを確認できます。` for both compact and independent optional comparison. The older PR #82 patch had a duplicated `で`, corrected here without changing meaning.
+- The three title lines use per-word tall initials and shorter following capitals. The PD ring is rotated 180° relative to the published upside-down version.
+- After each explicit column +, automatically scroll the matrix to the newly grown right edge. Other actions keep existing scroll positions.
+- Card detail immediately shows the available grid art, then swaps to high-resolution art after decode. Prefetch only likely details on pointerenter/focus/pointerdown with bounded cache of 12; no entire-deck preload. Keep reversals, special Deck A images and fallback behavior.
+- No Worker/API changes. Ordinary Pages publication is authorized through #92.

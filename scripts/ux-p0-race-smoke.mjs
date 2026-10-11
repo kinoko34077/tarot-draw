@@ -279,6 +279,33 @@ try {
     await writeFile('settings-deck-390.png',Buffer.from(settings390Proof.data,'base64'));
     await evalInPage(`(() => document.querySelector('#settingsClose').click())()`);
 
+    // #93: live 320px gestures — bottom grip and repeated column addition.
+    await navigate(320);
+    const axisFollow = await evalInPage(`(() => {
+      const q=s=>document.querySelector(s);
+      const host=q('.primary-matrix'), name=q('.row-header .axis-inline-label');
+      const grip=q('.row-header .axis-menu-trigger');
+      const label=name.getBoundingClientRect(), gripBox=grip.getBoundingClientRect();
+      const bottomPadding=parseFloat(getComputedStyle(name).paddingBottom);
+      const gripBelowName=gripBox.top>=label.bottom-bottomPadding-1 &&
+        gripBox.bottom<=label.bottom+2;
+      const deltas=[];
+      for(let i=0;i<9;i++){
+        q('.axis-add-header .axis-add-button').click();
+        const scroll=q('.primary-matrix');
+        const button=q('.axis-add-header .axis-add-button').getBoundingClientRect();
+        const bounds=scroll.getBoundingClientRect();
+        deltas.push({left:scroll.scrollLeft,max:scroll.scrollWidth-scroll.clientWidth,
+          visible:button.left>=bounds.left-1 && button.right<=bounds.right+1});
+      }
+      return {gripBelowName,deltas};
+    })()`);
+    assert.equal(axisFollow.gripBelowName,true,'Reorder six-dot grip must be below row name ink');
+    assert.equal(axisFollow.deltas.length,9);
+    assert.ok(axisFollow.deltas.every(d=>Math.abs(d.left-d.max)<2 && d.visible),
+      'Each column + must keep controls visible at the new far right: '+JSON.stringify(axisFollow.deltas));
+    report('UX93-COLUMN-PLUS-AUTOFOLLOW',{status:'PASS',...axisFollow});
+
     // #90: <=26 keeps one shared selector, 27+ restores independent selectors.
     await navigate(320);
     const compact = await evalInPage(`(async()=>{

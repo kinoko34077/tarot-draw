@@ -26,9 +26,16 @@ function cardBorder() {
   return '<rect x="51" y="35" width="922" height="1683" rx="58" fill="#efece3" stroke="#bab6a9" stroke-width="2.1"/>'+
     '<rect x="101" y="91" width="822" height="1567" rx="43" fill="url(#purple)" stroke="#1d174e" stroke-width="2"/>';
 }
-function titleText(text, y, size, targetWidth) {
-  // Preserve tall period capitals but follow the reference's narrower line measure.
-  return '<text x="512" y="'+y+'" text-anchor="middle" font-family="Georgia, Times New Roman, serif" font-weight="bold" font-variant="small-caps" letter-spacing="-1.1" font-size="'+size+'" textLength="'+targetWidth+'" lengthAdjust="spacingAndGlyphs" fill="#f6e8b8">'+esc(text)+'</text>';
+function titleText(words, y, capSize, smallSize, targetWidth) {
+  // The user-provided print uses noticeably TALL initials (T/O, R/W, T/D)
+  // and shorter small capitals for the remaining letters of each WORD.
+  // font-variant:small-caps on an all-uppercase string cannot create that
+  // contrast. Explicit spans preserve distinct ink heights within each line.
+  const spans = words.map((word,index) =>
+    '<tspan font-size="'+capSize+'"'+(index ? ' dx="34"' : '')+'>'+esc(word[0])+'</tspan>'+
+    '<tspan font-size="'+smallSize+'">'+esc(word.slice(1).toUpperCase())+'</tspan>'
+  ).join('');
+  return '<text x="512" y="'+y+'" text-anchor="middle" font-family="Georgia, Times New Roman, serif" font-weight="bold" letter-spacing="-.7" textLength="'+targetWidth+'" lengthAdjust="spacing" fill="#f6e8b8">'+spans+'</text>';
 }
 function ouroboros() {
   // Adapted directly from AnonMoos's PD "Ouroboros-simple.svg", originally
@@ -43,7 +50,7 @@ function ouroboros() {
   ];
   // Original SVG was flipped Y; rotate another 180 degrees to position the
   // bite/head at the top, as in the user's print reference.
-  return '<g transform="translate(512 874) rotate(180) scale(.40) translate(-500 -500)">'+
+  return '<g transform="translate(512 874) rotate(0) scale(.40) translate(-500 -500)">'+
     '<g transform="translate(0 1000) scale(1 -1)">'+paths.join('')+'</g></g>';
 }
 function titleCard() {
@@ -52,7 +59,7 @@ function titleCard() {
     '<desc id="titledesc">Deep-indigo vintage-style three-line cream serif title, public-domain AnonMoos ouroboros ring, historical Waite and Smith credits. Independently authored.</desc>'+
     cardBorder()+
     '<g clip-path="url(#cardClip)"><rect x="51" y="35" width="922" height="1683" filter="url(#paperGrain)" opacity=".28"/></g>'+
-    titleText('THE ORIGINAL',245,104,587)+titleText('RIDER WAITE',378,114,566)+titleText('TAROT DECK',513,114,557)+
+    titleText(['The','Original'],245,124,89,587)+titleText(['Rider','Waite'],378,132,94,566)+titleText(['Tarot','Deck'],513,132,94,557)+
     ouroboros()+
     '<g fill="#f8ebc2" font-family="Georgia, Times New Roman, serif" text-anchor="middle" font-weight="bold">'+
     '<text x="512" y="1248" font-size="55">Conceived by</text>'+

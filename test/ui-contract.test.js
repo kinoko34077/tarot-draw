@@ -197,7 +197,7 @@ test('card detail uses an accessible native dialog with attachment-backed text a
   assert.ok(app.includes("addEventListener('cancel'"));
   assert.ok(app.includes("addEventListener('close'"));
   assert.ok(app.includes('focus({ preventScroll: true })'));
-  assert.ok(app.includes('createCardVisual(card, { detail: true, deckId })'));
+  assert.ok(app.includes('detail: true, deckId, gridSource: trigger?.querySelector'));
   assert.ok(app.includes('rwsImageUrl(card, detail ? 224 : 128, deckId)'));
   assert.ok(css.includes('.card-detail-dialog::backdrop'));
   assert.ok(css.includes('.detail-meaning[data-active="true"]'));
@@ -295,4 +295,18 @@ test('UX90: minimalist ○/×, conditional pile selectors, question-side deck an
   assert.match(css,/\.reading-deck-summary \{[\s\S]*?margin-left: auto; text-align: right;/);
   assert.match(css,/\.matrix-heading h2 \{ box-sizing: border-box; flex: 0 0 auto;/);
   assert.match(css,/\.reading-table \.row-header,?[\s\S]*?36px/);
+});
+
+test('UX93: bottom row grip, if phrasing, right-edge column additions, and instant card detail', async () => {
+  const [app,css]=await Promise.all([read('../web/app.js'),read('../web/styles.css')]);
+  assert.match(css,/\.reading-table \.row-header \.axis-menu-trigger \{[\s\S]*?top: auto; bottom: 0;/);
+  assert.match(css,/\.reading-table \.row-header \.axis-inline-label,[\s\S]*?padding: 3px 1px 32px;/);
+  assert.match(app,/迷ったら別の山を選んでifを確認できます。/);
+  assert.match(app,/viewport\.scrollLeft = Math\.max\(0, viewport\.scrollWidth - viewport\.clientWidth\)/);
+  assert.match(app,/const warmDetailCache = new Map\(\)/);
+  assert.match(app,/warmDetailCache\.size > 12/);
+  assert.match(app,/gridSource \|\| rwsImageUrl\(card, 128, deckId\)/);
+  assert.match(app,/image\.decode\(\)/);
+  assert.match(app,/result\.addEventListener\('pointerenter'/);
+  assert.match(app,/result\.addEventListener\('focus'/);
 });

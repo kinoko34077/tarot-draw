@@ -1319,6 +1319,18 @@ input:focus-visible {
 .reading-table .row-header .axis-inline-label,
 .reading-table .row-header .axis-readonly-label { padding-top: 29px; padding-inline: 0; }
 .reading-table .corner-header { white-space: normal; overflow-wrap: anywhere; }
+/* #93: put the drag/move handle BELOW the row name, not over the glyphs.
+   Keep the same overall 122px row-label track and the 27px focusable grip. */
+.reading-table .row-header .axis-handle { position: relative; min-height: 122px; }
+.reading-table .row-header .axis-inline-label,
+.reading-table .row-header .axis-readonly-label {
+  padding: 3px 1px 32px;
+  height: 122px; max-height: 122px; min-height: 122px;
+}
+.reading-table .row-header .axis-menu-trigger {
+  position: absolute; top: auto; bottom: 0; right: 0;
+}
+
 .pile-panel:not(.pile-panel-shared) .pile-label { display: none; }
 .pile-panel:not(.pile-panel-shared) .pile-set { grid-column: 1 / -1; }
 .pile-panel-shared .pile-set-title { display: none; }
