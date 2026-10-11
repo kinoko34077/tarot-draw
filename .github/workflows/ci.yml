@@ -75,4 +75,6 @@ jobs:
           path: |
             keyword-grid-desktop.png
             keyword-grid-mobile.png
+            settings-deck-390.png
+            settings-deck-320.png
           if-no-files-found: ignore
