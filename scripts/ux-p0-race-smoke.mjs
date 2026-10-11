@@ -315,6 +315,8 @@ try {
     assert.equal(compact.deckRightAligned,true);
     assert.equal(compact.alignedAxisWidth,true);
     report('UX90-SHARED-320',{status:'PASS',...compact});
+    const compactProof=await cdp.call('Page.captureScreenshot',{format:'png'});
+    await writeFile('ux90-compact-320.png',Buffer.from(compactProof.data,'base64'));
 
     await navigate(390);
     const boundary = await evalInPage(`(async()=>{
@@ -341,6 +343,8 @@ try {
     })()`);
     assert.deepEqual(boundary,{independent:true,noOrdinalForSingle:true,separate:true,collapsed:true,expanded:true});
     report('UX90-27-BOUNDARY',{status:'PASS',...boundary});
+    const independentProof=await cdp.call('Page.captureScreenshot',{format:'png'});
+    await writeFile('ux90-independent-390.png',Buffer.from(independentProof.data,'base64'));
 
     // A/80 is not a mere B-label alias: its introduction ID, display/detail
     // and copied notes must match, with no GUARANTEE or invented biography.
