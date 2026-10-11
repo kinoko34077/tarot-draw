@@ -25,3 +25,8 @@ Both user-supplied samples are **visual measurement references only**; their cop
 - Both outputs must include nonzero image, round alpha outside, viewBox, intrinsic portrait aspect, no runtime remote image href; reproduce against reference at 128px grid, 256px detail, 390px mobile.
 - New #87 uses card-local checkboxes inside radio-selected Deck A/B, disabled on inactive deck. Their server-facing title+secondary flags, 78/79/80, 30+ primary/parallel, ○/× mask/copy and P1 no-repeat remain unchanged. Test cards A previews/results/details and B placeholder.
 - Initial #83 was released through #84/#85; this #86/#87 follow-up was released via #88 after explicit user approval. Exact-main CI #38152747092, Pages #38152747100 and public Chrome smoke #38152793497 all succeeded. New/future releases still require applicable authorization. Worker unchanged.
+
+## User print feedback — variable glyph heights and snake orientation (2026-10-12 / #93)
+The supplied scan uses larger initial capitals in each word and smaller remaining small-cap letters, not one uniform all-uppercase font height. The three title lines retain reference widths and baselines while the generator now emits separate tspan font sizes for each word's initial (The/Original, Rider/Waite, Tarot/Deck). The actual difference is glyph height, not merely spacing.
+
+The selected AnonMoos public-domain Ouroboros-simple SVG path was correctly sourced in #91 but its delivered image was upside-down. #93 rotates the group 180° relative to #91 by removing the extra rotate(180) (now rotate(0)) outside the native SVG's Y-inverted path. The path, frame, colour and license are unchanged; validate using rendered print proof.
