@@ -279,6 +279,69 @@ try {
     await writeFile('settings-deck-390.png',Buffer.from(settings390Proof.data,'base64'));
     await evalInPage(`(() => document.querySelector('#settingsClose').click())()`);
 
+    // #90: <=26 keeps one shared selector, 27+ restores independent selectors.
+    await navigate(320);
+    const compact = await evalInPage(`(async()=>{
+      const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+      const q=s=>document.querySelector(s), all=s=>[...document.querySelectorAll(s)];
+      const rowHeader=q('.row-header'), title=q('.matrix-heading h2');
+      const question=q('.question-input').getBoundingClientRect();
+      const deck=q('.reading-deck-summary').getBoundingClientRect();
+      const deckRightAligned=deck.right<=window.innerWidth+1 && deck.left>=question.left;
+      const alignedAxisWidth=Math.abs(rowHeader.getBoundingClientRect().width-title.getBoundingClientRect().width)<1;
+      const mask=q('.cell-mask-toggle');
+      const maskStyle=getComputedStyle(mask);
+      const noRoundFrame=maskStyle.borderTopWidth==='0px' && maskStyle.borderRadius==='0px' &&
+        maskStyle.backgroundColor==='rgba(0, 0, 0, 0)';
+      q('.shuffle-button').click();
+      for(let i=0;i<100&&all('.primary-pile-options .pile-button').length!==3;i++)await sleep(20);
+      const shared=q('.pile-panel').classList.contains('pile-panel-shared') &&
+        q('.pile-set-parallel').classList.contains('hidden');
+      all('.primary-pile-options .pile-button')[0].click();
+      const firstOnly=all('.primary-pile-options .pile-role').map(x=>x.textContent);
+      all('.primary-pile-options .pile-button')[1].click();
+      const both=all('.primary-pile-options .pile-role').map(x=>x.textContent);
+      const drawReady=!q('.draw-button').disabled;
+      all('.primary-pile-options .pile-button')[1].click();
+      const clearedParallel=all('.primary-pile-options .pile-button')[1].getAttribute('aria-pressed')==='false';
+      return {shared,firstOnly,both,drawReady,clearedParallel,noRoundFrame,deckRightAligned,alignedAxisWidth};
+    })()`);
+    assert.equal(compact.shared,true);
+    assert.deepEqual(compact.firstOnly,['Primary','','']);
+    assert.deepEqual(compact.both,['Primary','Parallel','']);
+    assert.equal(compact.drawReady,true);
+    assert.equal(compact.clearedParallel,true);
+    assert.equal(compact.noRoundFrame,true);
+    assert.equal(compact.deckRightAligned,true);
+    assert.equal(compact.alignedAxisWidth,true);
+    report('UX90-SHARED-320',{status:'PASS',...compact});
+
+    await navigate(390);
+    const boundary = await evalInPage(`(async()=>{
+      const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+      const q=s=>document.querySelector(s), all=s=>[...document.querySelectorAll(s)];
+      for(let i=0;i<6;i++)q('.axis-add-header .axis-add-button').click();
+      for(let i=0;i<2;i++)q('.axis-add-row-header .axis-add-button').click();
+      q('.shuffle-button').click();
+      for(let i=0;i<100&&all('.primary-pile-options .pile-button').length!==3;i++)await sleep(20);
+      const independent=q('.pile-set-parallel').classList.contains('hidden')===false;
+      all('.primary-pile-options .pile-button')[0].click();
+      const noOrdinalForSingle=all('.primary-pile-options .pile-role').every(e=>!e.textContent);
+      all('.parallel-pile-options .pile-button')[1].click();
+      const separate=all('.primary-pile-options .pile-button')[1].getAttribute('aria-pressed')==='false' &&
+        all('.parallel-pile-options .pile-button')[1].getAttribute('aria-pressed')==='true';
+      q('.primary-matrix [data-position="r0c0"] .cell-mask-toggle').click();
+      const collapsed=q('.pile-panel').classList.contains('pile-panel-shared') &&
+        all('.primary-pile-options .pile-role')[0].textContent==='Primary' &&
+        all('.primary-pile-options .pile-role')[1].textContent==='Parallel';
+      q('.primary-matrix [data-position="r0c0"] .cell-mask-toggle').click();
+      const expanded=!q('.pile-panel').classList.contains('pile-panel-shared') &&
+        all('.parallel-pile-options .pile-button')[1].getAttribute('aria-pressed')==='true';
+      return {independent,noOrdinalForSingle,separate,collapsed,expanded};
+    })()`);
+    assert.deepEqual(boundary,{independent:true,noOrdinalForSingle:true,separate:true,collapsed:true,expanded:true});
+    report('UX90-27-BOUNDARY',{status:'PASS',...boundary});
+
     // A/80 is not a mere B-label alias: its introduction ID, display/detail
     // and copied notes must match, with no GUARANTEE or invented biography.
     await navigate(390);
