@@ -153,7 +153,29 @@ for (const slot of page.settingsDialog.querySelectorAll('[data-deck-a-image]')) 
   image.addEventListener('error', () => { slot.textContent = '画像未登録'; }, { once: true });
 }
 
-function createCardVisual(card, { detail = false, deckId = 'B' } = {}) {
+// Only warm details likely to be opened. Do not fetch all 78 cards at once.
+// Keep decoded high-resolution Images in a small capped cache for repeat opens.
+const warmDetailCache = new Map();
+function warmDetailImage(card, deckId = 'B') {
+  const url = rwsImageUrl(card, 224, deckId);
+  if (!url) return null;
+  if (warmDetailCache.has(url)) return warmDetailCache.get(url);
+  const image = new Image();
+  image.decoding = 'async';
+  image.loading = 'eager';
+  image.referrerPolicy = 'no-referrer';
+  image.src = url;
+  const entry = { image, promise: null };
+  entry.promise = image.decode().then(() => image).catch(() => {
+    warmDetailCache.delete(url);
+    return null;
+  });
+  warmDetailCache.set(url, entry);
+  if (warmDetailCache.size > 12) warmDetailCache.delete(warmDetailCache.keys().next().value);
+  return entry;
+}
+
+function createCardVisual(card, { detail = false, deckId = 'B', gridSource = null } = {}) {
   const visual = document.createElement('div');
   visual.className = detail ? 'card-visual detail-card-visual' : 'card-visual';
 
@@ -162,12 +184,15 @@ function createCardVisual(card, { detail = false, deckId = 'B' } = {}) {
     const image = document.createElement('img');
     image.className = detail ? 'card-art detail-card-art' : 'card-art';
     if (card.orientation === 'reversed') image.classList.add('is-reversed');
-    image.src = imageUrl;
+    // The grid image is usually decoded already, so show it instantly in
+    // the large dialog while the high-res file is fetched and decoded.
+    image.src = detail ? (gridSource || rwsImageUrl(card, 128, deckId) || imageUrl) : imageUrl;
     image.alt = '';
     image.loading = detail ? 'eager' : 'lazy';
     image.decoding = 'async';
     image.referrerPolicy = 'no-referrer';
     image.addEventListener('error', () => {
+      if (!visual.contains(image)) return;
       visual.classList.add('art-failed');
       image.remove();
       if (detail) {
@@ -178,6 +203,16 @@ function createCardVisual(card, { detail = false, deckId = 'B' } = {}) {
       }
     }, { once: true });
     visual.append(image);
+    if (detail) {
+      const warmed = warmDetailImage(card, deckId);
+      warmed?.promise.then(decoded => {
+        if (!decoded || !visual.isConnected) return; // avoid stale modal updates
+        decoded.className = 'card-art detail-card-art';
+        decoded.classList.toggle('is-reversed', card.orientation === 'reversed');
+        decoded.alt = '';
+        visual.replaceChildren(decoded);
+      });
+    }
     return visual;
   }
 
@@ -267,7 +302,9 @@ function openCardDetail(card, trigger, deckId = 'B') {
 
   setCardTitle(page.cardDetailTitle, parts);
   page.cardDetailOrientation.textContent = parts.orientation;
-  page.cardDetailVisual.replaceChildren(createCardVisual(card, { detail: true, deckId }));
+  page.cardDetailVisual.replaceChildren(createCardVisual(card, {
+    detail: true, deckId, gridSource: trigger?.querySelector('img.card-art')?.src ?? null
+  }));
   renderKeywordGrid(detail ? card.card_id : null);
 
   if (detail) {
@@ -1005,6 +1042,11 @@ function createReadingController(number) {
     label.append(title, orientation);
     result.append(visual, label);
     result.setAttribute('aria-label', `${parts.plainTitle} ${parts.orientation}の詳細を表示`);
+    // Hover, keyboard focus, and touch-start warm only the next likely detail.
+    // Click still works immediately, even if preloading has not finished.
+    result.addEventListener('pointerenter', () => warmDetailImage(card, state.deckId));
+    result.addEventListener('focus', () => warmDetailImage(card, state.deckId));
+    result.addEventListener('pointerdown', () => warmDetailImage(card, state.deckId), { passive: true });
     result.addEventListener('click', () => openCardDetail(card, result, state.deckId));
     return result;
   }
