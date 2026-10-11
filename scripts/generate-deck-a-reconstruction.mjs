@@ -100,7 +100,10 @@ function titleCard() {
     '<text x="512" y="1169" font-size="55">Conceived by</text>'+
     '<text x="512" y="1240" font-size="56" font-variant="small-caps">A. E. Waite</text>'+
     '<text x="512" y="1396" font-size="54">Cards designed by</text>'+
-    '<text x="512" y="1464" font-size="48" font-variant="small-caps">Pamela Colman Smith</text></g>');
+    '<text x="512" y="1464" font-size="48" font-variant="small-caps">Pamela Colman Smith</text></g>'+
+    // Unlike the scan's Made in China imprint, this honestly credits the
+    // independent reconstruction. Rebalances the final line of the print.
+    '<text x="512" y="1551" text-anchor="middle" font-family="Georgia, Times New Roman, serif" font-size="30" font-weight="bold" letter-spacing=".55" fill="#f8ebc2">Recreated by KiNoTch.</text>');
 }
 function textWidth(s,size) {
   let sum=0;
