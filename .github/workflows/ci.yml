@@ -77,4 +77,6 @@ jobs:
             keyword-grid-mobile.png
             settings-deck-390.png
             settings-deck-320.png
+            ux90-compact-320.png
+            ux90-independent-390.png
           if-no-files-found: ignore
