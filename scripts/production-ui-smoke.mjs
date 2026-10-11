@@ -224,7 +224,7 @@ try {
       throw new Error('Pre-draw Undo after Shuffle did not restore layout.');
     }
     piles[0].click();
-    one('.parallel-pile-options .pile-button:nth-child(2)').click();
+    one('.primary-pile-options .pile-button:nth-child(2)').click(); // <=26: optional Parallel shares the first triple-pile selector
     click('.draw-button');
 
     for (let i = 0; i < 180 && one('.reading-status').textContent !== '抽選完了'; i += 1) {
