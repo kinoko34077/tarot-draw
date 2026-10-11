@@ -589,7 +589,7 @@ function createReadingController(number) {
       </label>
     </div>
 
-    <p class="layout-message helper" role="status"></p>
+    
 
     <div class="pile-panel hidden" aria-label="山選択">
       <span class="pile-label">山</span>
@@ -607,7 +607,7 @@ function createReadingController(number) {
     <div class="matrix-stack">
       <section class="matrix-section">
         <div class="matrix-heading">
-          <h2 class="primary-title">配置</h2>
+          <h2 class="primary-title">配置</h2><p class="layout-message helper" role="status"></p>
           <span class="primary-pile-label branch-meta"></span>
           <div class="result-action-line">
             <p class="reading-status status" role="status" aria-live="polite"></p>
