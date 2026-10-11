@@ -55,7 +55,7 @@ test('Issue #83 chosen PD ouroboros is the AnonMoos vector, not old ellipse', as
   const segment=gen.slice(gen.indexOf('function ouroboros() {'),gen.indexOf('function titleCard() {'));
   assert.match(segment,/AnonMoos/);
   assert.match(segment,/Ouroboros-simple\.svg/);
-  assert.match(segment,/rotate\(0\)/);
+  assert.match(segment,/translate\(512 840\) rotate\(180\) scale\(\.385\)/);
   assert.equal((segment.match(/<path d=/g)||[]).length,3);
   assert.doesNotMatch(segment,/<ellipse/);
   assert.match(doc,/three PD vector paths/);
@@ -86,4 +86,10 @@ test('UX99 scan-calibrated independent word widths and vertical stretching are r
   assert.match(source,/\.webp\(\{ quality: 92, effort: 5 \}\)/);
   assert.match(app,/assets\/cards\/detail\//);
   assert.ok(model.includes('deck-a-title.webp')&&model.includes('deck-a-introduction.webp'));
+});
+
+test('UX99 scanned print has top-facing Ouroboros with calibrated ring and credit positions', async()=>{
+ const generator=await read('scripts/generate-deck-a-reconstruction.mjs');
+ assert.match(generator,/translate\(512 840\) rotate\(180\) scale\(\.385\)/);
+ for(const y of [1169,1240,1396,1464]) assert.match(generator,new RegExp('x="512" y="'+y+'"'));
 });
