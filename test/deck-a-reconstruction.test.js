@@ -37,7 +37,7 @@ test('Issue 86 uses independent dense source-language biography and guarded vint
   const count=blocks.flatMap(([,paragraph])=>paragraph.split(/\s+/)).length;
   assert.ok(count>=290&&count<=345,'Biographical wording must retain near-reference density');
   assert.match(generator,/if\(portraitY>590\|\|lastY>1646\)throw Error/);
-  assert.match(generator,/textLength/);
+  assert.match(generator,/tspan/);
   assert.match(generator,/slope="1\.38"/);
   assert.match(generator,/font-size="58" font-weight="900"/);
   assert.doesNotMatch(generator,/Made in China|Reprinted from The Encyclopedia/i);
