@@ -313,12 +313,21 @@ try {
       throw new Error('Actual orientation meaning lacks visible and assistive highlighting.');
     }
 
-    const detailImage = one('#cardDetailVisual img.card-art');
-    if (!detailImage || !detailImage.src.includes('/assets/cards/detail/') || !detailImage.src.endsWith('.webp')) {
-      throw new Error('Detail image is not using lazy self-hosted WebP.');
+    const instantPreview = one('#cardDetailVisual img.card-art');
+    if (!instantPreview || !instantPreview.src.includes('/assets/cards/grid/') || !instantPreview.complete) {
+      throw new Error('Card detail did not immediately display the already-loaded grid image.');
     }
-    for (let i = 0; i < 80 && !detailImage.complete; i += 1) await sleep(50);
-    if (detailImage.naturalWidth <= 0) throw new Error('Detail image failed to load.');
+    // High-resolution art replaces the instant grid thumbnail only after decode.
+    let detailImage = instantPreview;
+    for (let i = 0; i < 80; i += 1) {
+      detailImage = one('#cardDetailVisual img.card-art');
+      if (detailImage?.src.includes('/assets/cards/detail/') && detailImage.complete) break;
+      await sleep(50);
+    }
+    if (!detailImage?.src.includes('/assets/cards/detail/') || !detailImage.src.endsWith('.webp')) {
+      throw new Error('High-resolution detail image was not swapped in.');
+    }
+    if (detailImage.naturalWidth <= 0) throw new Error('Decoded high-resolution detail image failed to load.');
     if ((triggerOrientation === '逆位置') !== detailImage.classList.contains('is-reversed')) {
       throw new Error('Detail image orientation mismatch.');
     }
