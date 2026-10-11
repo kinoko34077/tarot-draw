@@ -246,7 +246,7 @@ try {
     assert.equal(settings.selectedEnabled,true,'Radio selection enables only active deck cards');
     assert.equal(settings.controlOnCard,true,'Checkbox overlay geometry '+JSON.stringify(settings.cardRects));
     assert.equal(settings.dialogFits,true,'Settings must have no horizontal clipping on mobile');
-    assert.ok(settings.cardFaceWidth>=120,'Each card must be far larger than old 33px thumbnail');
+    assert.ok(settings.cardFaceWidth>=190,'Selected mobile cards need nearly detail-card width');
     assert.equal(settings.aArt.length,2);
     assert.ok(settings.aArt.every(a=>a.ok&&a.src.endsWith('.svg')),'Both independently reconstructed Deck A cards must load as self-hosted SVG in actual browser');
     assert.equal(settings.squarePlus,true);
@@ -266,7 +266,7 @@ try {
       return {width:face.width,fits:d.scrollWidth<=d.clientWidth+1,
         labels:[...d.querySelectorAll('.deck-preview-name')].length};
     })()`);
-    assert.ok(mobileSettings.width>=98,'Large card previews must remain legible at 320px');
+    assert.ok(mobileSettings.width>=190,'Large card previews must remain near detail size at 320px');
     assert.equal(mobileSettings.fits,true,'320px settings dialog must not scroll sideways');
     assert.equal(mobileSettings.labels,4);
     report('UX87-SETTINGS-320',{status:'PASS',...mobileSettings});
