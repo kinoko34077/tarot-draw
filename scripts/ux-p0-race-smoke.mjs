@@ -206,8 +206,8 @@ try {
         src:im.getAttribute('src'),ok:im.complete&&im.naturalWidth===1024&&im.naturalHeight===1755
       }));
       q('input[name="deckId"][value="A"]').click();
-      q('#includeTitleCard').click();
-      q('#includeSecondaryCard').click();
+      q('#includeTitleCardA').click();
+       q('#includeSecondaryCardA').click();
       const selectedA=q('.reading-deck-summary').textContent;
       q('#settingsDone').click();
       const closed=!q('#settingsDialog').open;
