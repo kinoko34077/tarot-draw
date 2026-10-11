@@ -3,6 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "type": "module",
+  "devDependencies": { "sharp": "0.34.4" },
   "engines": {
     "node": ">=22"
   },
