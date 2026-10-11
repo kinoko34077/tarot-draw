@@ -19,11 +19,15 @@ test('Issue 83 reconstructs Deck A without reusing modern physical card scan',as
   assert.match(generator,/colour|color|indigo|purple|#211B5D/i);
   assert.doesNotMatch(generator,/Reprinted from The Encyclopedia of Tarot/);
   assert.match(checker,/Reprinted from\|Encyclopedia of Tarot\|MADE IN CHINA/);
-  for(const name of ['deck-a-title.svg','deck-a-introduction.svg']){
-    assert.ok(model.includes(name));
-    assert.ok(html.includes(name));
-    assert.ok(generator.includes(name));
+  for(const name of ['deck-a-title.webp','deck-a-introduction.webp']){
+    assert.ok(model.includes(name),'model bitmap lookup missing');
+    assert.ok(html.includes(name),'settings bitmap lookup missing');
   }
+  for(const name of ['deck-a-title.svg','deck-a-introduction.svg']){
+    assert.ok(generator.includes(name),'generator editable master missing');
+  }
+  assert.match(generator,/sharp\(Buffer\.from\(svg\)\)/);
+  assert.match(checker,/incorrect raster dimensions/);
   assert.match(workflow,/Generate|Compose independent vintage Deck A art/);
   assert.match(workflow,/node scripts\/check-deck-a-assets.mjs/);
   assert.match(spec,/Copyright|copyrighted|later edition/i);
@@ -61,9 +65,9 @@ test('UX93 title uses source-like tall word initials and smaller capitals', asyn
   const source=await read('scripts/generate-deck-a-reconstruction.mjs');
   assert.match(source,/return words\.map\(\(word, index\)/);
   assert.doesNotMatch(source,/dx="34"/);
-  assert.match(source,/titleText\(\['The','Original'\],245,116,92,587,\[178,367\]\)/);
-  assert.match(source,/titleText\(\['Rider','Waite'\],378,124,94,566,\[263,261\]\)/);
-  assert.match(source,/titleText\(\['Tarot','Deck'\],513,124,94,557,\[252,265\]\)/);
+  assert.match(source,/titleText\(\['The','Original'\],245,116,92,568,\[173,353\]\)/);
+  assert.match(source,/titleText\(\['Rider','Waite'\],378,124,94,525,\[244,239\]\)/);
+  assert.match(source,/titleText\(\['Tarot','Deck'\],513,124,94,507,\[229,238\]\)/);
 });
 
 test('UX97 independent title words prevent cross-word overlap in all font fallbacks', async () => {
@@ -73,4 +77,16 @@ test('UX97 independent title words prevent cross-word overlap in all font fallba
   assert.match(generator,/wordWidths\.reduce/);
   assert.match(generator,/return words\.map\(\(word, index\)/);
   assert.doesNotMatch(generator,/dx="34"/);
+});
+
+test('UX99 scan-calibrated independent word widths and vertical stretching are rasterized for all views',async()=>{
+  const source=await read('scripts/generate-deck-a-reconstruction.mjs');
+  const app=await read('web/app.js');
+  const model=await read('web/model.js');
+  assert.match(source,/scale\(1 1\.29\)/);
+  assert.match(source,/scale\(1 1\.24\)/);
+  assert.match(source,/scale\(1 1\.45\)/);
+  assert.match(source,/\.webp\(\{ quality: 92, effort: 5 \}\)/);
+  assert.match(app,/assets\/cards\/detail\//);
+  assert.ok(model.includes('deck-a-title.webp')&&model.includes('deck-a-introduction.webp'));
 });
