@@ -35,7 +35,10 @@
         <h2 id="settingsTitle">デッキ設定</h2>
         <button id="settingsClose" class="secondary settings-close" type="button" aria-label="設定を閉じる">×</button>
       </header>
-      <p class="settings-help">使用するデッキと、独自カードを含めるかを選択します。</p>
+      <div class="settings-mode-row">
+        <label class="settings-major-choice" for="majorOnlyCheckbox"><input id="majorOnlyCheckbox" name="majorOnly" type="checkbox"><span>大アルカナのみで占う</span></label>
+        <p id="selectedDeckCount" class="settings-card-count" aria-live="polite">80枚（通常78枚＋独自カード2枚）</p>
+      </div>
       <fieldset class="deck-choices">
         <legend>デッキを選択</legend>
         <section class="deck-choice" data-deck-option="A" aria-label="デッキAの独自カード">
@@ -48,8 +51,8 @@
             </label>
             <label class="deck-preview" for="includeSecondaryCardA">
               <span class="deck-preview-face" data-deck-a-image="deck-a-introduction.webp">画像読込中</span>
-              <input id="includeSecondaryCardA" class="deck-preview-checkbox" data-deck="A" data-special="secondary" type="checkbox" aria-label="デッキAのパメラ・コールマン・スミス紹介カードを抽選に含める" checked disabled>
-              <span class="deck-preview-name">パメラ・コールマン・スミス紹介カード</span>
+              <input id="includeSecondaryCardA" class="deck-preview-checkbox" data-deck="A" data-special="secondary" type="checkbox" aria-label="デッキAの紹介カードを抽選に含める" checked disabled>
+              <span class="deck-preview-name">紹介カード</span>
             </label>
           </div>
         </section>
@@ -68,8 +71,7 @@
             </label>
           </div>
         </section>
-        <label class="settings-major-choice" for="majorOnlyCheckbox"><input id="majorOnlyCheckbox" name="majorOnly" type="checkbox"><span>大アルカナのみで占う</span><small>通常22枚＋選択したタイトルカード（22）・保証／紹介カード（23）</small></label>
-        <p id="selectedDeckCount" class="settings-card-count" aria-live="polite">80枚（通常78枚＋独自カード2枚）</p>
+
       </fieldset>
       <p id="settingsScope" class="settings-scope" role="status" aria-live="polite">この設定は次のシャッフルに反映されます。</p>
       <div class="settings-footer"><button id="settingsDone" class="primary" type="button">完了</button></div>
