@@ -44,6 +44,7 @@ const page = {
   cardDetailCustom: document.querySelector('#cardDetailCustom'),
   cardDetailCustomText: document.querySelector('#cardDetailCustomText'),
   settingsButton: document.querySelector('#settingsButton'),
+  deckSummary: document.querySelector('#deckSummary'),
   settingsDialog: document.querySelector('#settingsDialog'),
   settingsClose: document.querySelector('#settingsClose'),
   settingsDone: document.querySelector('#settingsDone'),
@@ -549,7 +550,6 @@ function createReadingController(number) {
         <span class="question-prefix">Q.</span>
         <input class="question-input" type="text" autocomplete="off" aria-label="今回の問い" placeholder="今回の問い">
       </label>
-      <span class="reading-deck-summary" aria-label="使用デッキ"></span>
     </div>
 
     <p class="layout-message helper" role="status"></p>
@@ -601,7 +601,6 @@ function createReadingController(number) {
 
   const refs = {
     cardCount: article.querySelector('.card-count'),
-    deckSummary: article.querySelector('.reading-deck-summary'),
     copyButton: article.querySelector('.copy-button'),
     copyFeedback: article.querySelector('.copy-feedback'),
     shuffleButton: page.shuffleButton,
@@ -1365,7 +1364,7 @@ function createReadingController(number) {
     const parallelSet = refs.parallelPileOptions.closest('.pile-set-parallel');
     primarySet?.classList.toggle('pile-set-shared', !independent);
     primarySet?.querySelector('.pile-set-title')?.replaceChildren(
-      document.createTextNode(independent ? 'Primary（メイン）' : '山を選択')
+      document.createTextNode(independent ? 'Primary（メイン）' : '')
     );
     parallelSet?.classList.toggle('hidden', !independent);
     refs.pileOptions.replaceChildren(...(state.piles.length ?
@@ -1419,7 +1418,7 @@ function createReadingController(number) {
     refs.redoButton.classList.toggle('hidden', !canUndo || state.redoStack.length === 0);
     refs.historyActions.classList.toggle('hidden', !canUndo || (state.undoStack.length === 0 && state.redoStack.length === 0));
     refs.cardCount.textContent = `計${count}枚`;
-    refs.deckSummary.textContent = describeDeckChoice(state);
+    if (readings.at(-1) === controller) page.deckSummary.textContent = describeDeckChoice(state);
 
     if (state.phase === 'editing') {
       if (!canAddRow(state) && !canAddColumn(state)) {
