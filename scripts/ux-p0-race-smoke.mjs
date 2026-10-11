@@ -3,7 +3,7 @@
 import assert from 'node:assert/strict';
 import { spawn, spawnSync } from 'node:child_process';
 import { once } from 'node:events';
-import { mkdtemp, readFile, rm } from 'node:fs/promises';
+import { mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { createTarotServer } from '../src/server.js';
@@ -270,6 +270,14 @@ try {
     assert.equal(mobileSettings.fits,true,'320px settings dialog must not scroll sideways');
     assert.equal(mobileSettings.labels,4);
     report('UX87-SETTINGS-320',{status:'PASS',...mobileSettings});
+    const settings320Proof = await cdp.call('Page.captureScreenshot',{format:'png'});
+    await writeFile('settings-deck-320.png',Buffer.from(settings320Proof.data,'base64'));
+
+
+    await evalInPage(`(() => document.querySelector('#settingsButton').click())()`);
+    const settings390Proof = await cdp.call('Page.captureScreenshot',{format:'png'});
+    await writeFile('settings-deck-390.png',Buffer.from(settings390Proof.data,'base64'));
+    await evalInPage(`(() => document.querySelector('#settingsClose').click())()`);
 
     // A/80 is not a mere B-label alias: its introduction ID, display/detail
     // and copied notes must match, with no GUARANTEE or invented biography.
