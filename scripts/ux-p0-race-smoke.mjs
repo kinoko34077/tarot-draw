@@ -284,11 +284,15 @@ try {
     const compact = await evalInPage(`(async()=>{
       const sleep=ms=>new Promise(r=>setTimeout(r,ms));
       const q=s=>document.querySelector(s), all=s=>[...document.querySelectorAll(s)];
-      const rowHeader=q('.row-header'), title=q('.matrix-heading h2');
+      const rowHeader=q('.row-header'), columnHeader=q('.column-header');
       const question=q('.question-input').getBoundingClientRect();
       const deck=q('.reading-deck-summary').getBoundingClientRect();
-      const deckRightAligned=deck.right<=window.innerWidth+1 && deck.left>=question.left;
-      const alignedAxisWidth=Math.abs(rowHeader.getBoundingClientRect().width-title.getBoundingClientRect().width)<1;
+      const topbar=q('.topbar').getBoundingClientRect();
+      const settings=q('#settingsButton').getBoundingClientRect();
+      const deckRightAligned=deck.right<=settings.left+1 &&
+        deck.top>=topbar.top-1 && deck.bottom<=topbar.bottom+1 &&
+        deck.width>50 && question.width>100;
+      const alignedAxisWidth=Math.abs(rowHeader.getBoundingClientRect().width-columnHeader.getBoundingClientRect().height)<1;
       const mask=q('.cell-mask-toggle');
       const maskStyle=getComputedStyle(mask);
       const noRoundFrame=maskStyle.borderTopWidth==='0px' && maskStyle.borderRadius==='0px' &&
