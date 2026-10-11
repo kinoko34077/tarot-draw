@@ -733,7 +733,7 @@ try {
       one('.shuffle-button').click();
       for(let i=0;i<100 && all('.primary-pile-options .pile-button').length!==3;i++)await sleep(20);
       const piles=()=>all('.primary-pile-options .pile-button');
-      const alternatives=()=>all('.parallel-pile-options .pile-button');
+      const alternatives=()=>all('.primary-pile-options .pile-button'); // compact <=26 selection
       piles()[0].click();
       const primarySelected=piles()[0].getAttribute('aria-pressed')==='true';
       piles()[0].click();
@@ -842,7 +842,7 @@ try {
       __p0.failDrawPiles=['B'];
       one('.shuffle-button').click();
       for(let i=0;i<100 && all('.primary-pile-options .pile-button').length!==3;i++)await sleep(20);
-      all('.primary-pile-options .pile-button')[0].click(); all('.parallel-pile-options .pile-button')[1].click();
+      all('.primary-pile-options .pile-button')[0].click(); all('.primary-pile-options .pile-button')[1].click(); // <=26 shared selection
       one('.draw-button').click();
       for(let i=0;i<100 && !one('.reading-status').textContent.includes('確定状況が不明');i++)await sleep(20);
       const before=__p0.drawCalls.length;
@@ -890,7 +890,7 @@ try {
       const all=q=>[...document.querySelectorAll(q)];
       one('.shuffle-button').click();
       for(let i=0;i<100 && all('.primary-pile-options .pile-button').length!==3;i++)await sleep(20);
-      all('.primary-pile-options .pile-button')[0].click(); all('.parallel-pile-options .pile-button')[1].click();
+      all('.primary-pile-options .pile-button')[0].click(); all('.primary-pile-options .pile-button')[1].click(); // <=26 shared selection
       one('.draw-button').click();
       for(let i=0;i<100 && __p0.deferredDraw.length!==2;i++)await sleep(20);
       const releases=__p0.deferredDraw.splice(0);
