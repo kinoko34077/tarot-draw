@@ -1180,7 +1180,7 @@ input:focus-visible {
 }
 .deck-preview:has(.deck-preview-checkbox:disabled) { cursor: default; opacity: .67; }
 .deck-preview-face {
-  width: 100%; aspect-ratio: 1024 / 1755; max-height: 460px;
+  width: 100%; aspect-ratio: 1024 / 1755;
   padding: 0; overflow: hidden; border: 1px solid var(--border-strong); border-radius: 7px;
   background: var(--surface); color: var(--muted); font-size: .81rem;
   display: grid; place-items: center; text-align: center;
