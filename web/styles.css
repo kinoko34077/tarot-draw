@@ -1207,7 +1207,31 @@ input:focus-visible {
   }
   .deck-preview-checkbox { width: 24px; height: 24px; top: 5px; right: 5px; }
 }
-.reading-deck-summary { color: var(--muted); font-size: .73rem; flex: 0 0 auto; white-space: nowrap; }
+.reading-deck-summary {
+  color: var(--muted); font-size: .73rem; flex: 0 0 auto;
+  white-space: nowrap; margin-left: auto; text-align: right;
+}
+/* Row label track and the Primary/Parallel title occupy the same 62px. */
+.matrix-heading h2 { box-sizing: border-box; flex: 0 0 62px; min-width: 62px; }
+.column-header .axis-inline-label, .column-header .axis-readonly-label {
+  box-sizing: border-box; height: 34px; min-height: 34px; max-height: 34px;
+}
+.pile-panel-shared .pile-set-primary { grid-column: 2; }
+.pile-panel-shared .pile-set-parallel { display: none; }
+@media (max-width: 720px) {
+  .pile-panel-shared .pile-set-primary { grid-column: 1; }
+}
+@media (max-width: 480px) {
+  .reading-toolbar {
+    display: grid; grid-template-columns: auto minmax(0,1fr);
+    align-items: center; column-gap: 7px;
+  }
+  .reading-index { grid-column: 1; grid-row: 1; }
+  .question-field { grid-column: 2; grid-row: 1; min-width: 0; }
+  .reading-deck-summary {
+    grid-column: 2; grid-row: 2; justify-self: end; margin-left: 0;
+  }
+}
 
 /* Ruby-base and ordinary kana share one line box and baseline.
    Readings float outside normal flow; no browser ruby layout box contributes
@@ -1259,11 +1283,12 @@ input:focus-visible {
 .cell-mask-toggle {
   display: grid; place-items: center; margin: 2px auto;
   width: 28px; height: 28px; padding: 0;
-  border-radius: 50%; border: 1px solid var(--border);
-  background: var(--surface); color: var(--muted); font-size: 1.12rem;
+  border-radius: 0; border: 0;
+  background: transparent; color: var(--muted); font-size: 1.12rem;
   cursor: pointer; line-height: 1;
 }
-.cell-mask-toggle[aria-pressed="true"] { color: var(--text); background: var(--accent-soft); }
+.cell-mask-toggle[aria-pressed="true"] { color: var(--text); background: transparent; }
+.cell-mask-toggle:hover:not(:disabled) { color: var(--text); }
 .cell-mask-toggle:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 .cell-inactive { background: var(--surface); }
 .cell-mask-excluded { display: inline-block; font-size: 1rem; color: var(--muted); padding: 3px; }
