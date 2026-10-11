@@ -209,7 +209,7 @@ try {
       const cardFaceWidth = q('.deck-preview-face').getBoundingClientRect().width;
       for(let i=0;i<100 && all('[data-deck-a-image] img').length!==2;i++)await sleep(20);
       const aArt=all('[data-deck-a-image] img').map(im=>({
-        src:im.getAttribute('src'),ok:im.complete&&im.naturalWidth===1024&&im.naturalHeight===1755
+        src:im.getAttribute('src'),ok:im.complete&&im.naturalWidth===512&&im.naturalHeight===878
       }));
       q('input[name="deckId"][value="A"]').click();
       const selectedEnabled = all('.deck-preview-checkbox[data-deck="A"]').every(e=>!e.disabled) &&
