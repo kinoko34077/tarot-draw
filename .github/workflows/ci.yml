@@ -57,6 +57,10 @@ jobs:
           path: |
             deck-a-title-proof.png
             deck-a-introduction-proof.png
+            web/assets/cards/detail/deck-a-title.webp
+            web/assets/cards/detail/deck-a-introduction.webp
+            web/assets/cards/grid/deck-a-title.webp
+            web/assets/cards/grid/deck-a-introduction.webp
           if-no-files-found: warn
       - name: Collect machine-observed child-like/novice/expert UX evidence (baseline, existing failures classified)
         env:
