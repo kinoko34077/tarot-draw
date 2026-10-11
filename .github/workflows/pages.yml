@@ -6,6 +6,8 @@ on:
     paths:
       - 'web/**'
       - 'scripts/build-pages.mjs'
+      - 'scripts/generate-deck-a-reconstruction.mjs'
+      - 'scripts/check-deck-a-assets.mjs'
       # Validation-only changes must still produce a Pages-completed event so
       # the production smoke is not silently skipped after its own fix.
       - 'scripts/production-ui-smoke.mjs'
