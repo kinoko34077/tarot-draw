@@ -88,8 +88,8 @@ test('UX99 scan-calibrated independent word widths and vertical stretching are r
   assert.ok(model.includes('deck-a-title.webp')&&model.includes('deck-a-introduction.webp'));
 });
 
-test('UX99 scanned print has top-facing Ouroboros with calibrated ring and credit positions', async()=>{
+test('UX99 print keeps the user-specified downward-facing Ouroboros with calibrated credits', async()=>{
  const generator=await read('scripts/generate-deck-a-reconstruction.mjs');
- assert.match(generator,/translate\(512 840\) rotate\(180\) scale\(\.385\)/);
+ assert.match(generator,/translate\(512 840\) rotate\(0\) scale\(\.385\)/);
  for(const y of [1169,1240,1396,1464]) assert.match(generator,new RegExp('x="512" y="'+y+'"'));
 });
