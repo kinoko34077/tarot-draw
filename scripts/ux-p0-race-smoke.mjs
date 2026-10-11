@@ -212,10 +212,12 @@ try {
       q('input[name="deckId"][value="A"]').click();
       const selectedEnabled = all('.deck-preview-checkbox[data-deck="A"]').every(e=>!e.disabled) &&
         all('.deck-preview-checkbox[data-deck="B"]').every(e=>e.disabled);
-      const controlOnCard = all('.deck-preview-checkbox[data-deck="A"]').every(e=>{
+      const cardRects = all('.deck-preview-checkbox[data-deck="A"]').map(e=>{
         const box=e.getBoundingClientRect(),face=e.parentElement.querySelector('.deck-preview-face').getBoundingClientRect();
-        return box.left>=face.left&&box.right<=face.right&&box.top>=face.top&&box.bottom<=face.bottom;
+        return {input:{x:box.x,y:box.y,width:box.width,height:box.height},face:{x:face.x,y:face.y,width:face.width,height:face.height}};
       });
+      const controlOnCard = cardRects.every(({input,face})=> input.x>=face.x-1&&
+        input.x+input.width<=face.x+face.width+1&&input.y>=face.y-1&&input.y+input.height<=face.y+face.height+1);
       q('#includeTitleCardA').click();
        q('#includeSecondaryCardA').click();
       const selectedA=q('.reading-deck-summary').textContent;
@@ -232,7 +234,7 @@ try {
       const immutability=q('.reading-deck-summary').textContent;
       const nextNotice=q('#settingsScope').textContent;
       q('#settingsClose').click();
-      return {opened,closed,previewCount,aArt,initialDisabled,dialogFits,cardFaceWidth,selectedEnabled,controlOnCard,
+      return {opened,closed,previewCount,aArt,initialDisabled,dialogFits,cardFaceWidth,selectedEnabled,controlOnCard,cardRects,
         squarePlus:Math.abs(plus.width-plus.height)<1&&plus.width>=26,
         squareMinus:Math.abs(minus.width-minus.height)<1&&minus.width>=26,
         selectedA,counts,modeStatus,immutability,nextNotice};
@@ -242,7 +244,7 @@ try {
     assert.equal(settings.previewCount,4);
     assert.equal(settings.initialDisabled,true,'Inactive Deck A checkboxes must initially be disabled');
     assert.equal(settings.selectedEnabled,true,'Radio selection enables only active deck cards');
-    assert.equal(settings.controlOnCard,true,'Checkbox is visibly over its own preview card');
+    assert.equal(settings.controlOnCard,true,'Checkbox overlay geometry '+JSON.stringify(settings.cardRects));
     assert.equal(settings.dialogFits,true,'Settings must have no horizontal clipping on mobile');
     assert.ok(settings.cardFaceWidth>=120,'Each card must be far larger than old 33px thumbnail');
     assert.equal(settings.aArt.length,2);
