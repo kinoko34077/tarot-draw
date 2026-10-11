@@ -232,7 +232,7 @@ test('UX78: visible settings affordance and 4 special-card previews, square colu
   assert.ok(html.includes('id="includeTitleCard"'));
   assert.ok(html.includes('id="includeSecondaryCard"'));
   assert.equal((html.match(/class="deck-preview-face"/g)||[]).length,4);
-  assert.ok(html.includes('パメラ・コールマン・スミス紹介カード'));
+  assert.ok(html.includes('class="deck-preview-name">紹介カード</span>'));
   assert.ok(css.includes('height: 27px; min-height: 27px; border-radius: 4px;'));
   assert.ok(app.includes('settingsDialog.showModal()'));
   assert.ok(app.includes('deckCardCount(state)'));
