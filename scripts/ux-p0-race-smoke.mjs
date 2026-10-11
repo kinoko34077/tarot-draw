@@ -66,17 +66,19 @@ const mock = `(() => {
       const includeTitle=options.include_title ?? options.include_custom ?? true;
       const includeSecondary=options.include_secondary ?? options.include_custom ?? true;
       const custom=includeTitle && includeSecondary;
-      const total=78+Number(includeTitle)+Number(includeSecondary);
+      const majorOnly=options.major_only??false;
+      const total=(majorOnly?22:78)+Number(includeTitle)+Number(includeSecondary);
+      const each=Math.floor(total/3), remainder=total%3;
       const deckId=options.deck_id||'B';
       p0.deckId=deckId;
       p0.includeCustom=custom;
       const reply=()=>ok({
         include_custom:custom,include_title:includeTitle,include_secondary:includeSecondary,
-        deck_id:deckId,total_cards:total,
+        deck_id:deckId,major_only:majorOnly,total_cards:total,
         piles:[
-          {pile_id:'A',count:total>=79?27:26},
-          {pile_id:'B',count:total===80?27:26},
-          {pile_id:'C',count:26}
+          {pile_id:'A',count:each+Number(remainder>0)},
+          {pile_id:'B',count:each+Number(remainder>1)},
+          {pile_id:'C',count:each}
         ]
       });
       if (p0.deferShuffle) return new Promise(resolve=>p0.deferredShuffle.push(()=>resolve(reply())));
