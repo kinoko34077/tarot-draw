@@ -486,6 +486,23 @@ try {
     assert.deepEqual([maskBoth.pCards,maskBoth.qCards],[28,28]);
     assert.deepEqual(maskBoth.centers,[true,true]);
     report('UX97-PARALLEL-MASK',{status:'PASS',...maskBoth});
+    await navigate(390);
+    const headingStable = await evalInPage(`(()=>{
+      const q=s=>document.querySelector(s), m=q('.primary-matrix');
+      const initial=m.getBoundingClientRect().top;
+      const key=q('.row-header .axis-menu-trigger');
+      key.dispatchEvent(new KeyboardEvent('keydown',{key:'ArrowDown',bubbles:true}));
+      return {shift:Math.abs(m.getBoundingClientRect().top-initial),
+        inline:q('.matrix-heading').contains(q('.layout-message')),
+        text:q('.layout-message').textContent,
+        marker:getComputedStyle(q('.layout-message'),'::before').content};
+    })()`);
+    assert.ok(headingStable.shift<2,'Status must not push grid down');
+    assert.equal(headingStable.inline,true);
+    assert.ok(headingStable.text.includes('順番'));
+    assert.ok(headingStable.marker.includes('｜'));
+    report('UX97-FIXED-HEADING-STATUS',{status:'PASS',...headingStable});
+
 
 
     await navigate(390);
