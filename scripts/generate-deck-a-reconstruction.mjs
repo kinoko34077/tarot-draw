@@ -127,8 +127,8 @@ function bioCard(photoData) {
   const prose=[top1,top2,right1,right2,right3,bottom1,bottom2,bottom3];
   const words=prose.join(' ').split(/\s+/).length;
   if(words<290||words>345)throw Error('Biography density drift from the reference: '+words);
-  const topSize=26,topLead=30,rightSize=25,rightLead=27,bottomSize=25,bottomLead=27;
-  const top1Y=193;
+  const topSize=26,topLead=28,rightSize=25,rightLead=26,bottomSize=25,bottomLead=27;
+  const top1Y=179;
   const top2Y=top1Y+linesOf(top1,784,topSize).length*topLead+12;
   const portraitY=top2Y+linesOf(top2,784,topSize).length*topLead+14;
   const r1Y=portraitY+19;
