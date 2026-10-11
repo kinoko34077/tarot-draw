@@ -1330,7 +1330,12 @@ function createReadingController(number) {
   function independentPileChoices() {
     // Only 27+ active (○) cells need two independent ordered pile selectors.
     // Rectangular dimensions or the number of cards in the deck are irrelevant.
-    return requiredCards(state) >= 27 || (state.majorOnly && requiredCards(state) > Math.max(...state.piles.map(pile => pile.count), 0));
+    // On 22/23-card decks the piles are uneven (8/7/7 or 8/8/7).
+    // Allow an explicit second Primary pile if the FIRST selected pile is
+    // short, even when one other pile could have covered the same spread.
+    return requiredCards(state) >= 27 ||
+      (state.majorOnly && state.piles.length > 0 &&
+       requiredCards(state) > Math.min(...state.piles.map(pile => pile.count)));
   }
 
   function pileHint() {
