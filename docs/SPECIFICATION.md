@@ -194,3 +194,10 @@ The card previews scale to available dialog width instead of 33–40px thumbnail
 - Reading deck summary appears at the right of the Q/question area, not next to “Reading n”; on narrow screens it occupies a right-aligned second row so the question input keeps its visible width. Row-heading 62px track and Primary/Parallel heading title share the same width; column heading 34px tracks the section title bar height.
 - No deck/shuffle/Worker/API contract changes, no automatic artwork replacement. Deck A ouroboros selection stays in #83 pending user choice among verified reusable SVG candidates.
 - Staged changes need a separate release approval before a new Pages deploy; previous PR #88 approval does not authorize this release.
+
+## #90 follow-up after user visual feedback (2026-10-12)
+- In the 1–26 active cell mode, show one compact three-pile button row, a single "山" label only, with first selected Primary and optional second selected Parallel. In 27+ mode, show just the labelled Primary/Parallel rows without the redundant standalone "山" heading. Preserve all current backend pile ordering and mask boundary logic.
+- Row label **horizontal thickness (36px)** equals the perpendicular column header band **height (36px)**. The row grip remains above the vertical label. Column data cells retain independent flexible 96px minimum widths; the first row track no longer consumes 62px.
+- Deck status for the most recent Reading is displayed in the global app header, right aligned immediately before the settings button. Do not repeat the deck text in every Reading row; changes to next-reading settings must not mislabel a previously frozen reading.
+- Deck A title image now uses the user's chosen **public-domain AnonMoos `Ouroboros-simple.svg`** vector outlines, rather than the previously home-drawn ellipse/head. PD original, locally embedded; documented in `docs/DECK_A_RECONSTRUCTION.md`.
+- Ordinary Pages publication authorization is standing for this repo: see persistent `tarot-draw#92`. Tested, reversible releases may proceed without per-release approval. Destructive/security-sensitive/irreversible actions still require separate human authorization.
