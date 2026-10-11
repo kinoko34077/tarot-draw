@@ -26,8 +26,9 @@ function cardBorder() {
   return '<rect x="51" y="35" width="922" height="1683" rx="58" fill="#efece3" stroke="#bab6a9" stroke-width="2.1"/>'+
     '<rect x="101" y="91" width="822" height="1567" rx="43" fill="url(#purple)" stroke="#1d174e" stroke-width="2"/>';
 }
-function titleText(text, y, size) {
-  return '<text x="512" y="'+y+'" text-anchor="middle" font-family="Georgia, Times New Roman, serif" font-weight="bold" font-variant="small-caps" letter-spacing="-1.1" font-size="'+size+'" fill="#f6e8b8">'+esc(text)+'</text>';
+function titleText(text, y, size, targetWidth) {
+  // Preserve tall period capitals but follow the reference's narrower line measure.
+  return '<text x="512" y="'+y+'" text-anchor="middle" font-family="Georgia, Times New Roman, serif" font-weight="bold" font-variant="small-caps" letter-spacing="-1.1" font-size="'+size+'" textLength="'+targetWidth+'" lengthAdjust="spacingAndGlyphs" fill="#f6e8b8">'+esc(text)+'</text>';
 }
 function ouroboros() {
   // Original restrained single-headed engraved serpent. The old monster-like
@@ -72,7 +73,7 @@ function titleCard() {
     '<desc id="titledesc">Deep-indigo vintage-style three-line cream serif title, single-head ouroboros ring, historical Waite and Smith credits. Independently authored.</desc>'+
     cardBorder()+
     '<g clip-path="url(#cardClip)"><rect x="51" y="35" width="922" height="1683" filter="url(#paperGrain)" opacity=".28"/></g>'+
-    titleText('THE ORIGINAL',245,104)+titleText('RIDER WAITE',378,114)+titleText('TAROT DECK',513,114)+
+    titleText('THE ORIGINAL',245,104,587)+titleText('RIDER WAITE',378,114,566)+titleText('TAROT DECK',513,114,557)+
     ouroboros()+
     '<g fill="#f8ebc2" font-family="Georgia, Times New Roman, serif" text-anchor="middle" font-weight="bold">'+
     '<text x="512" y="1248" font-size="55">Conceived by</text>'+
@@ -105,11 +106,22 @@ function linesOf(text,width,size) {
 function typeset(text,x,y,width,size=26,leading=30) {
   const lines=linesOf(text,width,size);
   return lines.map((line,i)=>{
-    // Original-print-like justification except the last line of a paragraph.
-    const justified=i<lines.length-1&&line.includes(' ');
-    const spacing=justified?' textLength="'+width+'" lengthAdjust="spacing"':'';
-    return '<text x="'+x+'" y="'+(y+i*leading)+'"'+spacing+
-      ' xml:space="preserve" font-family="Arial, Helvetica, sans-serif" font-size="'+size+'" fill="#0b0b0b">'+esc(line)+'</text>';
+    const words=line.split(' ');
+    const baseline=y+i*leading;
+    // Justification adjusts WORD spacing only. SVG textLength would spread
+    // the spacing between every glyph, producing unnatural stretched letters.
+    if(i<lines.length-1 && words.length>1) {
+      const lengths=words.map(w=>textWidth(w,size));
+      const gap=Math.max(4,(width-lengths.reduce((a,b)=>a+b,0))/(words.length-1));
+      let left=x;
+      const spans=words.map((word,j)=>{
+        const span='<tspan x="'+left.toFixed(1)+'" y="'+baseline+'">'+esc(word)+'</tspan>';
+        left+=lengths[j]+gap;
+        return span;
+      }).join('');
+      return '<text font-family="Arial, Helvetica, sans-serif" font-size="'+size+'" fill="#0b0b0b">'+spans+'</text>';
+    }
+    return '<text x="'+x+'" y="'+baseline+'" xml:space="preserve" font-family="Arial, Helvetica, sans-serif" font-size="'+size+'" fill="#0b0b0b">'+esc(line)+'</text>';
   }).join('');
 }
 function bioCard(photoData) {
