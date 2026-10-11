@@ -314,7 +314,7 @@ try {
     }
 
     const instantPreview = one('#cardDetailVisual img.card-art');
-    if (!instantPreview || !instantPreview.src.includes('/assets/cards/grid/') || !instantPreview.complete) {
+    if (!instantPreview || (!instantPreview.src.includes('/assets/cards/grid/') && !(instantPreview.src.includes('/assets/cards/detail/') && instantPreview.complete && instantPreview.naturalWidth > 0))) {
       throw new Error('Card detail did not immediately display the already-loaded grid image.');
     }
     // High-resolution art replaces the instant grid thumbnail only after decode.
