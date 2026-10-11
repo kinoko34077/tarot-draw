@@ -161,3 +161,38 @@ test('shuffle rejects invalid individual original-card settings without freezing
   assert.deepEqual(shuffled.piles.map(p=>p.count),[26,26,26]);
   assert.equal(shuffled.total_cards,78);
 });
+
+
+test('major-only A/B decks are authored server-side, subset flags retained and parallel branches independent', () => {
+  for (const deckId of ['A','B']) for (const [title,secondary,n] of [
+    [false,false,22],[true,false,23],[false,true,23],[true,true,24]
+  ]){
+    const store=makeStore(), session=store.createSession();
+    const options={deck_id:deckId,major_only:true,include_title:title,include_secondary:secondary};
+    const split=store.shuffleSession(session.session_id,options);
+    assert.equal(split.major_only,true);
+    assert.equal(split.total_cards,n);
+    assert.deepEqual(split.piles.map(p=>p.count),
+      n===22?[8,7,7]:n===23?[8,8,7]:[8,8,8]);
+    const ids=[];
+    for(const pile of split.piles){
+      const a=store.createBranch(session.session_id,pile.pile_id);
+      const b=store.createBranch(session.session_id,pile.pile_id);
+      const positions=Array.from({length:pile.count},(_,i)=>'slot'+i);
+      const x=store.draw(a.branch_id,positions).positions;
+      const y=store.draw(b.branch_id,positions).positions;
+      assert.deepEqual(x,y);
+      ids.push(...Object.values(x).map(c=>c.card_id));
+    }
+    assert.equal(ids.length,n);
+    assert.equal(ids.filter(id=>id.startsWith('major.')).length,22);
+    assert.ok(!ids.some(id=>id.startsWith('minor.')));
+    assert.equal(ids.includes('meta.title'),title);
+    assert.equal(ids.includes('meta.'+(deckId==='A'?'introduction':'guarantee')),secondary);
+  }
+});
+test('major_only strict boolean invalidation does not commit a shuffled session',()=>{
+  const store=makeStore(), session=store.createSession();
+  assert.throws(()=>store.shuffleSession(session.session_id,{major_only:'true'}),e=>e.code==='INVALID_DECK_OPTIONS');
+  assert.equal(store.shuffleSession(session.session_id,{major_only:true,include_title:false,include_secondary:false}).total_cards,22);
+});
