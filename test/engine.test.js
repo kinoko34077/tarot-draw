@@ -39,5 +39,18 @@ test('78-card option excludes original slots and splits exactly 26/26/26', () =>
   assert.ok(deck.every(card => !card.card_id.startsWith('meta.')));
   assert.deepEqual(Object.values(piles).map(pile => pile.length), [26, 26, 26]);
   assert.deepEqual([...piles.A,...piles.B,...piles.C], deck);
-  assert.throws(() => splitThreeWays(CARD_CATALOG.slice(0,77)), /78-, 79- or 80-card/);
+  assert.throws(() => splitThreeWays(CARD_CATALOG.slice(0,77)), /22–24 or 78–80 card/);
+});
+
+test('major-only deck shares all 22 majors and optional 22/23 specials across three piles', async () => {
+  const { cardsForDeck }=await import('../src/cards.js');
+  for(const [title,secondary,counts] of [
+    [false,false,[8,7,7]],[true,false,[8,8,7]],[false,true,[8,8,7]],[true,true,[8,8,8]]
+  ]){
+    const deck=cardsForDeck('A',{includeTitle:title,includeSecondary:secondary,majorOnly:true});
+    assert.equal(deck.length,22+Number(title)+Number(secondary));
+    assert.equal(deck.filter(c=>c.arcana==='major').length,22);
+    assert.ok(!deck.some(c=>c.arcana==='minor'));
+    assert.deepEqual(Object.values(splitThreeWays(deck)).map(x=>x.length),counts);
+  }
 });
