@@ -279,3 +279,18 @@ test('Issue 87: radio-owned large special-card previews each have a local checkb
   assert.match(app,/if \(target.disabled \|\| target.dataset.deck !== chosenSettings.deckId\)/);
   assert.match(app,/Object.assign\(deckSelections\[next.deckId\]/);
 });
+
+test('UX90: minimalist ○/×, conditional pile selectors, question-side deck and aligned axes', async () => {
+  const [app,css]=await Promise.all([read('../web/app.js'),read('../web/styles.css')]);
+  assert.match(css,/\.cell-mask-toggle \{[\s\S]*?border-radius: 0; border: 0;/);
+  assert.match(css,/\.cell-mask-toggle:focus-visible/);
+  assert.match(app,/return requiredCards\(state\) >= 27/);
+  assert.match(app,/function pileButtonsShared\(\)/);
+  assert.match(app,/function selectPile\(pileId, side\)/);
+  assert.match(app,/role\.textContent = main \? 'Primary' : other \? 'Parallel'/);
+  assert.match(app,/selected\.length > 1 \? /);
+  assert.match(app,/parallelSet\?\.classList\.toggle\('hidden', !independent\)/);
+  assert.ok(app.indexOf('<label class="question-field">')<app.indexOf('<span class="reading-deck-summary"'));
+  assert.match(css,/\.reading-deck-summary \{[\s\S]*?margin-left: auto; text-align: right;/);
+  assert.match(css,/\.matrix-heading h2 \{ box-sizing: border-box; flex: 0 0 62px;/);
+});
