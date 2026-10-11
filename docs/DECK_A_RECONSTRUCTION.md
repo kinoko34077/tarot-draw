@@ -4,7 +4,7 @@
 User explicitly requests Deck A two extras resemble supplied vintage paper cards in fonts, alignment, hues, paper and engraved design, without cheap flat restyling. Build independently owned art and fresh prose; do NOT include original modern physical-card scan or Kaplan's biography text. This design source supersedes #81's original-scan binary-asset publication plan, which was copyright-gated.
 
 ## Revision #86 — original-reference matched layout (2026-10-11)
-Both user-supplied samples are **visual measurement references only**; their copyrighted modern edition layouts/text are not copied as scan assets, and the Kaplan prose must not be closely paraphrased. This revision was requested after initial #84/#85 release, is staged until separate release authorization, and does not alter the published main or Worker.
+Both user-supplied samples are **visual measurement references only**; their copyrighted modern edition layouts/text are not copied as scan assets, and the Kaplan prose must not be closely paraphrased. This revision followed the initial #84/#85 release and was published after explicit user approval in PR #88 (`a09f3ef1d748b29648170cfca683c035191fba1a`). The Worker/API remains unchanged.
 
 - Source preview references are approximately 1024×1536. Current card frame remains 1024×1755 SVG to match the production 78-card slot. Positions were rescaled visually without distorting the whole scan. Radius 58, ivory rim x51..973, inset deep-violet print x101..923.
 - Title: larger period-like cream serif three lines baselines 245/378/513 (sizes 104/114/114), bringing visual width and line rhythm closer to sample; credit baselines 1248/1319/1460/1528 instead of overly low positions. Literal "Made in China" is intentionally omitted since it is a provenance/manufacturing assertion for an edition not made by this project.
@@ -22,4 +22,4 @@ Both user-supplied samples are **visual measurement references only**; their cop
 ## Validation/release
 - Both outputs must include nonzero image, round alpha outside, viewBox, intrinsic portrait aspect, no runtime remote image href; reproduce against reference at 128px grid, 256px detail, 390px mobile.
 - New #87 uses card-local checkboxes inside radio-selected Deck A/B, disabled on inactive deck. Their server-facing title+secondary flags, 78/79/80, 30+ primary/parallel, ○/× mask/copy and P1 no-repeat remain unchanged. Test cards A previews/results/details and B placeholder.
-- Initial #83 released through #84/#85; current revision roadmap #86 / UX #87 staged on a fresh branch. NO new Pages publication without explicit authorization for this follow-up; Worker remains unchanged.
+- Initial #83 was released through #84/#85; this #86/#87 follow-up was released via #88 after explicit user approval. Exact-main CI #38152747092, Pages #38152747100 and public Chrome smoke #38152793497 all succeeded. New/future releases still require applicable authorization. Worker unchanged.
