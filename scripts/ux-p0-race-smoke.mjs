@@ -471,13 +471,20 @@ try {
       q('.draw-button').click();
       for(let i=0;i<120&&q('.reading-status').textContent!=='抽選完了';i++)await wait(20);
       const positions=s=>all('.'+s+'-matrix .cell-inactive').map(e=>e.dataset.position);
+      const centered=s=>all('.'+s+'-matrix .cell-inactive').every(td=>{
+        const mark=td.querySelector('.cell-mask-excluded'), t=td.getBoundingClientRect();
+        const r=mark?.getBoundingClientRect();
+        return mark?.textContent==='×' && r && Math.abs((r.left+r.right)/2-(t.left+t.right)/2)<2;
+      });
       return {p:positions('primary'),q:positions('parallel'),
+        centers:[centered('primary'),centered('parallel')],
         pCards:all('.primary-matrix .card-detail-trigger').length,
         qCards:all('.parallel-matrix .card-detail-trigger').length};
     })()`);
     assert.deepEqual(maskBoth.p,['r0c0','r9c2']);
     assert.deepEqual(maskBoth.q,maskBoth.p,'Parallel must use exactly the Primary exclusion mask');
     assert.deepEqual([maskBoth.pCards,maskBoth.qCards],[28,28]);
+    assert.deepEqual(maskBoth.centers,[true,true]);
     report('UX97-PARALLEL-MASK',{status:'PASS',...maskBoth});
 
 
