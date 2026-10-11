@@ -48,9 +48,6 @@ const page = {
   settingsClose: document.querySelector('#settingsClose'),
   settingsDone: document.querySelector('#settingsDone'),
   settingsScope: document.querySelector('#settingsScope'),
-  includeTitleCard: document.querySelector('#includeTitleCard'),
-  includeSecondaryCard: document.querySelector('#includeSecondaryCard'),
-  secondaryCardName: document.querySelector('#secondaryCardName'),
   selectedDeckCount: document.querySelector('#selectedDeckCount')
 };
 
@@ -58,19 +55,33 @@ const readings = [];
 let nextReadingNumber = 1;
 let axisMenuContext = null;
 let lastCardTrigger = null;
-const chosenSettings = { deckId: 'B', includeTitle: true, includeSecondary: true };
+const deckSelections = {
+  A: { includeTitle: true, includeSecondary: true },
+  B: { includeTitle: true, includeSecondary: true }
+};
+const chosenSettings = { deckId: 'B', ...deckSelections.B };
 function deckCardCount(value) {
   return 78 + Number(value.includeTitle) + Number(value.includeSecondary);
 }
 function describeDeckChoice(value) {
   return `デッキ${value.deckId}・${deckCardCount(value)}枚`;
 }
+function syncSettingsControls() {
+  for (const input of page.settingsDialog.querySelectorAll('input[name="deckId"]')) {
+    input.checked = input.value === chosenSettings.deckId;
+  }
+  for (const input of page.settingsDialog.querySelectorAll('.deck-preview-checkbox')) {
+    const selection = deckSelections[input.dataset.deck];
+    input.checked = input.dataset.special === 'title' ? selection.includeTitle : selection.includeSecondary;
+    input.disabled = input.dataset.deck !== chosenSettings.deckId;
+  }
+}
 function renderSettingsSummary() {
-  page.secondaryCardName.textContent = chosenSettings.deckId === 'A'
-    ? 'パメラ・コールマン・スミス紹介カード' : '保証カード';
-  page.selectedDeckCount.textContent = `${deckCardCount(chosenSettings)}枚（通常78枚＋独自カード${deckCardCount(chosenSettings) - 78}枚）`;
+  page.selectedDeckCount.textContent =
+    `${deckCardCount(chosenSettings)}枚（通常78枚＋独自カード${deckCardCount(chosenSettings) - 78}枚）`;
 }
 function applySettingsToCurrent() {
+  syncSettingsControls();
   renderSettingsSummary();
   const current = readings.at(-1);
   const applied = current?.applyDeckSettings(chosenSettings) ?? false;
@@ -79,6 +90,7 @@ function applySettingsToCurrent() {
     : 'この設定は次の新しい占いから反映されます。進行中・完了済みの抽選は変更しません。';
 }
 page.settingsButton.addEventListener('click', () => {
+  syncSettingsControls();
   const current = readings.at(-1);
   const canApplyNow = current?.state.phase === 'editing' && !current?.state.pendingOperation;
   const currentCount = canApplyNow ? current.state.rowLabels.length * current.state.columnLabels.length : 0;
@@ -98,20 +110,36 @@ page.settingsDialog.addEventListener('click', event => {
 });
 page.settingsDialog.addEventListener('close', () => page.settingsButton.focus({ preventScroll: true }));
 page.settingsDialog.addEventListener('change', event => {
+  const target = event.target;
+  if (target.name !== 'deckId' && !target.classList.contains('deck-preview-checkbox')) return;
   const next = { ...chosenSettings };
-  if (event.target.name === 'deckId') next.deckId = event.target.value;
-  if (event.target === page.includeTitleCard) next.includeTitle = event.target.checked;
-  if (event.target === page.includeSecondaryCard) next.includeSecondary = event.target.checked;
+  if (target.name === 'deckId') {
+    if (!Object.hasOwn(deckSelections, target.value)) { syncSettingsControls(); return; }
+    next.deckId = target.value;
+    Object.assign(next, deckSelections[next.deckId]);
+  } else {
+    if (target.disabled || target.dataset.deck !== chosenSettings.deckId) {
+      syncSettingsControls();
+      return;
+    }
+    if (target.dataset.special === 'title') next.includeTitle = target.checked;
+    else if (target.dataset.special === 'secondary') next.includeSecondary = target.checked;
+  }
   const current = readings.at(-1);
-  if (current?.state.phase === 'editing' && current?.state.rowLabels.length * current?.state.columnLabels.length > deckCardCount(next)) {
-    if (event.target.type === 'checkbox') event.target.checked = !event.target.checked;
-    if (event.target.type === 'radio') page.settingsDialog.querySelector('input[name="deckId"][value="' + chosenSettings.deckId + '"]').checked = true;
-    page.settingsScope.textContent = '現在の配置は' + deckCardCount(next) + 'マスを超えています。先に配置を減らしてください。';
+  if (current?.state.phase === 'editing' &&
+      current.state.rowLabels.length * current.state.columnLabels.length > deckCardCount(next)) {
+    syncSettingsControls();
+    page.settingsScope.textContent = '現在の配置は' + deckCardCount(next) +
+      'マスを超えています。先に配置を減らしてください。';
     return;
   }
   Object.assign(chosenSettings, next);
+  Object.assign(deckSelections[next.deckId], {
+    includeTitle: next.includeTitle, includeSecondary: next.includeSecondary
+  });
   applySettingsToCurrent();
 });
+syncSettingsControls();
 renderSettingsSummary();
 for (const slot of page.settingsDialog.querySelectorAll('[data-deck-a-image]')) {
   const image = document.createElement('img');
