@@ -1212,6 +1212,7 @@ input:focus-visible {
   white-space: nowrap; margin-left: auto; text-align: right;
 }
 .topbar .reading-deck-summary { padding-right: 10px; }
+.topbar .settings-open { margin-left: 0; }
 /* Row label track and the Primary/Parallel title occupy the same 62px. */
 .matrix-heading h2 { box-sizing: border-box; flex: 0 0 auto; min-width: 0; }
 .column-header .axis-inline-label, .column-header .axis-readonly-label {
