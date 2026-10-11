@@ -96,3 +96,20 @@ test('UX99 print keeps the user-specified downward-facing Ouroboros with calibra
  assert.match(generator,/translate\(512 840\) rotate\(0\) scale\(\.385\)/);
  for(const y of [1169,1240,1396,1464]) assert.match(generator,new RegExp('x="512" y="'+y+'"'));
 });
+
+
+test('UX103 truthfully credits independent reconstruction without changing serpent direction', async()=>{
+  const [generator,html,css]=await Promise.all([
+    read('scripts/generate-deck-a-reconstruction.mjs'),read('web/index.html'),read('web/styles.css')]);
+  assert.match(generator,/Recreated by KiNoTch\./);
+  assert.match(generator,/x="512" y="1551" text-anchor="middle"/);
+  assert.match(generator,/translate\(512 840\) rotate\(0\) scale\(\.385\)/);
+  assert.doesNotMatch(generator,/Made in China|MADE IN CHINA/);
+  const major=html.indexOf('id="majorOnlyCheckbox"'), deck=html.indexOf('class="deck-choices"');
+  assert.ok(major>0 && major<deck,'Major-only control must appear BEFORE deck choice');
+  assert.equal((html.match(/id="majorOnlyCheckbox"/g)||[]).length,1);
+  assert.match(html,/class="deck-preview-name">紹介カード<\/span>/);
+  assert.doesNotMatch(html,/class="deck-preview-name">パメラ・コールマン・スミス紹介カード/);
+  assert.match(css,/\.settings-mode-row \{/);
+  assert.match(css,/\.deck-preview-list \{[\s\S]*?grid-template-columns: repeat\(2,minmax\(0,1fr\)\)/);
+});

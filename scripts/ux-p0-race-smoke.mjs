@@ -206,6 +206,11 @@ try {
       const initialDisabled = all('.deck-preview-checkbox[data-deck="A"]').every(e=>e.disabled) &&
         all('.deck-preview-checkbox[data-deck="B"]').every(e=>!e.disabled);
       const dialogFits = q('#settingsDialog').scrollWidth <= q('#settingsDialog').clientWidth + 1;
+      const majorTop=q('.settings-major-choice').getBoundingClientRect().top;
+      const deckTop=q('.deck-choice-line').getBoundingClientRect().top;
+      const headingHeight=q('.settings-heading').getBoundingClientRect().height;
+      const dialogFullHeight=q('#settingsDialog .settings-panel').scrollHeight;
+      const captions=all('.deck-preview-name').map(e=>e.textContent.trim());
       const cardFaceWidth = q('.deck-preview-face').getBoundingClientRect().width;
       for(let i=0;i<100 && all('[data-deck-a-image] img').length!==2;i++)await sleep(20);
       const aArt=all('[data-deck-a-image] img').map(im=>({
@@ -236,7 +241,7 @@ try {
       const immutability=q('.reading-deck-summary').textContent;
       const nextNotice=q('#settingsScope').textContent;
       q('#settingsClose').click();
-      return {opened,closed,previewCount,aArt,initialDisabled,dialogFits,cardFaceWidth,selectedEnabled,controlOnCard,cardRects,
+      return {opened,closed,previewCount,aArt,initialDisabled,dialogFits,majorBeforeDeck:majorTop<deckTop,headingHeight,dialogFullHeight,captions,cardFaceWidth,selectedEnabled,controlOnCard,cardRects,
         squarePlus:Math.abs(plus.width-plus.height)<1&&plus.width>=26,
         squareMinus:Math.abs(minus.width-minus.height)<1&&minus.width>=26,
         selectedA,counts,modeStatus,immutability,nextNotice};
@@ -248,7 +253,11 @@ try {
     assert.equal(settings.selectedEnabled,true,'Radio selection enables only active deck cards');
     assert.equal(settings.controlOnCard,true,'Checkbox overlay geometry '+JSON.stringify(settings.cardRects));
     assert.equal(settings.dialogFits,true,'Settings must have no horizontal clipping on mobile');
-    assert.ok(settings.cardFaceWidth>=190,'Selected mobile cards need nearly detail-card width');
+    assert.ok(settings.cardFaceWidth>=145,'390px two-up cards must remain usable');
+    assert.equal(settings.majorBeforeDeck,true,'Major setting precedes deck choice');
+    assert.ok(settings.headingHeight<=48,'Settings heading has no surplus padding');
+    assert.ok(settings.dialogFullHeight<=990,'Settings content must be vertically compact');
+    assert.deepEqual(settings.captions,['タイトルカード','紹介カード','タイトルカード','保証カード']);
     assert.equal(settings.aArt.length,2);
     assert.ok(settings.aArt.every(a=>a.ok&&a.src.endsWith('.webp')),'Both Deck A cards must load as fixed-font self-hosted WebP in browser');
     assert.equal(settings.squarePlus,true);
@@ -265,10 +274,15 @@ try {
       document.querySelector('#settingsButton').click();
       const d=document.querySelector('#settingsDialog');
       const face=d.querySelector('.deck-preview-face').getBoundingClientRect();
+      const previews=[...d.querySelectorAll('.deck-preview-face')].map(el=>el.getBoundingClientRect());
       return {width:face.width,fits:d.scrollWidth<=d.clientWidth+1,
+        totalHeight:d.querySelector('.settings-panel').scrollHeight,
+        twoUp:Math.abs(previews[0].top-previews[1].top)<1,
         labels:[...d.querySelectorAll('.deck-preview-name')].length};
     })()`);
-    assert.ok(mobileSettings.width>=190,'Large card previews must remain near detail size at 320px');
+    assert.ok(mobileSettings.width>=120,'320px two-up card previews remain usable');
+    assert.equal(mobileSettings.twoUp,true,'Card previews must be paired at 320px');
+    assert.ok(mobileSettings.totalHeight<=930,'Settings should no longer require excessive vertical scrolling');
     assert.equal(mobileSettings.fits,true,'320px settings dialog must not scroll sideways');
     assert.equal(mobileSettings.labels,4);
     report('UX87-SETTINGS-320',{status:'PASS',...mobileSettings});
@@ -276,6 +290,9 @@ try {
     await writeFile('settings-deck-320.png',Buffer.from(settings320Proof.data,'base64'));
 
 
+    // Re-navigate at the claimed 390px viewport; otherwise this proof would
+    // silently duplicate the preceding 320px screenshot.
+    await navigate(390);
     await evalInPage(`(() => document.querySelector('#settingsButton').click())()`);
     const settings390Proof = await cdp.call('Page.captureScreenshot',{format:'png'});
     await writeFile('settings-deck-390.png',Buffer.from(settings390Proof.data,'base64'));
