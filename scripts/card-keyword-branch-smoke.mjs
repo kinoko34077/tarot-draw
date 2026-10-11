@@ -129,10 +129,17 @@ try {
     if (all('.keyword-grid-group').length !== 5 || all('.keyword-grid-group th').length !== 5 ||
       all('.keyword-grid-group td').length !== 20) throw Error('Missing semantic 5x5 keyword table');
     if (!one('#cardDetailEssence').textContent || !one('#cardDetailUpright').textContent || !one('#cardDetailReversed').textContent) throw Error('Legacy meanings missing');
-    const image = one('#cardDetailVisual img.detail-card-art');
-    if (!image) throw Error('Detail RWS image not rendered');
-    for (let i = 0; i < 50 && !image.complete; i++) await sleep(50);
-    if (!image.naturalWidth) throw Error('RWS detail image failed');
+    // Detail art upgrades from an immediate thumbnail to a decoded HQ <img>.
+    // Never retain an old DOM image across an await: it can become detached
+    // when the intended fast replacement occurs, yielding a 0x0 bounding box.
+    let image = null;
+    for (let i = 0; i < 50; i++) {
+      image = one('#cardDetailVisual img.detail-card-art');
+      if (image?.isConnected && image.complete && image.naturalWidth > 0) break;
+      await sleep(50);
+    }
+    image = one('#cardDetailVisual img.detail-card-art');
+    if (!image?.isConnected || !image.complete || !image.naturalWidth) throw Error('RWS detail image failed');
     if (image.classList.contains('is-reversed') !== reversed) throw Error('Artwork reverse flag mismatch');
     const active = one('.detail-meaning[data-active="true"]');
     if (active?.id !== (reversed ? 'cardDetailReversedBlock' : 'cardDetailUprightBlock')) throw Error('Orientation highlight mismatch');
