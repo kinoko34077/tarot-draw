@@ -59,9 +59,18 @@ test('Issue #83 chosen PD ouroboros is the AnonMoos vector, not old ellipse', as
 
 test('UX93 title uses source-like tall word initials and smaller capitals', async () => {
   const source=await read('scripts/generate-deck-a-reconstruction.mjs');
-  assert.match(source,/const spans = words\.map\(\(word,index\)/);
-  assert.match(source,/dx="34"/);
-  assert.match(source,/titleText\(\['The','Original'\],245,124,89,587\)/);
-  assert.match(source,/titleText\(\['Rider','Waite'\],378,132,94,566\)/);
-  assert.match(source,/titleText\(\['Tarot','Deck'\],513,132,94,557\)/);
+  assert.match(source,/return words\.map\(\(word, index\)/);
+  assert.doesNotMatch(source,/dx="34"/);
+  assert.match(source,/titleText\(\['The','Original'\],245,116,92,587,\[178,367\]\)/);
+  assert.match(source,/titleText\(\['Rider','Waite'\],378,124,94,566,\[263,261\]\)/);
+  assert.match(source,/titleText\(\['Tarot','Deck'\],513,124,94,557,\[252,265\]\)/);
+});
+
+test('UX97 independent title words prevent cross-word overlap in all font fallbacks', async () => {
+  const generator=await read('scripts/generate-deck-a-reconstruction.mjs');
+  assert.match(generator,/font-family="Liberation Serif, Times New Roman, serif"/);
+  assert.match(generator,/lengthAdjust="spacingAndGlyphs"/);
+  assert.match(generator,/wordWidths\.reduce/);
+  assert.match(generator,/return words\.map\(\(word, index\)/);
+  assert.doesNotMatch(generator,/dx="34"/);
 });

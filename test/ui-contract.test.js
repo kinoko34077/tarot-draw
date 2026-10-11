@@ -310,3 +310,14 @@ test('UX93: bottom row grip, if phrasing, right-edge column additions, and insta
   assert.match(app,/result\.addEventListener\('pointerenter'/);
   assert.match(app,/result\.addEventListener\('focus'/);
 });
+
+test('UX97: no row shift for status, centered completed masks and dense ruby card labels', async () => {
+  const [app,css]=await Promise.all([read('../web/app.js'),read('../web/styles.css')]);
+  assert.ok(app.includes('<h2 class="primary-title">配置</h2><p class="layout-message helper" role="status"></p>'));
+  assert.ok(!app.includes('    <p class="layout-message helper" role="status"></p>'));
+  assert.match(css,/\.matrix-heading \.layout-message \{[\s\S]*?white-space: nowrap/);
+  assert.match(css,/content: "｜"/);
+  assert.match(css,/\.cell-mask-excluded \{ display: grid; place-items: center; width: 100%;/);
+  assert.match(css,/\.reading-table \.card-result-text \{[\s\S]*?grid-template-rows: 29px 13px/);
+  assert.match(css,/\.reading-table \.card-orientation \{ line-height: 13px/);
+});
