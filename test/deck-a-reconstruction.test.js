@@ -61,21 +61,18 @@ test('Issue #83 chosen PD ouroboros is the AnonMoos vector, not old ellipse', as
   assert.match(doc,/three PD vector paths/);
 });
 
-test('UX93 title uses source-like tall word initials and smaller capitals', async () => {
-  const source=await read('scripts/generate-deck-a-reconstruction.mjs');
-  assert.match(source,/return words\.map\(\(word, index\)/);
-  assert.doesNotMatch(source,/dx="34"/);
-  assert.match(source,/titleText\(\['The','Original'\],245,116,92,568,\[173,353\]\)/);
-  assert.match(source,/titleText\(\['Rider','Waite'\],378,124,94,525,\[244,239\]\)/);
-  assert.match(source,/titleText\(\['Tarot','Deck'\],513,124,94,507,\[229,238\]\)/);
-});
-
-test('UX97 independent title words prevent cross-word overlap in all font fallbacks', async () => {
+test('UX99 selected font paths are independently registered to the source scan', async () => {
   const generator=await read('scripts/generate-deck-a-reconstruction.mjs');
-  assert.match(generator,/font-family="Liberation Serif, Times New Roman, serif"/);
-  assert.match(generator,/lengthAdjust="spacingAndGlyphs"/);
-  assert.match(generator,/wordWidths\.reduce/);
-  assert.match(generator,/return words\.map\(\(word, index\)/);
+  assert.match(generator,/opentype\.parse/);
+  assert.match(generator,/Liberation Serif:style=Bold/);
+  assert.match(generator,/const TITLE_INK_BOXES = \[/);
+  assert.match(generator,/\['T',230,166,289,250\]/);
+  assert.match(generator,/\['R',252,300,313,383\]/);
+  assert.match(generator,/\['T',263,435,328,520\]/);
+  assert.match(generator,/getBoundingBox\(\)/);
+  assert.match(generator,/toPathData\(2\)/);
+  assert.match(generator,/scale\('.*?\+sx\.toFixed/);
+  assert.doesNotMatch(generator,/textLength=/);
   assert.doesNotMatch(generator,/dx="34"/);
 });
 
@@ -83,9 +80,9 @@ test('UX99 scan-calibrated independent word widths and vertical stretching are r
   const source=await read('scripts/generate-deck-a-reconstruction.mjs');
   const app=await read('web/app.js');
   const model=await read('web/model.js');
-  assert.match(source,/scale\(1 1\.29\)/);
-  assert.match(source,/scale\(1 1\.24\)/);
-  assert.match(source,/scale\(1 1\.45\)/);
+  assert.match(source,/TITLE_INK_BOXES/);
+  assert.match(source,/x2-x1/);
+  assert.match(source,/y2-y1/);
   assert.match(source,/\.webp\(\{ quality: 92, effort: 5 \}\)/);
   assert.match(app,/assets\/cards\/detail\//);
   assert.ok(model.includes('deck-a-title.webp')&&model.includes('deck-a-introduction.webp'));
