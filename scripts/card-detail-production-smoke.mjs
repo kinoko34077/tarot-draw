@@ -230,6 +230,14 @@ try {
     const triggerOrientation = standardTrigger.querySelector('.card-orientation').textContent;
 
     standardTrigger.click();
+    // Assert the grid preview synchronously, before any await allows the
+    // predecoded high-res image to replace it. After the first event loop
+    // turn, a rapid high-res swap is SUCCESS, not a missing grid preview.
+    const instantPreview = one('#cardDetailVisual img.card-art');
+    if (!instantPreview || !instantPreview.src.includes('/assets/cards/grid/') ||
+        !instantPreview.complete || instantPreview.naturalWidth <= 0) {
+      throw new Error('Card detail did not immediately display the already-loaded grid image.');
+    }
     await sleep(250);
     const dialog = one('#cardDetailDialog');
     if (!dialog.open) throw new Error('Detail dialog did not open.');
@@ -313,12 +321,9 @@ try {
       throw new Error('Actual orientation meaning lacks visible and assistive highlighting.');
     }
 
-    const instantPreview = one('#cardDetailVisual img.card-art');
-    if (!instantPreview || !instantPreview.src.includes('/assets/cards/grid/') || !instantPreview.complete) {
-      throw new Error('Card detail did not immediately display the already-loaded grid image.');
-    }
     // High-resolution art replaces the instant grid thumbnail only after decode.
-    let detailImage = instantPreview;
+    // It may already be installed, thanks to the hover/focus predecode cache.
+    let detailImage = one('#cardDetailVisual img.card-art');
     for (let i = 0; i < 80; i += 1) {
       detailImage = one('#cardDetailVisual img.card-art');
       if (detailImage?.src.includes('/assets/cards/detail/') && detailImage.complete) break;
