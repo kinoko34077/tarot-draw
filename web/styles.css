@@ -1201,7 +1201,10 @@ input:focus-visible {
   .topbar .settings-open { padding-inline: 7px; }
   .settings-panel { padding-inline: 9px; }
   .deck-choice { padding: 8px; }
-  .deck-preview-list { gap: 8px; margin-top: 10px; }
+  .deck-preview-list {
+    grid-template-columns: minmax(0, 1fr);
+    width: min(100%, 244px); gap: 16px; margin: 12px auto 0;
+  }
   .deck-preview-checkbox { width: 24px; height: 24px; top: 5px; right: 5px; }
 }
 .reading-deck-summary { color: var(--muted); font-size: .73rem; flex: 0 0 auto; white-space: nowrap; }
