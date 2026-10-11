@@ -334,6 +334,33 @@ try {
       report('UX99-MAJOR-'+flags.join('-'),{status:'PASS',...mode});
     }
 
+
+    await navigate(390);
+    const complete24 = await evalInPage(`(async()=>{
+      const q=s=>document.querySelector(s), all=s=>[...document.querySelectorAll(s)];
+      const wait=ms=>new Promise(r=>setTimeout(r,ms));
+      __p0.deferDraw=false;
+      q('#settingsButton').click(); q('#majorOnlyCheckbox').click(); q('#settingsDone').click();
+      for(let i=0;i<2;i++)q('.axis-add-row-header .axis-add-button').click();
+      for(let i=0;i<5;i++)q('.axis-add-header .axis-add-button').click();
+      q('.shuffle-button').click();
+      for(let i=0;i<100&&all('.primary-pile-options .pile-button').length<3;i++)await wait(20);
+      const independent=!q('.pile-set-parallel').classList.contains('hidden');
+      for(let i=0;i<3;i++)all('.primary-pile-options .pile-button')[i].click();
+      const ready=!q('.draw-button').disabled;
+      q('.draw-button').click();
+      for(let i=0;i<120&&q('.reading-status').textContent!=='抽選完了';i++)await wait(20);
+      return {independent,ready,count:all('.primary-matrix .card-detail-trigger').length,
+        piles:__p0.drawCalls.map(d=>[d.pile,d.positions.length]),
+        excluded:all('.primary-matrix .cell-mask-excluded').length};
+    })()`);
+    assert.equal(complete24.independent,true);
+    assert.equal(complete24.ready,true);
+    assert.equal(complete24.count,24);
+    assert.deepEqual(complete24.piles,[['A',8],['B',8],['C',8]]);
+    assert.equal(complete24.excluded,0);
+    report('UX99-MAJOR-24-FULL-DRAW',{status:'PASS',...complete24});
+
     // #90: <=26 keeps one shared selector, 27+ restores independent selectors.
     await navigate(320);
     const compact = await evalInPage(`(async()=>{
