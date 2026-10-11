@@ -31,10 +31,10 @@ function titleText(words, y, capSize, smallSize, targetWidth) {
   // and shorter small capitals for the remaining letters of each WORD.
   // font-variant:small-caps on an all-uppercase string cannot create that
   // contrast. Explicit spans preserve distinct ink heights within each line.
-  const spans = words.map(word =>
-    '<tspan font-size="'+capSize+'">'+esc(word[0])+'</tspan>'+
+  const spans = words.map((word,index) =>
+    '<tspan font-size="'+capSize+'"'+(index ? ' dx="34"' : '')+'>'+esc(word[0])+'</tspan>'+
     '<tspan font-size="'+smallSize+'">'+esc(word.slice(1).toUpperCase())+'</tspan>'
-  ).join('<tspan font-size="'+smallSize+'"> </tspan>');
+  ).join('');
   return '<text x="512" y="'+y+'" text-anchor="middle" font-family="Georgia, Times New Roman, serif" font-weight="bold" letter-spacing="-.7" textLength="'+targetWidth+'" lengthAdjust="spacing" fill="#f6e8b8">'+spans+'</text>';
 }
 function ouroboros() {
