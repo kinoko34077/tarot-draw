@@ -44,3 +44,15 @@ test('Issue 86 uses independent dense source-language biography and guarded vint
   assert.match(doc,/Ouroboros-simple\.svg/);
   assert.match(doc,/313/);
 });
+
+test('Issue #83 chosen PD ouroboros is the AnonMoos vector, not old ellipse', async () => {
+  const gen=await read('scripts/generate-deck-a-reconstruction.mjs');
+  const doc=await read('docs/DECK_A_RECONSTRUCTION.md');
+  const segment=gen.slice(gen.indexOf('function ouroboros() {'),gen.indexOf('function titleCard() {'));
+  assert.match(segment,/AnonMoos/);
+  assert.match(segment,/Ouroboros-simple\.svg/);
+  assert.match(segment,/rotate\(180\)/);
+  assert.equal((segment.match(/<path d=/g)||[]).length,3);
+  assert.doesNotMatch(segment,/<ellipse/);
+  assert.match(doc,/three PD vector paths/);
+});
