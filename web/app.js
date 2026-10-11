@@ -1033,7 +1033,7 @@ function createReadingController(number) {
     // exceeds the viewport, the matrix scrolls rather than shrinking cards.
     const colgroup = document.createElement('colgroup');
     const rowCol = document.createElement('col');
-    rowCol.style.width = '62px';
+    rowCol.style.width = '36px';
     colgroup.append(rowCol);
     for (let column = 0; column < state.columnLabels.length; column += 1) {
       colgroup.append(document.createElement('col'));
@@ -1044,7 +1044,7 @@ function createReadingController(number) {
       colgroup.append(actionsCol);
     }
     table.append(colgroup);
-    table.style.minWidth = `${62 + state.columnLabels.length * 96 + (canEditStructure ? 32 : 0)}px`;
+    table.style.minWidth = `${36 + state.columnLabels.length * 96 + (canEditStructure ? 32 : 0)}px`;
     const canReorder = canEditAxes();
     const thead = document.createElement('thead');
     const headerRow = document.createElement('tr');
@@ -1052,7 +1052,7 @@ function createReadingController(number) {
     const corner = document.createElement('th');
     corner.className = 'corner-header';
     corner.scope = 'col';
-    corner.textContent = '行 / 列';
+    corner.textContent = '行/列';
     headerRow.append(corner);
 
     for (let column = 0; column < state.columnLabels.length; column += 1) {
