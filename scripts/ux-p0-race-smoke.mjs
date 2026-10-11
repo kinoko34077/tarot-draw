@@ -250,7 +250,7 @@ try {
     assert.equal(settings.dialogFits,true,'Settings must have no horizontal clipping on mobile');
     assert.ok(settings.cardFaceWidth>=190,'Selected mobile cards need nearly detail-card width');
     assert.equal(settings.aArt.length,2);
-    assert.ok(settings.aArt.every(a=>a.ok&&a.src.endsWith('.svg')),'Both independently reconstructed Deck A cards must load as self-hosted SVG in actual browser');
+    assert.ok(settings.aArt.every(a=>a.ok&&a.src.endsWith('.webp')),'Both Deck A cards must load as fixed-font self-hosted WebP in browser');
     assert.equal(settings.squarePlus,true);
     assert.equal(settings.squareMinus,true);
     assert.equal(settings.selectedA,'デッキA・78枚');
@@ -307,6 +307,32 @@ try {
     assert.ok(axisFollow.deltas.every(d=>Math.abs(d.left-d.max)<2 && d.visible),
       'Each column + must keep controls visible at the new far right: '+JSON.stringify(axisFollow.deltas));
     report('UX93-COLUMN-PLUS-AUTOFOLLOW',{status:'PASS',...axisFollow});
+
+
+    // #99: major-only option is not a CSS filter. The mock returns server
+    // metadata (including mode) and all three authoritative pile capacities.
+    for(const flags of [[false,false,22],[true,false,23],[false,true,23],[true,true,24]]) {
+      await navigate(390);
+      const mode = await evalInPage(`(async (flags)=>{
+        const q=s=>document.querySelector(s), all=s=>[...document.querySelectorAll(s)];
+        const wait=ms=>new Promise(r=>setTimeout(r,ms));
+        q('#settingsButton').click();
+        q('#majorOnlyCheckbox').click();
+        if(!flags[0])q('#includeTitleCard').click();
+        if(!flags[1])q('#includeSecondaryCard').click();
+        const setting=q('#selectedDeckCount').textContent;
+        q('#settingsDone').click();
+        q('.shuffle-button').click();
+        for(let i=0;i<100&&all('.primary-pile-options .pile-button').length<3;i++)await wait(20);
+        return {setting,summary:q('.reading-deck-summary').textContent,
+          counts:all('.primary-pile-options .pile-count').map(x=>x.textContent)};
+      })(${JSON.stringify(flags)})`);
+      assert.ok(mode.setting.startsWith(String(flags[2])+'枚'),JSON.stringify(mode));
+      assert.ok(mode.summary.includes('大アルカナ'));
+      assert.deepEqual(mode.counts,
+        flags[2]===22?['8枚','7枚','7枚']:flags[2]===23?['8枚','8枚','7枚']:['8枚','8枚','8枚']);
+      report('UX99-MAJOR-'+flags.join('-'),{status:'PASS',...mode});
+    }
 
     // #90: <=26 keeps one shared selector, 27+ restores independent selectors.
     await navigate(320);
