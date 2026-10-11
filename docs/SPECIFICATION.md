@@ -209,3 +209,10 @@ The card previews scale to available dialog width instead of 33–40px thumbnail
 - After each explicit column +, automatically scroll the matrix to the newly grown right edge. Other actions keep existing scroll positions.
 - Card detail immediately shows the available grid art, then swaps to high-resolution art after decode. Prefetch only likely details on pointerenter/focus/pointerdown with bounded cache of 12; no entire-deck preload. Keep reversals, special Deck A images and fallback behavior.
 - No Worker/API changes. Ordinary Pages publication is authorized through #92.
+
+## #97 UI corrections (2026-10-12)
+- Deck A title art uses the reference-proportioned chosen Liberation Serif fallback stack, **disjoint independent word-width text boxes**, explicit large per-word initial capitals, and small following capitals; source comparison recorded in `docs/DECK_A_RECONSTRUCTION.md`. The same repaired SVG powers main grid/detail and settings preview without a settings-only offset hack.
+- Edit feedback (undo/redo/reorder and errors) appears inline **after the 配置 heading** with `｜` separator; fixed single-line heading height prevents pushing the matrix down as status changes. On narrow widths the message elides without moving controls.
+- Completed result masks are centered in both Primary and Parallel. Both branches render from the **same frozen excluded position IDs**; tests independently compare all excluded cells, both visible × glyph positions, and card counts for a 28-active-cell irregular 30-slot draw. Snapshot freeze and same-source matrix are retained, no separate branch-local exclusion switches introduced.
+- Card names retain out-of-flow ruby, with 29px title/13px orientation rows inside a 42px label region (vs 33px +14px with 47px region). Font reading overlays must not contribute to line box height. Existing 78/79/80 & Worker draw contracts unchanged.
+- Normal release authority #92 covers this reversible scoped Pages publication after exact-head UI/CI checks.
