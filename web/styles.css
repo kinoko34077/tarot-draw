@@ -1377,3 +1377,52 @@ input:focus-visible {
 .settings-major-choice { display:flex; gap:8px; align-items:center; flex-wrap:wrap; margin:12px 0 7px; font-weight:650; cursor:pointer; }
 .settings-major-choice input { min-width:20px; width:20px; height:20px; accent-color:var(--accent); }
 .settings-major-choice small { flex-basis:100%; padding-left:28px; color:var(--muted); font-size:.77rem; font-weight:400; }
+
+/* #103: dense settings layout. Card aspect ratio, full-area selection and
+   checkboxes remain operable; remove surplus whitespace instead of clipping. */
+.settings-dialog { max-height: calc(100dvh - 12px); }
+.settings-panel { padding: 0 10px 8px; }
+.settings-heading { padding: 3px 0; }
+.settings-heading h2 { font-size: .94rem; }
+.settings-close { width: 28px; min-height: 28px; }
+.settings-mode-row {
+  display: flex; gap: 5px 10px; flex-wrap: wrap;
+  align-items: center; justify-content: space-between;
+  padding: 6px 0 4px;
+}
+.settings-mode-row .settings-major-choice {
+  margin: 0; gap: 6px; font-size: .84rem; font-weight: 650;
+  flex-wrap: nowrap;
+}
+.settings-mode-row .settings-major-choice input { width: 19px; height: 19px; min-width: 19px; }
+.settings-mode-row .settings-card-count { margin: 0; font-size: .77rem; font-weight: 600; }
+.deck-choices { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 8px; }
+.deck-choices legend {
+  position: absolute; width: 1px; height: 1px; overflow: hidden;
+  padding: 0; margin: -1px; clip: rect(0,0,0,0); white-space: nowrap;
+  border: 0;
+}
+.deck-choice { padding: 6px; }
+.deck-choice-line { gap: 5px; font-size: .86rem; }
+.deck-choice-line input { width: 18px; height: 18px; margin: 0; }
+.deck-choice-line > span { font-size: .72rem; }
+.deck-preview-list { gap: 7px; max-width: 460px; margin: 5px auto 0; }
+.deck-preview { line-height: 1.2; }
+.deck-preview-name { padding: 3px 0 0; font-size: .73rem; font-weight: 600; }
+.deck-preview-checkbox { top: 5px; right: 5px; width: 22px; height: 22px; }
+.settings-scope { margin: 4px 0 0; min-height: 1.1em; font-size: .74rem; }
+.settings-footer { padding-top: 4px; }
+.settings-footer button { min-height: 32px; }
+@media (max-width: 720px) {
+  .deck-choices { grid-template-columns: minmax(0,1fr); }
+}
+@media (max-width: 420px) {
+  .settings-panel { padding-inline: 7px; }
+  .deck-choice { padding: 5px; }
+  .deck-preview-list {
+    grid-template-columns: repeat(2,minmax(0,1fr));
+    width: 100%; max-width: 460px; gap: 7px; margin: 5px auto 0;
+  }
+  .settings-mode-row .settings-card-count { font-size: .72rem; }
+  .deck-preview-checkbox { width: 21px; height: 21px; top: 4px; right: 4px; }
+}
