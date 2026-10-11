@@ -30,6 +30,9 @@ test('Issue 83 reconstructs Deck A without reusing modern physical card scan',as
   assert.match(checker,/incorrect raster dimensions/);
   assert.match(workflow,/Generate|Compose independent vintage Deck A art/);
   assert.match(workflow,/node scripts\/check-deck-a-assets.mjs/);
+  for (const script of ['scripts/generate-deck-a-reconstruction.mjs','scripts/check-deck-a-assets.mjs']) {
+    assert.ok(workflow.includes("- '"+script+"'"),`Pages push paths must watch ${script}`);
+  }
   assert.match(spec,/Copyright|copyrighted|later edition/i);
 });
 
