@@ -16,6 +16,8 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
+      - name: Install deterministic SVG rasterizer
+        run: npm install --no-audit --no-fund
       - name: Generate self-hosted Deck A reconstructed art
         run: node scripts/generate-deck-a-reconstruction.mjs
       - name: Verify Deck A print images (alpha, framing, offline source)
