@@ -193,7 +193,7 @@ test('Markdown paired results distinguish actual and alternate pile and explain 
   const markdown = formatReadingMarkdown(data);
   const tsv = formatReadingText(data);
   assert.match(markdown, /## メインリーディング（山A）[\s\S]*?\| 可能性 \| XIX 太陽 正位置 \|/);
-  assert.match(markdown, /## パラレルリーディング（山C）[\s\S]*?\| 可能性 \| GUARANTEE 逆位置 \|/);
+  assert.match(markdown, /## パラレルリーディング（山C）[\s\S]*?\| 可能性 \| 23 GUARANTEE 逆位置 \|/);
   assert.match(markdown, /### パラレルリーディングについて\n\n/);
   assert.ok(markdown.includes(PARALLEL_READING_NOTE));
   assert.match(markdown, /### 独自カードについて[\s\S]*- 23 保証カード：/);
