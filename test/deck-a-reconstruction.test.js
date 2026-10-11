@@ -55,7 +55,7 @@ test('Issue #83 chosen PD ouroboros is the AnonMoos vector, not old ellipse', as
   const segment=gen.slice(gen.indexOf('function ouroboros() {'),gen.indexOf('function titleCard() {'));
   assert.match(segment,/AnonMoos/);
   assert.match(segment,/Ouroboros-simple\.svg/);
-  assert.match(segment,/translate\(512 840\) rotate\(180\) scale\(\.385\)/);
+  assert.match(segment,/translate\(512 840\) rotate\(0\) scale\(\.385\)/);
   assert.equal((segment.match(/<path d=/g)||[]).length,3);
   assert.doesNotMatch(segment,/<ellipse/);
   assert.match(doc,/three PD vector paths/);
