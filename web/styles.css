@@ -947,7 +947,7 @@ input:focus-visible {
 .copy-feedback { min-height: 0; }
 .copy-feedback:empty { display: none; }
 .corner-header, .row-header {
-  width: 62px; min-width: 62px; max-width: 62px;
+  width: 36px; min-width: 36px; max-width: 36px;
 }
 .corner-header { padding: 3px; font-size: .7rem; }
 .column-header, .reading-cell {
@@ -984,7 +984,7 @@ input:focus-visible {
   min-height: 28px; padding: 2px;
 }
 .axis-add-header { width: 65px; min-width: 65px; padding: 2px; }
-.axis-add-row-header { width: 62px; min-width: 62px; padding: 2px; }
+.axis-add-row-header { width: 36px; min-width: 36px; padding: 2px; }
 .axis-add-actions { display: flex; justify-content: center; align-items: center; gap: 2px; }
 .axis-add-button { width: 27px; min-width: 27px; min-height: 27px; padding: 0; }
 .axis-remove-button { color: var(--danger); }
@@ -1028,7 +1028,7 @@ input:focus-visible {
 .axis-drag-ghost span { display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 @media (max-width: 720px) {
   .reading-toolbar { gap: 7px; }
-  .corner-header, .row-header { width: 62px; min-width: 62px; max-width: 62px; }
+  .corner-header, .row-header { width: 36px; min-width: 36px; max-width: 36px; }
   .column-header, .reading-cell { width: 96px; min-width: 96px; max-width: 96px; }
   .card-result-block { height: 148px; min-height: 148px; }
   .card-visual, .card-art, .custom-card-face { width: 54px; height: 92px; }
@@ -1211,8 +1211,9 @@ input:focus-visible {
   color: var(--muted); font-size: .73rem; flex: 0 0 auto;
   white-space: nowrap; margin-left: auto; text-align: right;
 }
+.topbar .reading-deck-summary { padding-right: 10px; }
 /* Row label track and the Primary/Parallel title occupy the same 62px. */
-.matrix-heading h2 { box-sizing: border-box; flex: 0 0 62px; min-width: 62px; }
+.matrix-heading h2 { box-sizing: border-box; flex: 0 0 auto; min-width: 0; }
 .column-header .axis-inline-label, .column-header .axis-readonly-label {
   box-sizing: border-box; height: 34px; min-height: 34px; max-height: 34px;
 }
@@ -1228,9 +1229,7 @@ input:focus-visible {
   }
   .reading-index { grid-column: 1; grid-row: 1; }
   .question-field { grid-column: 2; grid-row: 1; min-width: 0; }
-  .reading-deck-summary {
-    grid-column: 2; grid-row: 2; justify-self: end; margin-left: 0;
-  }
+
 }
 
 /* Ruby-base and ordinary kana share one line box and baseline.
@@ -1307,4 +1306,28 @@ input:focus-visible {
   .pile-panel .pile-label, .pile-panel .pile-set, .pile-panel .pile-status { grid-column: 1; }
   .pile-panel .pile-options { gap: 5px; }
   .pile-panel .pile-button { padding: 4px 6px; gap: 4px; }
+}
+
+/* #90 final feedback: vertical row-heading band equals the 36px horizontal
+   column-heading band. Keep the row move grip above, never over the name. */
+.reading-table .corner-header, .reading-table .row-header,
+.reading-table .axis-add-row-header {
+  width: 36px; min-width: 36px; max-width: 36px;
+}
+.reading-table .row-header { padding: 1px; }
+.reading-table .row-header .axis-inline-label,
+.reading-table .row-header .axis-readonly-label { padding-top: 29px; padding-inline: 0; }
+.reading-table .corner-header { white-space: normal; overflow-wrap: anywhere; }
+.pile-panel:not(.pile-panel-shared) .pile-label { display: none; }
+.pile-panel:not(.pile-panel-shared) .pile-set { grid-column: 1 / -1; }
+.pile-panel-shared .pile-set-title { display: none; }
+@media (max-width: 720px) {
+  .pile-panel-shared { grid-template-columns: 30px minmax(0,1fr); align-items: center; }
+  .pile-panel-shared .pile-label { grid-column: 1; }
+  .pile-panel-shared .pile-set-primary { grid-column: 2; }
+  .pile-panel-shared .pile-status { grid-column: 1 / -1; }
+}
+@media (max-width: 480px) {
+  .reading-toolbar { display: flex; gap: 7px; align-items: center; }
+  .reading-index, .question-field { grid-column: auto; grid-row: auto; }
 }
