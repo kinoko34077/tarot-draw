@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 /**
  * Independent 1909-era print inspired Deck A card faces, Issue #83.
- * Zero copyrighted modern-card scan data: new typography, ouroboros, prose.
+ * Zero copyrighted modern-card scan data: new typography, public-domain ouroboros, prose.
  * One historical portrait is fetched for BUILD ONLY from Wikimedia Commons,
  * then embedded as a data URI. Static runtime assets are entirely self-hosted.
  */
@@ -31,46 +31,25 @@ function titleText(text, y, size, targetWidth) {
   return '<text x="512" y="'+y+'" text-anchor="middle" font-family="Georgia, Times New Roman, serif" font-weight="bold" font-variant="small-caps" letter-spacing="-1.1" font-size="'+size+'" textLength="'+targetWidth+'" lengthAdjust="spacingAndGlyphs" fill="#f6e8b8">'+esc(text)+'</text>';
 }
 function ouroboros() {
-  // Original restrained single-headed engraved serpent. The old monster-like
-  // tongue, excessive eye and ragged extra rings are deliberately removed.
-  // PD comparison reference: Wikimedia Commons Ouroboros-simple.svg (AnonMoos).
-  const cx=512,cy=872,rx=189,ry=194;
-  const p=[];
-  p.push('<g fill="none" stroke-linecap="round" stroke-linejoin="round">');
-  p.push('<ellipse cx="'+cx+'" cy="'+cy+'" rx="'+rx+'" ry="'+ry+'" stroke="#f3e5af" stroke-width="39"/>');
-  p.push('<ellipse cx="'+cx+'" cy="'+cy+'" rx="170" ry="175" stroke="#483672" stroke-width="2.5" opacity=".85"/>');
-  p.push('<ellipse cx="'+cx+'" cy="'+cy+'" rx="209" ry="214" stroke="#f3e5af" stroke-width="1.7"/>');
-  p.push('<ellipse cx="'+cx+'" cy="'+cy+'" rx="184" ry="189" stroke="#322260" stroke-width="1.4"/>');
-  // Fine irregular ink engravings cross the body without changing the silhouette.
-  const hatch=[];
-  for(let a=0;a<360;a+=6.8){
-    if(a>242&&a<313)continue;
-    const t=a*Math.PI/180;
-    const inner=175+(Math.sin(a*1.7)*1.4),outer=202+(Math.sin(a*2.1)*.9);
-    hatch.push('M'+(cx+Math.cos(t)*inner).toFixed(1)+' '+(cy+Math.sin(t)*inner*1.026).toFixed(1)+
-      'L'+(cx+Math.cos(t+.015)*outer).toFixed(1)+' '+(cy+Math.sin(t+.015)*outer*1.026).toFixed(1));
-  }
-  p.push('<path d="'+hatch.join(' ')+'" stroke="#413267" stroke-width=".85" opacity=".67"/>');
-  p.push('</g>');
-  // Classical horizontal head at the top, mouth touching its own fine tail.
-  p.push('<path d="M457 690 Q486 666 525 665 Q546 665 565 674 Q585 673 602 680 L611 690 Q600 699 584 701 Q558 699 542 691 Q500 686 468 709 Z" fill="#f3e5af" stroke="#3e2d66" stroke-width="2.5"/>');
-  p.push('<path d="M571 678 Q582 674 594 681 M584 701 Q598 698 611 690" stroke="#3e2d66" stroke-width="1.3" fill="none"/>');
-  p.push('<circle cx="568" cy="681" r="3.3" fill="#39285f"/>');
-  p.push('<path d="M610 691 Q623 685 634 682" stroke="#f3e5af" stroke-width="3.8" fill="none"/>');
-  const dots=[];
-  for(let i=0;i<150;i++){
-    const t=((i*137.508)%360)*Math.PI/180;
-    const rr=176+(i*31%23);
-    const px=cx+Math.cos(t)*rr,py=cy+Math.sin(t)*rr*1.027;
-    if(py<713&&px>440&&px<637)continue;
-    dots.push('<circle cx="'+px.toFixed(1)+'" cy="'+py.toFixed(1)+'" r="'+(i%4===0?1.3:.67)+'" fill="#45346b" opacity=".7"/>');
-  }
-  return '<g>'+p.join('')+dots.join('')+'</g>';
+  // Adapted directly from AnonMoos's PD "Ouroboros-simple.svg", originally
+  // based on toa267's PD Fnord Hodge-Podge glyph. Source and license:
+  // https://commons.wikimedia.org/wiki/File:Ouroboros-simple.svg
+  // Fixed local vectors (not a third-party runtime dependency).
+  // The prior independently drawn ellipse + head is intentionally GONE.
+  const paths = [
+    '<path d="m 604,24 c 231,47 396,246 396,476 0,276 -224,500 -500,500 C 224,1000 0,776 0,500 0,283 146,92 358,30 c 5,-1 7,-2 12,-2 18,0 33,-13 53,-13 10,0 35,3 45,3 30,0 74,-18 104,-18 13,0 28,10 32,24 z M 342,136 C 192,198 95,341 95,500 95,724 276,905 500,905 724,905 905,724 905,500 905,328 795,176 632,120 c 1,18 -22,29 -48,29 -14,0 -27,-5 -34,-5 -10,0 -28,11 -46,11 -20,0 -54,-8 -84,-13 -30,-5 -63,-12 -78,-6 z" fill="#f2e1ad"/>',
+    '<path d="m 604,24 c 231,47 396,246 396,476 0,276 -224,500 -500,500 C 224,1000 0,776 0,500 0,283 146,92 358,30 c 5,-1 7,-2 12,-2 18,0 33,-13 53,-13 10,0 35,3 45,3 30,0 74,-18 104,-18 13,0 28,10 32,24 z M 357,43 C 152,104 12,290 12,500 12,770 230,988 500,988 770,988 988,770 988,500 988,269 818,72 585,32 c -36,-6 -86,16 -86,23 0,5 21,12 25,14 C 763,81 950,270 950,500 950,749 749,950 500,950 251,950 50,749 50,500 50,346 133,202 268,123 c 13,-6 37,-7 47,-7 10,0 46,2 56,7 10,5 49,10 69,15 20,5 47,9 62,9 25,0 48,-15 56,-14 v 2 c 0,3 9,5 27,5 20,0 41,-7 39,-23 l -24,-9 C 580,102 571,103 561,99 536,91 530,80 507,70 484,60 450,60 450,55 c 0,-3 15,-4 25,-5 25,-3 50,-23 80,-26 20,-2 25,-1 39,0 -1,-5 -9,-15 -22,-15 -32,0 -72,19 -99,19 -15,0 -26,-6 -41,-6 -22,0 -47,18 -67,30 -5,3 -10,6 -15,6 -5,0 -5,-1 -5,-2 0,-4 20,-10 20,-13 0,-2 -3,-1 -8,0 z M 572,92 C 772,127 917,299 917,500 917,730 730,917 500,917 270,917 83,730 83,500 83,337 183,189 337,125 313,122 285,124 272,130 139,208 58,348 58,500 58,744 256,942 500,942 744,942 942,744 942,500 942,280 767,97 539,78 c 5,2 13,12 33,14 z M 342,136 C 192,198 95,341 95,500 95,724 276,905 500,905 724,905 905,724 905,500 905,328 795,176 632,120 c 1,18 -22,29 -48,29 -14,0 -27,-5 -34,-5 -10,0 -28,11 -46,11 -20,0 -54,-8 -84,-13 -30,-5 -63,-12 -78,-6 z m 104,-16 c 0,-2 4,-3 14,-3 15,-1 18,-13 30,-13 21,0 30,9 37,9 l 10,-2 1,2 c -10,7 -25,17 -35,17 -5,0 -10,-1 -20,-4 -15,-4 -37,-4 -37,-6 z m 134,7 c 18,-3 17,-9 27,-9 3,0 5,2 5,5 0,3 -12,6 -31,7 z" fill="#32245b"/>',
+    '<path d="m 472,119 15,3 c 0,-5 3,-10 5,-13 -9,0 -15,8 -20,10 z m 50,-2 -17,-7 c 1,5 1,10 0,15 8,-2 12,-5 17,-8 z" fill="#fff2c5"/>'
+  ];
+  // Original SVG was flipped Y; rotate another 180 degrees to position the
+  // bite/head at the top, as in the user's print reference.
+  return '<g transform="translate(512 874) rotate(180) scale(.40) translate(-500 -500)">'+
+    '<g transform="translate(0 1000) scale(1 -1)">'+paths.join('')+'</g></g>';
 }
 function titleCard() {
   return base('title',grainDefs()+
     '<title id="titletitle">The Original Rider Waite Tarot Deck — independently reconstructed title</title>'+
-    '<desc id="titledesc">Deep-indigo vintage-style three-line cream serif title, single-head ouroboros ring, historical Waite and Smith credits. Independently authored.</desc>'+
+    '<desc id="titledesc">Deep-indigo vintage-style three-line cream serif title, public-domain AnonMoos ouroboros ring, historical Waite and Smith credits. Independently authored.</desc>'+
     cardBorder()+
     '<g clip-path="url(#cardClip)"><rect x="51" y="35" width="922" height="1683" filter="url(#paperGrain)" opacity=".28"/></g>'+
     titleText('THE ORIGINAL',245,104,587)+titleText('RIDER WAITE',378,114,566)+titleText('TAROT DECK',513,114,557)+

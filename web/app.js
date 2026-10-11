@@ -44,6 +44,7 @@ const page = {
   cardDetailCustom: document.querySelector('#cardDetailCustom'),
   cardDetailCustomText: document.querySelector('#cardDetailCustomText'),
   settingsButton: document.querySelector('#settingsButton'),
+  deckSummary: document.querySelector('#deckSummary'),
   settingsDialog: document.querySelector('#settingsDialog'),
   settingsClose: document.querySelector('#settingsClose'),
   settingsDone: document.querySelector('#settingsDone'),
@@ -545,7 +546,6 @@ function createReadingController(number) {
   article.innerHTML = `
     <div class="reading-toolbar">
       <span class="reading-index">Reading ${number}</span>
-      <span class="reading-deck-summary" aria-label="使用デッキ"></span>
       <label class="question-field">
         <span class="question-prefix">Q.</span>
         <input class="question-input" type="text" autocomplete="off" aria-label="今回の問い" placeholder="今回の問い">
@@ -601,7 +601,6 @@ function createReadingController(number) {
 
   const refs = {
     cardCount: article.querySelector('.card-count'),
-    deckSummary: article.querySelector('.reading-deck-summary'),
     copyButton: article.querySelector('.copy-button'),
     copyFeedback: article.querySelector('.copy-feedback'),
     shuffleButton: page.shuffleButton,
@@ -1007,8 +1006,19 @@ function createReadingController(number) {
   function toggleCell(positionId) {
     if (state.pendingOperation || !['editing', 'choosing'].includes(state.phase)) return;
     recordAxisHistory();
+    const wasIndependent = independentPileChoices();
     if (state.inactivePositions.has(positionId)) state.inactivePositions.delete(positionId);
     else state.inactivePositions.add(positionId);
+    // Crossing the 26/27 active-cell boundary changes selection UI. Retain
+    // the first Primary pile and, where possible, the first distinct Parallel.
+    if (state.phase === 'choosing' && wasIndependent && !independentPileChoices()) {
+      const primary = state.primaryPiles[0] ?? null;
+      const parallel = state.parallelPiles.find(id => id !== primary) ?? null;
+      state.primaryPiles = primary ? [primary] : [];
+      state.parallelPiles = primary && parallel ? [parallel] : [];
+      state.primaryPile = primary;
+      state.parallelPile = state.parallelPiles[0] ?? null;
+    }
     render();
   }
 
@@ -1023,7 +1033,7 @@ function createReadingController(number) {
     // exceeds the viewport, the matrix scrolls rather than shrinking cards.
     const colgroup = document.createElement('colgroup');
     const rowCol = document.createElement('col');
-    rowCol.style.width = '62px';
+    rowCol.style.width = '36px';
     colgroup.append(rowCol);
     for (let column = 0; column < state.columnLabels.length; column += 1) {
       colgroup.append(document.createElement('col'));
@@ -1034,7 +1044,7 @@ function createReadingController(number) {
       colgroup.append(actionsCol);
     }
     table.append(colgroup);
-    table.style.minWidth = `${62 + state.columnLabels.length * 96 + (canEditStructure ? 32 : 0)}px`;
+    table.style.minWidth = `${36 + state.columnLabels.length * 96 + (canEditStructure ? 32 : 0)}px`;
     const canReorder = canEditAxes();
     const thead = document.createElement('thead');
     const headerRow = document.createElement('tr');
@@ -1042,7 +1052,7 @@ function createReadingController(number) {
     const corner = document.createElement('th');
     corner.className = 'corner-header';
     corner.scope = 'col';
-    corner.textContent = '行 / 列';
+    corner.textContent = '行/列';
     headerRow.append(corner);
 
     for (let column = 0; column < state.columnLabels.length; column += 1) {
@@ -1263,8 +1273,20 @@ function createReadingController(number) {
       capacityOf(state.parallelPiles) >= requiredCards(state);
   }
 
+  function independentPileChoices() {
+    // Only 27+ active (○) cells need two independent ordered pile selectors.
+    // Rectangular dimensions or the number of cards in the deck are irrelevant.
+    return requiredCards(state) >= 27;
+  }
+
   function pileHint() {
     const needed = requiredCards(state);
+    if (!independentPileChoices()) {
+      if (!needed) return '○のマスがありません。少なくとも1マスを使用してください。';
+      if (!state.primaryPiles.length) return '山を選んでください。最初の山はPrimaryになります。';
+      if (state.parallelPiles.length) return `Primary 山${state.primaryPiles[0]}／Parallel 山${state.parallelPiles[0]}：引けます。`;
+      return 'Primaryを選択しました。別の山を選ぶとParallelで比較できます。';
+    }
     if (!needed) return '○のマスがありません。少なくとも1マスを使用してください。';
     if (!state.primaryPiles.length) return 'Primaryで山を選択してください。順番どおりに配ります。';
     const mainCount = capacityOf(state.primaryPiles);
@@ -1298,7 +1320,7 @@ function createReadingController(number) {
       amount.textContent = `${pile.count}枚`;
       const role = document.createElement('span');
       role.className = 'pile-role';
-      role.textContent = isSelected ? `${selected.indexOf(pile.pile_id) + 1}番目` : '';
+      role.textContent = isSelected ? (selected.length > 1 ? `${selected.indexOf(pile.pile_id) + 1}番目` : '') : '';
       button.setAttribute('aria-label', `${side === 'primary' ? 'Primary' : 'Parallel'} 山${pile.pile_id} ${pile.count}枚 ${role.textContent || '未選択'}`);
       button.append(name, amount, role);
       button.addEventListener('click', () => selectPile(pile.pile_id, side));
@@ -1306,21 +1328,75 @@ function createReadingController(number) {
     });
   }
 
+  function pileButtonsShared() {
+    // Legacy compact view: first pick is Primary; optional second is Parallel.
+    // A single chosen pile is never labelled "1番目".
+    return state.piles.map(pile => {
+      const main = state.primaryPiles[0] === pile.pile_id;
+      const other = state.parallelPiles[0] === pile.pile_id;
+      const button = document.createElement('button');
+      button.type = 'button';
+      button.className = 'pile-button';
+      button.dataset.pile = pile.pile_id;
+      button.dataset.branch = 'shared';
+      button.setAttribute('aria-pressed', String(main || other));
+      button.disabled = Boolean(state.pendingOperation) || requiredCards(state) === 0 ||
+        (!main && !other && Boolean(state.primaryPiles.length && state.parallelPiles.length));
+      const name = document.createElement('span');
+      name.className = 'pile-name';
+      name.textContent = `山 ${pile.pile_id}`;
+      const amount = document.createElement('span');
+      amount.className = 'pile-count';
+      amount.textContent = `${pile.count}枚`;
+      const role = document.createElement('span');
+      role.className = 'pile-role';
+      role.textContent = main ? 'Primary' : other ? 'Parallel' : '';
+      button.setAttribute('aria-label', `山${pile.pile_id} ${pile.count}枚 ${role.textContent || '未選択'}`);
+      button.append(name, amount, role);
+      button.addEventListener('click', () => selectPile(pile.pile_id, 'shared'));
+      return button;
+    });
+  }
+
   function renderPiles() {
-    refs.pileOptions.replaceChildren(...(state.piles.length ? pileButtons('primary') : []));
-    refs.parallelPileOptions.replaceChildren(...(state.piles.length ? pileButtons('parallel') : []));
-    refs.parallelPileOptions.closest('.pile-set-parallel')?.classList.toggle('pile-set-awaiting', !mainReady());
+    const independent = independentPileChoices();
+    const primarySet = refs.pileOptions.closest('.pile-set-primary');
+    const parallelSet = refs.parallelPileOptions.closest('.pile-set-parallel');
+    primarySet?.classList.toggle('pile-set-shared', !independent);
+    primarySet?.querySelector('.pile-set-title')?.replaceChildren(
+      document.createTextNode(independent ? 'Primary（メイン）' : '')
+    );
+    parallelSet?.classList.toggle('hidden', !independent);
+    refs.pileOptions.replaceChildren(...(state.piles.length ?
+      (independent ? pileButtons('primary') : pileButtonsShared()) : []));
+    refs.parallelPileOptions.replaceChildren(...(state.piles.length && independent ? pileButtons('parallel') : []));
+    parallelSet?.classList.toggle('pile-set-awaiting', independent && !mainReady());
+    refs.pilePanel.classList.toggle('pile-panel-shared', !independent);
     if (state.piles.length) setTextStatus(refs.selectionMessage, pileHint());
   }
 
   function selectPile(pileId, side) {
     if (state.phase !== 'choosing' || state.pendingOperation) return;
-    if (side === 'parallel' && !mainReady()) return;
-    const selected = side === 'primary' ? state.primaryPiles : state.parallelPiles;
-    const index = selected.indexOf(pileId);
-    if (index >= 0) selected.splice(index, 1);
-    else if (capacityOf(selected) < requiredCards(state)) selected.push(pileId);
-    else return;
+    if (!independentPileChoices()) {
+      if (side !== 'shared') return;
+      if (state.primaryPiles[0] === pileId) {
+        state.primaryPiles = [];
+        state.parallelPiles = [];
+      } else if (state.parallelPiles[0] === pileId) {
+        state.parallelPiles = [];
+      } else if (!state.primaryPiles.length) {
+        state.primaryPiles = [pileId];
+      } else if (!state.parallelPiles.length) {
+        state.parallelPiles = [pileId];
+      } else return;
+    } else {
+      if (side === 'parallel' && !mainReady()) return;
+      const selected = side === 'primary' ? state.primaryPiles : state.parallelPiles;
+      const index = selected.indexOf(pileId);
+      if (index >= 0) selected.splice(index, 1);
+      else if (capacityOf(selected) < requiredCards(state)) selected.push(pileId);
+      else return;
+    }
     state.primaryPile = state.primaryPiles[0] ?? null;
     state.parallelPile = state.parallelPiles[0] ?? null;
     render();
@@ -1342,7 +1418,7 @@ function createReadingController(number) {
     refs.redoButton.classList.toggle('hidden', !canUndo || state.redoStack.length === 0);
     refs.historyActions.classList.toggle('hidden', !canUndo || (state.undoStack.length === 0 && state.redoStack.length === 0));
     refs.cardCount.textContent = `計${count}枚`;
-    refs.deckSummary.textContent = describeDeckChoice(state);
+    if (readings.at(-1) === controller) page.deckSummary.textContent = describeDeckChoice(state);
 
     if (state.phase === 'editing') {
       if (!canAddRow(state) && !canAddColumn(state)) {

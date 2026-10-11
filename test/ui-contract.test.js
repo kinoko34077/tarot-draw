@@ -97,9 +97,9 @@ test('UX81: each branch can deselect its own pile without mutating the other', a
 test('UX75: grid distributes remaining space uniformly and keeps min 96px with horizontal scroll', async () => {
   const [app, css] = await Promise.all([read('../web/app.js'), read('../web/styles.css')]);
   assert.ok(app.includes("document.createElement('colgroup')"));
-  assert.ok(app.includes("rowCol.style.width = '62px'"));
+  assert.ok(app.includes("rowCol.style.width = '36px'"));
   assert.ok(app.includes("actionsCol.style.width = '32px'"));
-  assert.ok(app.includes("table.style.minWidth = `${62 + state.columnLabels.length * 96 + (canEditStructure ? 32 : 0)}px`"));
+  assert.ok(app.includes("table.style.minWidth = `${36 + state.columnLabels.length * 96 + (canEditStructure ? 32 : 0)}px`"));
   assert.ok(css.includes('width: 100%; min-width: 0; table-layout: fixed;'));
   assert.ok(css.includes('.table-scroll { scrollbar-gutter: auto; }'));
   assert.ok(css.includes('.axis-add-actions-column .axis-add-button'));
@@ -278,4 +278,21 @@ test('Issue 87: radio-owned large special-card previews each have a local checkb
   assert.match(app,/input.disabled = input.dataset.deck !== chosenSettings.deckId/);
   assert.match(app,/if \(target.disabled \|\| target.dataset.deck !== chosenSettings.deckId\)/);
   assert.match(app,/Object.assign\(deckSelections\[next.deckId\]/);
+});
+
+test('UX90: minimalist ○/×, conditional pile selectors, question-side deck and aligned axes', async () => {
+  const [app,css,html]=await Promise.all([read('../web/app.js'),read('../web/styles.css'),read('../web/index.html')]);
+  assert.match(css,/\.cell-mask-toggle \{[\s\S]*?border-radius: 0; border: 0;/);
+  assert.match(css,/\.cell-mask-toggle:focus-visible/);
+  assert.match(app,/return requiredCards\(state\) >= 27/);
+  assert.match(app,/function pileButtonsShared\(\)/);
+  assert.match(app,/function selectPile\(pileId, side\)/);
+  assert.match(app,/role\.textContent = main \? 'Primary' : other \? 'Parallel'/);
+  assert.match(app,/selected\.length > 1 \? /);
+  assert.match(app,/parallelSet\?\.classList\.toggle\('hidden', !independent\)/);
+  assert.ok(html.indexOf('id="deckSummary"')<html.indexOf('id="settingsButton"'));
+  assert.ok(!app.includes('<span class="reading-deck-summary"'));
+  assert.match(css,/\.reading-deck-summary \{[\s\S]*?margin-left: auto; text-align: right;/);
+  assert.match(css,/\.matrix-heading h2 \{ box-sizing: border-box; flex: 0 0 auto;/);
+  assert.match(css,/\.reading-table \.row-header,?[\s\S]*?36px/);
 });
