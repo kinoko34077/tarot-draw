@@ -59,7 +59,8 @@ test('Issue #83 chosen PD ouroboros is the AnonMoos vector, not old ellipse', as
 
 test('UX93 title uses source-like tall word initials and smaller capitals', async () => {
   const source=await read('scripts/generate-deck-a-reconstruction.mjs');
-  assert.match(source,/const spans = words\.map\(word/);
+  assert.match(source,/const spans = words\.map\(\(word,index\)/);
+  assert.match(source,/dx="34"/);
   assert.match(source,/titleText\(\['The','Original'\],245,124,89,587\)/);
   assert.match(source,/titleText\(\['Rider','Waite'\],378,132,94,566\)/);
   assert.match(source,/titleText\(\['Tarot','Deck'\],513,132,94,557\)/);
