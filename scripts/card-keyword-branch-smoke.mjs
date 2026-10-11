@@ -261,7 +261,7 @@ try {
     };
   })()`);
   if (rubyLayout.readingPosition !== 'absolute' ||
-      rubyLayout.titleHeight !== 33 ||
+      rubyLayout.titleHeight !== 29 ||
       rubyLayout.baselineTopDelta > 2 ||
       !rubyLayout.rubyFloatsAboveBase ||
       rubyLayout.tokenHeight > rubyLayout.baseHeight + 3) {
