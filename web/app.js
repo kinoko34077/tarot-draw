@@ -741,6 +741,12 @@ function createReadingController(number) {
       state.columnLabels = appendAxisLabel(state.columnLabels);
     }
     render();
+    if (kind === 'column') {
+      // DOM replacement preserves the old scrollLeft, but a newly appended
+      // rightmost column must bring the +/− controls into view immediately.
+      const viewport = refs.primaryMatrix;
+      viewport.scrollLeft = Math.max(0, viewport.scrollWidth - viewport.clientWidth);
+    }
   }
 
   function removeAxis(kind, index) {
@@ -1285,7 +1291,7 @@ function createReadingController(number) {
       if (!needed) return '○のマスがありません。少なくとも1マスを使用してください。';
       if (!state.primaryPiles.length) return '山を選んでください。最初の山はPrimaryになります。';
       if (state.parallelPiles.length) return `Primary 山${state.primaryPiles[0]}／Parallel 山${state.parallelPiles[0]}：引けます。`;
-      return 'Primaryを選択しました。別の山を選ぶとParallelで比較できます。';
+      return '迷ったら別の山を選んでifを確認できます。';
     }
     if (!needed) return '○のマスがありません。少なくとも1マスを使用してください。';
     if (!state.primaryPiles.length) return 'Primaryで山を選択してください。順番どおりに配ります。';
@@ -1295,7 +1301,7 @@ function createReadingController(number) {
       return `Parallelの山 ${state.parallelPiles.join(' → ')}（${capacityOf(state.parallelPiles)}/${needed}枚）。枚数確保の為次の山を選択してください。`;
     }
     if (state.parallelPiles.length) return `Primary ${state.primaryPiles.join(' → ')}／Parallel ${state.parallelPiles.join(' → ')}：引けます。`;
-    return 'Primaryは準備できました。別の引き方を比べる場合はParallel側で山を選択できます。';
+    return '迷ったら別の山を選んでifを確認できます。';
   }
 
   function pileButtons(side) {
