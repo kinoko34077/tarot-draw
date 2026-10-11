@@ -9,6 +9,7 @@ import { mkdir, writeFile } from 'node:fs/promises';
 import { resolve, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { createHash } from 'node:crypto';
+import sharp from 'sharp';
 
 const CARD_DIR = resolve(fileURLToPath(new URL('../web/assets/cards/', import.meta.url)));
 const W = 1024, H = 1755;
@@ -64,7 +65,9 @@ function titleCard() {
     '<desc id="titledesc">Deep-indigo vintage-style three-line cream serif title, public-domain AnonMoos ouroboros ring, historical Waite and Smith credits. Independently authored.</desc>'+
     cardBorder()+
     '<g clip-path="url(#cardClip)"><rect x="51" y="35" width="922" height="1683" filter="url(#paperGrain)" opacity=".28"/></g>'+
-    titleText(['The','Original'],245,116,92,587,[178,367])+titleText(['Rider','Waite'],378,124,94,566,[263,261])+titleText(['Tarot','Deck'],513,124,94,557,[252,265])+
+    '<g transform="translate(0 20) translate(0 245) scale(1 1.29) translate(0 -245)">'+titleText(['The','Original'],245,116,92,568,[173,353])+'</g>'+
+    '<g transform="translate(0 29) translate(0 378) scale(1 1.24) translate(0 -378)">'+titleText(['Rider','Waite'],378,124,94,525,[244,239])+'</g>'+
+    '<g transform="translate(0 44) translate(0 513) scale(1 1.45) translate(0 -513)">'+titleText(['Tarot','Deck'],513,124,94,507,[229,238])+'</g>'+
     ouroboros()+
     '<g fill="#f8ebc2" font-family="Georgia, Times New Roman, serif" text-anchor="middle" font-weight="bold">'+
     '<text x="512" y="1248" font-size="55">Conceived by</text>'+
