@@ -352,7 +352,7 @@ try {
         q('.axis-add-row-header .axis-remove-button').click();
         const countAfter=q('.primary-matrix').querySelectorAll('.row-header').length;
         return {initialLeft:initial.left,initialStripLeft:strip.left,
-          justify:getComputedStyle(first).justifyContent, snapshots,countBefore,countAfter};
+          justify:getComputedStyle(q('.axis-add-row-header .axis-add-actions')).justifyContent, snapshots,countBefore,countAfter};
       })()`);
       assert.equal(follow.justify,'flex-start');
       assert.ok(follow.initialLeft>=follow.initialStripLeft-1,
