@@ -396,7 +396,7 @@ try {
     // adds follow the new bottom controls downward without moving the X axis.
     for(const width of [320,390]) {
       await navigate(width);
-      const follow=await evalInPage(`(() => {
+      const follow=await evalInPage(`(async()=> {
         const q=s=>document.querySelector(s);
         const first=q('.axis-add-row-header .axis-add-actions');
         const initial=q('.axis-add-row-header .axis-add-button').getBoundingClientRect();
@@ -404,6 +404,7 @@ try {
         const snapshots=[];
         for(let i=0;i<10;i++){
           q('.axis-add-row-header .axis-add-button').click();
+          await new Promise(resolve=>requestAnimationFrame(resolve));
           const plus=q('.axis-add-row-header .axis-add-button').getBoundingClientRect();
           const minus=q('.axis-add-row-header .axis-remove-button').getBoundingClientRect();
           const parent=q('.axis-add-row-header').getBoundingClientRect();
@@ -523,18 +524,25 @@ try {
       const stageBounds=stage.getBoundingClientRect(), paneBounds=pane.getBoundingClientRect();
       const overlayFits=paneBounds.top>=stageBounds.top-1 && paneBounds.bottom<=stageBounds.bottom+2 &&
         stacks.every(el=>{const r=el.getBoundingClientRect();return r.left>=stageBounds.left && r.right<=stageBounds.right;});
+      const nearDraw=q('.pile-draw-button'), globalDraw=q('.draw-button');
+      const inlineInitiallyDisabled=nearDraw.disabled && globalDraw.disabled;
+      const drawBelowPiles=nearDraw.getBoundingClientRect().top >=
+        all('.pile-set-primary .pile-button')[0].getBoundingClientRect().bottom-1 &&
+        nearDraw.getBoundingClientRect().bottom <= pane.getBoundingClientRect().bottom+2;
       all('.primary-pile-options .pile-button')[0].click();
       const firstOnly=all('.primary-pile-options .pile-role').map(x=>x.textContent);
       all('.primary-pile-options .pile-button')[1].click();
       const both=all('.primary-pile-options .pile-role').map(x=>x.textContent);
-      const drawReady=!q('.draw-button').disabled;
+      const drawReady=!q('.draw-button').disabled && !nearDraw.disabled;
       all('.primary-pile-options .pile-button')[1].click();
       const clearedParallel=all('.primary-pile-options .pile-button')[1].getAttribute('aria-pressed')==='false';
-      return {shared,overlay,overlayFits,firstOnly,both,drawReady,clearedParallel,noRoundFrame,deckRightAligned,alignedAxisWidth};
+      return {shared,overlay,overlayFits,inlineInitiallyDisabled,drawBelowPiles,firstOnly,both,drawReady,clearedParallel,noRoundFrame,deckRightAligned,alignedAxisWidth};
     })()`);
     assert.equal(compact.shared,true);
     assert.equal(compact.overlay,true,'Three visual card stacks must cover the matrix');
     assert.equal(compact.overlayFits,true,'Piles must fit over the primary table at 320px');
+    assert.equal(compact.inlineInitiallyDisabled,true,'Both Draw controls must begin disabled until pile selection');
+    assert.equal(compact.drawBelowPiles,true,'Inline Draw must be directly below card piles');
     assert.deepEqual(compact.firstOnly,['Primary','','']);
     assert.deepEqual(compact.both,['Primary','Parallel','']);
     assert.equal(compact.drawReady,true);
@@ -555,6 +563,7 @@ try {
       q('.shuffle-button').click();
       for(let i=0;i<100&&all('.primary-pile-options .pile-button').length!==3;i++)await sleep(20);
       const independent=q('.pile-set-parallel').classList.contains('hidden')===false;
+      const inlineDisabledAtStart=q('.pile-draw-button').disabled;
       const overlaid=q('.matrix-stage').contains(q('.pile-panel')) &&
         getComputedStyle(q('.pile-panel')).position==='absolute' &&
         all('.pile-set-primary .pile-card-back').length===3 &&
@@ -564,6 +573,9 @@ try {
       all('.parallel-pile-options .pile-button')[1].click();
       const separate=all('.primary-pile-options .pile-button')[1].getAttribute('aria-pressed')==='false' &&
         all('.parallel-pile-options .pile-button')[1].getAttribute('aria-pressed')==='true';
+      const inlineReady=!q('.pile-draw-button').disabled && !q('.draw-button').disabled;
+      const inlineBelowParallel=q('.pile-draw-button').getBoundingClientRect().top >=
+        q('.pile-set-parallel .pile-button').getBoundingClientRect().bottom - 1;
       q('.primary-matrix [data-position="r0c0"] .cell-mask-toggle').click();
       const collapsed=q('.pile-panel').classList.contains('pile-panel-shared') &&
         all('.primary-pile-options .pile-role')[0].textContent==='Primary' &&
@@ -571,9 +583,9 @@ try {
       q('.primary-matrix [data-position="r0c0"] .cell-mask-toggle').click();
       const expanded=!q('.pile-panel').classList.contains('pile-panel-shared') &&
         all('.parallel-pile-options .pile-button')[1].getAttribute('aria-pressed')==='true';
-      return {independent,overlaid,noOrdinalForSingle,separate,collapsed,expanded};
+      return {independent,overlaid,inlineDisabledAtStart,inlineReady,inlineBelowParallel,noOrdinalForSingle,separate,collapsed,expanded};
     })()`);
-    assert.deepEqual(boundary,{independent:true,overlaid:true,noOrdinalForSingle:true,separate:true,collapsed:true,expanded:true});
+    assert.deepEqual(boundary,{independent:true,overlaid:true,inlineDisabledAtStart:true,inlineReady:true,inlineBelowParallel:true,noOrdinalForSingle:true,separate:true,collapsed:true,expanded:true});
     report('UX90-27-BOUNDARY',{status:'PASS',...boundary});
     const independentProof=await cdp.call('Page.captureScreenshot',{format:'png'});
     await writeFile('ux90-independent-390.png',Buffer.from(independentProof.data,'base64'));
@@ -592,7 +604,9 @@ try {
       for(let i=0;i<100 && all('.primary-pile-options .pile-button').length!==3;i++)await sleep(20);
       const sizes=all('.primary-pile-options .pile-count').map(e=>e.textContent);
       all('.primary-pile-options .pile-button')[0].click();
-      q('.draw-button').click();
+      const inlineDrawReady=!q('.pile-draw-button').disabled && !q('.draw-button').disabled;
+      q('.pile-draw-button').click();
+      const inlineDrawLocked=q('.pile-draw-button').disabled && q('.draw-button').disabled;
       for(let i=0;i<120 && q('.reading-status').textContent!=='抽選完了';i++)await sleep(20);
       const first=q('.primary-matrix .card-detail-trigger');
       const visualTitle=first.querySelector('.card-title').textContent;
@@ -601,6 +615,8 @@ try {
       const introDetailOpen=q('#cardDetailDialog').open;
       const introKeywordRows=all('#cardDetailKeywordRows tbody tr').length;
       const introDetailName=q('#cardDetailTitle').textContent;
+      const introOriginal=!q('#cardDetailOriginalMark').classList.contains('hidden') &&
+        q('#cardDetailOriginalMark').textContent==='オリジナルカード';
       const introKeywordTerms=all('#cardDetailKeywordRows tbody td').length;
       const introEssence=q('#cardDetailEssence').textContent;
       const introUpright=q('#cardDetailUpright').textContent;
@@ -615,16 +631,22 @@ try {
       const titleDetailOpen=q('#cardDetailDialog').open;
       const titleEssence=q('#cardDetailEssence').textContent;
       const titleDetailName=q('#cardDetailTitle').textContent;
+      const titleOriginal=!q('#cardDetailOriginalMark').classList.contains('hidden');
       const titleUpright=q('#cardDetailUpright').textContent;
       const titleReversed=q('#cardDetailReversed').textContent;
       const titleKeywordRows=all('#cardDetailKeywordRows tbody tr').length;
       const titleSelected=q('#cardDetailReversedBlock').dataset.active;
       const titleAProvenance=!q('#cardDetailDeckASource').classList.contains('hidden');
       q('#cardDetailClose').click();
+      const third=all('.primary-matrix .card-detail-trigger')[2];
+      third.click();
+      const standardOriginalHidden=q('#cardDetailOriginalMark').classList.contains('hidden');
+      q('#cardDetailClose').click();
       q('.copy-button').click();
       for(let i=0;i<20&&!__p0.copiedText;i++)await sleep(20);
       return {
         sizes,summary:q('.reading-deck-summary').textContent,
+        inlineDrawReady,inlineDrawLocked,introOriginal,titleOriginal,standardOriginalHidden,
         visualTitle,introResultName,introDetailName,introDetailOpen,introKeywordRows,introKeywordTerms,
         introEssence,introUpright,introReversed,introSelected,
         introAProvenance,introTarotooHidden,introCustomHidden,
@@ -641,6 +663,11 @@ try {
     assert.match(intro.introResultName,/創り手/);
     assert.match(intro.introDetailName,/23 創り手/);
     assert.match(intro.titleDetailName,/22 ウロボロス/);
+    assert.equal(intro.inlineDrawReady,true,'Near-pile Draw must be ready alongside the global Draw');
+    assert.equal(intro.inlineDrawLocked,true,'Both Draw actions must lock synchronously after near-pile activation');
+    assert.equal(intro.introOriginal,true,'Deck A 創り手 must show the original-card marker');
+    assert.equal(intro.titleOriginal,true,'Deck A ウロボロス must show the original-card marker');
+    assert.equal(intro.standardOriginalHidden,true,'Standard tarot must not carry original-card marker');
     assert.equal(intro.introDetailOpen,true);
     assert.equal(intro.introKeywordRows,5);
     assert.equal(intro.introKeywordTerms,20);
