@@ -32,6 +32,7 @@ const page = {
   cardDetailDialog: document.querySelector('#cardDetailDialog'),
   cardDetailClose: document.querySelector('#cardDetailClose'),
   cardDetailTitle: document.querySelector('#cardDetailTitle'),
+  cardDetailOriginalMark: document.querySelector('#cardDetailOriginalMark'),
   cardDetailOrientation: document.querySelector('#cardDetailOrientation'),
   cardDetailVisual: document.querySelector('#cardDetailVisual'),
   cardDetailKeywordGrid: document.querySelector('#cardDetailKeywordGrid'),
@@ -327,6 +328,7 @@ function openCardDetail(card, trigger, deckId = 'B') {
   lastCardTrigger = trigger;
 
   setCardTitle(page.cardDetailTitle, parts);
+  page.cardDetailOriginalMark.classList.toggle('hidden', !specialInterpretation);
   page.cardDetailOrientation.textContent = parts.orientation;
   page.cardDetailVisual.replaceChildren(createCardVisual(card, {
     detail: true, deckId, gridSource: trigger?.querySelector('img.card-art')?.src ?? null
@@ -643,6 +645,7 @@ function createReadingController(number) {
               <span class="pile-set-title">Parallel（別の選び方・任意）</span>
               <div class="pile-options parallel-pile-options" aria-label="Parallelの山を選択"></div>
             </div>
+            <button class="pile-draw-button primary" type="button" disabled>引く</button>
             <p class="selection-message helper pile-status" role="status" aria-live="polite"></p>
           </div>
         </div>
@@ -669,6 +672,7 @@ function createReadingController(number) {
     copyFeedback: article.querySelector('.copy-feedback'),
     shuffleButton: page.shuffleButton,
     drawButton: page.drawButton,
+    pileDrawButton: article.querySelector('.pile-draw-button'),
     questionInput: article.querySelector('.question-input'),
     layoutMessage: article.querySelector('.layout-message'),
     pilePanel: article.querySelector('.pile-panel'),
@@ -719,6 +723,9 @@ function createReadingController(number) {
     state.question = event.target.value;
   });
   refs.copyButton.addEventListener('click', copyReading);
+  // Both Draw controls call the same guarded operation; they do not create
+  // independent branches or allow a second request while pending.
+  refs.pileDrawButton.addEventListener('click', draw);
   refs.undoButton.addEventListener('click', undoAxis);
   refs.redoButton.addEventListener('click', redoAxis);
 
@@ -813,13 +820,25 @@ function createReadingController(number) {
       const viewport = refs.primaryMatrix;
       viewport.scrollLeft = Math.max(0, viewport.scrollWidth - viewport.clientWidth);
     } else {
-      // The row + is recreated lower down on each render. Follow only as far
-      // as necessary to leave it tappable at the bottom of the visible page;
-      // no forced horizontal pan or vertical jump while it is already visible.
+      // On iOS Safari, window.scrollBy({behavior:'instant'}) is not reliable.
+      // Scroll the actual document scroller and recheck after the browser's
+      // layout/focus/visual-viewport update. Never pan the matrix horizontally.
       const addRowButton = refs.primaryMatrix.querySelector('.axis-add-row-header .axis-add-button');
       if (addRowButton) {
-        const belowViewport = addRowButton.getBoundingClientRect().bottom - (window.innerHeight - 12);
-        if (belowViewport > 0) window.scrollBy({ top: Math.ceil(belowViewport), behavior: 'instant' });
+        const followRowButton = () => {
+          if (!addRowButton.isConnected) return;
+          const visual = window.visualViewport;
+          const visibleBottom = visual ? visual.offsetTop + visual.height : window.innerHeight;
+          const below = addRowButton.getBoundingClientRect().bottom - (visibleBottom - 12);
+          if (below > 0) {
+            const root = document.scrollingElement || document.documentElement;
+            const savedLeft = refs.primaryMatrix.scrollLeft;
+            root.scrollTop += Math.ceil(below);
+            refs.primaryMatrix.scrollLeft = savedLeft;
+          }
+        };
+        followRowButton();
+        requestAnimationFrame(followRowButton);
       }
     }
   }
@@ -1505,10 +1524,13 @@ function createReadingController(number) {
 
   function updateDrawAction() {
     const choosing = state.phase === 'choosing';
-    if (!readings.length || readings.at(-1) === controller) {
+    const current = !readings.length || readings.at(-1) === controller;
+    const disabled = !current || !choosing || Boolean(state.pendingOperation) ||
+      Boolean(state.drawOutcome) || requiredCards(state) === 0 || !mainReady() || !parallelReady();
+    refs.pileDrawButton.disabled = disabled;
+    if (current) {
       refs.drawButton.classList.toggle('hidden', !choosing);
-      refs.drawButton.disabled = !choosing || Boolean(state.pendingOperation) ||
-        requiredCards(state) === 0 || !mainReady() || !parallelReady();
+      refs.drawButton.disabled = disabled;
     }
   }
 
