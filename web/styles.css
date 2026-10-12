@@ -1606,3 +1606,74 @@ input:focus-visible {
   padding: 7px 14px;
   pointer-events: auto;
 }
+
+/* #118: increase breathing room in the Tarot Draw / ? / settings strip,
+   without forcing the 320px layout sideways. */
+.topbar {
+  min-height: 66px;
+  padding-block: 13px;
+  column-gap: 8px;
+}
+.topbar h1 { white-space: nowrap; }
+.topbar-actions {
+  display: flex;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: 7px;
+}
+.topbar .help-open {
+  display: grid;
+  flex: 0 0 auto;
+  place-items: center;
+  width: 34px;
+  min-width: 34px;
+  height: 34px;
+  min-height: 34px;
+  padding: 0;
+  font-size: 1.12rem;
+  line-height: 1;
+  font-weight: 750;
+}
+.topbar .reading-deck-summary { margin-left: auto; padding-right: 0; }
+@media (max-width: 420px) {
+  .topbar { min-height: 62px; padding: 12px 9px; column-gap: 5px; }
+  .topbar h1 { font-size: .95rem; }
+  .topbar-actions { gap: 5px; }
+  .topbar .help-open { width: 32px; min-width: 32px; height: 32px; min-height: 32px; }
+}
+
+/* #118: settings-like modal with readable, independently scrollable help
+   content. The native dialog provides Escape and keyboard focus containment. */
+.help-dialog { width: min(700px, calc(100vw - 20px)); max-height: min(94dvh, 900px); }
+.help-panel { padding: 0 16px 12px; }
+.help-dialog .settings-heading { padding-block: 9px; }
+.help-dialog .settings-close { width: 34px; min-height: 34px; }
+.help-content { display: grid; gap: 13px; padding: 12px 0 3px; }
+.help-lead { margin: 0; font-size: .85rem; color: var(--muted); }
+.help-section { border-top: 1px solid var(--border); padding-top: 11px; }
+.help-section h3 { margin: 0 0 7px; font-size: .91rem; }
+.help-section p, .help-section li, .help-section dd {
+  font-size: .84rem;
+  line-height: 1.65;
+  overflow-wrap: anywhere;
+}
+.help-section p { margin: 0 0 8px; }
+.help-steps { margin: 0; padding-left: 1.5em; }
+.help-steps li + li { margin-top: 7px; }
+.help-cards { margin: 7px 0 10px; }
+.help-cards > div { padding: 8px 0; border-bottom: 1px solid var(--border); }
+.help-cards dt { font-size: .83rem; font-weight: 700; }
+.help-cards dd { margin: 3px 0 0; color: var(--muted); }
+.help-dialog .settings-footer {
+  position: sticky;
+  bottom: 0;
+  z-index: 2;
+  margin-top: 5px;
+  padding: 9px 0 2px;
+  background: var(--surface);
+  border-top: 1px solid var(--border);
+}
+@media (max-width: 420px) {
+  .help-panel { padding-inline: 11px; }
+  .help-section p, .help-section li, .help-section dd { font-size: .82rem; }
+}
