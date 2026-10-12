@@ -1344,6 +1344,15 @@ input:focus-visible {
 .reading-table .row-header .axis-menu-trigger {
   position: absolute; top: auto; bottom: 0; right: 0;
 }
+/* #109: two 27px row actions cannot be centered inside the fixed 36px row
+   strip. Anchor + entirely inside the left edge and let − use the empty
+   footer row to its right, above the blank filler rather than offscreen. */
+.reading-table .axis-add-row-header { overflow: visible; }
+.reading-table .axis-add-row-header .axis-add-actions {
+  position: relative; z-index: 2;
+  justify-content: flex-start; width: max-content; max-width: none;
+  margin: 0; padding: 0;
+}
 
 .pile-panel:not(.pile-panel-shared) .pile-label { display: none; }
 .pile-panel:not(.pile-panel-shared) .pile-set { grid-column: 1 / -1; }

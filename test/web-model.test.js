@@ -253,15 +253,15 @@ test('Deck A introduction custom replaces Deck B guarantee only in display/notes
   const intro={card_id:'meta.introduction',name_ja:'23 パメラ・コールマン・スミス紹介カード',orientation:'upright'};
   const guarantee={card_id:'meta.guarantee',name_ja:'GUARANTEE（保証カード）',orientation:'upright'};
   const result={positions:{r0c0:intro}};
-  assert.equal(cardDisplayParts(intro,'A').plainTitle,'23 パメラ・コールマン・スミス紹介カード');
+  assert.equal(cardDisplayParts(intro,'A').plainTitle,'23 創り手');
   assert.equal(cardDisplayText(guarantee,'B'),'23 GUARANTEE 正位置');
-  assert.equal(cardDisplayText(intro,'A'),'23 パメラ・コールマン・スミス紹介カード 正位置');
-  assert.ok(customCardNotesForResults(result,null,'A')[0].includes('23 紹介カード'));
+  assert.equal(cardDisplayText(intro,'A'),'23 創り手 正位置');
+  assert.ok(customCardNotesForResults(result,null,'A')[0].includes('23 創り手'));
   assert.ok(!customCardNotesForResults(result,null,'A')[0].includes('GUARANTEE'));
   const markdown=formatReadingMarkdown({
     deckId:'A',rowCount:1,columnCount:1,rowLabels:['項'],columnLabels:['題'],primary:result
   });
-  assert.match(markdown,/パメラ・コールマン・スミス紹介カード/);
+  assert.match(markdown,/23 創り手/);
   assert.doesNotMatch(markdown,/GUARANTEE/);
 });
 
