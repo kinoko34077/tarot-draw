@@ -568,8 +568,8 @@ try {
       const question=q('.question-input').getBoundingClientRect();
       const deck=q('.reading-deck-summary').getBoundingClientRect();
       const topbar=q('.topbar').getBoundingClientRect();
-      const settings=q('#settingsButton').getBoundingClientRect();
-      const deckRightAligned=deck.right<=settings.left+1 && settings.left-deck.right<=14 &&
+      const helpStart=q('#helpButton').getBoundingClientRect();
+      const deckRightAligned=deck.right<=helpStart.left+1 && helpStart.left-deck.right<=14 &&
         deck.top>=topbar.top-1 && deck.bottom<=topbar.bottom+1 &&
         deck.width>50 && question.width>100;
       const alignedAxisWidth=Math.abs(rowHeader.getBoundingClientRect().width-columnHeader.getBoundingClientRect().height)<1;
