@@ -1,6 +1,8 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
+import { once } from 'node:events';
+import { createTarotServer } from '../src/server.js';
 import { deckASpecialInterpretation } from '../web/deck-a-special-interpretations.js';
 import { keywordGridDraft } from '../web/card-keyword-grid.js';
 import { cardDetail } from '../web/card-details.js';
@@ -79,4 +81,18 @@ test('detail UI switches special data and attribution by actual deck identity', 
   assert.ok(html.includes('id="cardDetailTarotooSource"'));
   assert.ok(html.includes('id="cardDetailDeckASource" class="hidden"'));
   assert.ok(html.includes('出典：デッキA独自解釈（利用者提供）'));
+});
+
+test('local HTTP server serves Deck A detail module as JavaScript', async () => {
+  const server = createTarotServer();
+  try {
+    server.listen(0, '127.0.0.1');
+    await once(server, 'listening');
+    const response = await fetch('http://127.0.0.1:' + server.address().port + '/deck-a-special-interpretations.js');
+    assert.equal(response.status, 200);
+    assert.match(response.headers.get('content-type') ?? '', /text\/javascript/);
+    assert.match(await response.text(), /deckASpecialInterpretation/);
+  } finally {
+    await new Promise(resolve => server.close(resolve));
+  }
 });
