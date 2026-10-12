@@ -361,11 +361,16 @@ try {
         transferSize: entry.transferSize,
         encodedBodySize: entry.encodedBodySize
       }));
-    const measurable = resourceSizes
-      .map(item => item.transferSize || item.encodedBodySize || 0)
-      .filter(size => size > 0);
-    if (measurable.length === 0) throw new Error('Same-origin WebP resource timing is not measurable.');
-    if (measurable.some(size => size > 24576)) throw new Error('Browser grid WebP exceeded 24 KiB.');
+    const bytes = item => item.transferSize || item.encodedBodySize || 0;
+    // The 24 KiB budget belongs to standard RWS cards. Deck A's separately
+    // authored, font-baked title and illustrated biography have their own
+    // validated raster budget (scripts/check-deck-a-assets.mjs).
+    const special = item => /\\/deck-a-(?:title|introduction)\\.webp$/.test(item.name);
+    const standardMeasured = resourceSizes.filter(item => !special(item)).map(bytes).filter(size => size > 0);
+    const deckAMeasured = resourceSizes.filter(special).map(bytes).filter(size => size > 0);
+    if (standardMeasured.length === 0) throw new Error('Standard RWS WebP resource timing is not measurable.');
+    if (standardMeasured.some(size => size > 24576)) throw new Error('Standard RWS grid WebP exceeded 24 KiB.');
+    if (deckAMeasured.some(size => size > 1_200_000)) throw new Error('Deck A reconstructed grid WebP exceeded accepted bound.');
 
     return {
       maxCellWidth,
@@ -381,8 +386,10 @@ try {
       detailAssetWebp: detailImage.src.endsWith('.webp'),
       detailTitle: triggerTitle,
       detailOrientation: triggerOrientation,
-      browserMeasuredImages: measurable.length,
-      browserMaxImageBytes: Math.max(...measurable)
+      browserMeasuredImages: standardMeasured.length + deckAMeasured.length,
+      browserMaxImageBytes: Math.max(...standardMeasured),
+      browserDeckAImages: deckAMeasured.length,
+      browserDeckAMaxBytes: deckAMeasured.length ? Math.max(...deckAMeasured) : 0
     };
   })()`;
 
