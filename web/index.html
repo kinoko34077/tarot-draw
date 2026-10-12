@@ -13,7 +13,10 @@
   <header class="topbar">
     <h1>Tarot Draw</h1>
     <span id="deckSummary" class="reading-deck-summary" aria-label="現在のリーディングで使用するデッキ"></span>
-    <button id="settingsButton" class="settings-open secondary" type="button" aria-label="設定を開く" title="デッキとカードの設定" aria-haspopup="dialog" aria-controls="settingsDialog"><span aria-hidden="true">⚙</span><span>設定</span></button>
+    <div class="topbar-actions" role="group" aria-label="ヘルプと設定">
+      <button id="helpButton" class="help-open secondary" type="button" aria-label="使い方とリーディングのヘルプを開く" title="ヘルプ" aria-haspopup="dialog" aria-controls="helpDialog"><span aria-hidden="true">?</span></button>
+      <button id="settingsButton" class="settings-open secondary" type="button" aria-label="設定を開く" title="デッキとカードの設定" aria-haspopup="dialog" aria-controls="settingsDialog"><span aria-hidden="true">⚙</span><span>設定</span></button>
+    </div>
   </header>
 
   <main class="workspace">
@@ -30,6 +33,59 @@
       <a href="https://commons.wikimedia.org/wiki/Category:Rider-Waite-Smith_tarot_deck_(Geldard)" target="_blank" rel="noopener noreferrer">Wikimedia Commons</a>
     </p>
   </main>
+
+
+  <dialog id="helpDialog" class="settings-dialog help-dialog" aria-labelledby="helpTitle" aria-describedby="helpIntro">
+    <div class="settings-panel help-panel">
+      <header class="settings-heading">
+        <h2 id="helpTitle">使い方とリーディング</h2>
+        <button id="helpClose" class="secondary settings-close" type="button" aria-label="ヘルプを閉じる">×</button>
+      </header>
+      <div class="help-content">
+        <p id="helpIntro" class="help-lead">問いとカードの配置を決め、山を選んで引くタロットです。結果は自分で読み解くための手がかりとして表示します。</p>
+        <section class="help-section" aria-labelledby="helpStepsTitle">
+          <h3 id="helpStepsTitle">基本操作</h3>
+          <ol class="help-steps">
+            <li><strong>問いと配置を決める：</strong>「Q.」に相談したい問いを入力。行・列の名前を編集して、各マスの意味を決めます。端の「＋／−」で行・列を増減できます。「×」を付けたマスは抽選対象から除外されます。</li>
+            <li><strong>シャッフルする：</strong>「シャッフル」でカードの順序と正逆位置が確定し、山A・B・Cに分かれます。</li>
+            <li><strong>山を選ぶ：</strong>最初に選ぶのがPrimary（メイン）の山。迷った別の山は必要に応じてParallelに選べます。必要枚数が多い場合は、表示されたPrimary・Parallelそれぞれの欄で、足りるまで順番に山を選びます。</li>
+            <li><strong>カードを引く：</strong>山札の下、またはページ下部の「引く」を押します。山の枚数が足りないときは選び足してください。</li>
+            <li><strong>結果を見る：</strong>カードをタップしてキーワード・本質・正位置／逆位置の説明を確認。「結果をコピー」で表をMarkdown形式でコピーでき、「＋ 新規」で前の結果を残して次の占いを始められます。</li>
+          </ol>
+        </section>
+        <section class="help-section" aria-labelledby="helpReadingTitle">
+          <h3 id="helpReadingTitle">リーディングの考え方</h3>
+          <p>カードの意味だけでなく、<strong>問いとマスの位置</strong>を合わせて読みます。例えば行を「現状・課題・助言」、列を「仕事・創作・生活」とすれば、交点ごとに観点を分けられます。</p>
+          <p><strong>正位置・逆位置</strong>はカードに付いた向きです。逆位置を必ず「悪い結果」と解釈する必要はありません。表示される解説は考察の参考であり、将来を確定させるものではありません。</p>
+          <p><strong>Parallel</strong>は「もし別の山を選んでいたら」をメインと並べて考える、任意の比較方法です。同じシャッフルを出発点に独立して引きますが、実際に別の出来事が起こったという意味ではありません。</p>
+        </section>
+        <section class="help-section" aria-labelledby="helpDeckTitle">
+          <h3 id="helpDeckTitle">デッキとオリジナルカード</h3>
+          <p>通常のタロット78枚に、それぞれのデッキ独自のカードを最大2枚加えられます。独自カードにも正位置・逆位置があり、他のカードと同じように抽選されます。</p>
+          <dl class="help-cards">
+            <div>
+              <dt>デッキA：タイトルカード（22 ウロボロス）</dt>
+              <dd>終わりと始まりがつながる境界や循環を象徴します。正位置は「終わりの始まり」、逆位置は「始まりの終わり」。</dd>
+            </div>
+            <div>
+              <dt>デッキA：紹介カード（23 創り手）</dt>
+              <dd>創造の価値と、その継承・再発見を扱う独自カードです。正位置は「創造の継承」、逆位置は「埋もれた創造」。</dd>
+            </div>
+            <div>
+              <dt>デッキB：タイトルカード（22）</dt>
+              <dd>通常78枚とは別に用意された独自カードです。正位置・逆位置があります。</dd>
+            </div>
+            <div>
+              <dt>デッキB：保証カード（23 GUARANTEE）</dt>
+              <dd>こちらも独自カードの名前です。「必ず出る」「結果や未来を保証する」という意味ではありません。</dd>
+            </div>
+          </dl>
+          <p>デッキA・Bの切替、タイトルカード・紹介カード／保証カードの個別ON・OFF、「大アルカナのみ」は右上の設定から変更できます。設定値は同じブラウザに引き継がれますが、シャッフル済みの占いには遡って反映されません。</p>
+        </section>
+      </div>
+      <div class="settings-footer"><button id="helpDone" class="primary" type="button">閉じる</button></div>
+    </div>
+  </dialog>
 
   <dialog id="settingsDialog" class="settings-dialog" aria-labelledby="settingsTitle">
     <div class="settings-panel">
