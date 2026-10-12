@@ -35,6 +35,15 @@ export const CUSTOM_CARD_NOTES = Object.freeze({
  * Their contents/art remain distinct, while copy treatment matches GUARANTEE.
  */
 export function customCardPresentation(cardId, deckId = 'B') {
+  // Deck A's names outside the settings dialog are distinct from Deck B.
+  if (deckId === 'A' && cardId === 'meta.title') return {
+    title: '22 ウロボロス', faceTitle: '22 ウロボロス',
+    note: '22 ウロボロス：独自カード。正位置・逆位置あり。'
+  };
+  if (deckId === 'A' && cardId === 'meta.introduction') return {
+    title: '23 創り手', faceTitle: '23 創り手',
+    note: '23 創り手：独自カード。正位置・逆位置あり。'
+  };
   if (cardId === 'meta.title') return {
     title: '22 タイトルカード', faceTitle: '22 TITLE',
     note: CUSTOM_CARD_NOTES['meta.title']
