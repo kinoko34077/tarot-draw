@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-labelledby="title">
+  <title id="title">Tarot Draw icon: a gold star on a navy tarot card</title>
+  <rect width="512" height="512" rx="108" fill="#0b273b"/>
+  <rect x="105" y="52" width="302" height="408" rx="26" fill="#13384d" stroke="#e6c477" stroke-width="15"/>
+  <rect x="127" y="74" width="258" height="364" rx="12" fill="none" stroke="#e6c477" stroke-width="4" opacity=".68"/>
+  <path d="M256 153 279 233 359 256 279 279 256 359 233 279 153 256 233 233Z" fill="#f4d48e"/>
+  <circle cx="256" cy="126" r="7" fill="#e6c477"/>
+  <circle cx="256" cy="386" r="7" fill="#e6c477"/>
+</svg>
