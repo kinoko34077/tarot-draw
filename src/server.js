@@ -14,6 +14,7 @@ const STATIC_FILES = new Map([
   ['/card-details.js', ['card-details.js', 'text/javascript; charset=utf-8']],
   ['/card-keyword-grid.js', ['card-keyword-grid.js', 'text/javascript; charset=utf-8']],
   ['/card-keyword-corpus.js', ['card-keyword-corpus.js', 'text/javascript; charset=utf-8']],
+  ['/deck-a-special-interpretations.js', ['deck-a-special-interpretations.js', 'text/javascript; charset=utf-8']],
   ['/runtime-config.js', ['runtime-config.js', 'text/javascript; charset=utf-8']],
   ['/config.js', ['config.js', 'text/javascript; charset=utf-8']]
 ]);

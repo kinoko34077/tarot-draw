@@ -102,6 +102,9 @@ test('detail reference uses adjacent enlarged artwork and a vertical writing tab
   assert.ok(!html.slice(html.indexOf('class="detail-header-actions"'),html.indexOf('class="card-detail-body"')).includes('cardDetailSourceInfo'),'info must not be detached in global modal header');
   assert.ok(html.includes('正・逆位置の両面を含む'));
   assert.ok(html.includes('出典：Tarotoo Tarot Dataset（MIT）'));
+  assert.ok(html.includes('id="cardDetailTarotooSource"'));
+  assert.ok(html.includes('id="cardDetailDeckASource"'));
+  assert.ok(html.includes('出典：デッキA独自解釈（利用者提供）'));
   assert.ok(html.includes('Tarotoo-com/tarotoo-tarot-dataset'));
   assert.ok(!html.includes('keyword-grid-note'), 'scope note must not consume default visible space');
   assert.ok(css.includes('grid-template-columns: minmax(0, 35%) minmax(0, 1fr)'));
@@ -144,7 +147,7 @@ test('detail reference uses adjacent enlarged artwork and a vertical writing tab
   assert.ok(app.includes("item.textContent = term"));
   assert.ok(app.includes("label.textContent = heading"));
   assert.ok(app.includes("page.cardDetailSourceInfo.classList.toggle('hidden', !groups)"));
-  assert.ok(app.includes("renderKeywordGrid(detail ? card.card_id : null)"));
+  assert.ok(app.includes("renderKeywordGrid(detail ? card.card_id : null, specialInterpretation)"));
   assert.ok(app.includes("detail: true, deckId, gridSource: trigger?.querySelector"));
   assert.ok(notice.includes('MIT License') && notice.includes('Copyright (c) 2026 Tarotoo'));
 });

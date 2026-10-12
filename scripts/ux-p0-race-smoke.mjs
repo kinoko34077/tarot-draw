@@ -97,10 +97,11 @@ const mock = `(() => {
       p0.drawCalls.push({id,pile:branch.pile,positions});
       const cards=Object.fromEntries(positions.map((position,index)=>{
         const intro=p0.deckId==='A' && p0.includeCustom && branch.pile==='A' && index===0;
+        const title=p0.deckId==='A' && p0.includeCustom && branch.pile==='A' && index===1;
         return [position,{
-          card_id:intro?'meta.introduction':branch.pile==='A'?'major.fool':'major.magician',
-          name_ja:intro?'パメラ・コールマン・スミス紹介カード':branch.pile==='A'?'愚者':'魔術師',
-          orientation:branch.pile==='A'?'upright':'reversed'
+          card_id:intro?'meta.introduction':title?'meta.title':branch.pile==='A'?'major.fool':'major.magician',
+          name_ja:intro?'パメラ・コールマン・スミス紹介カード':title?'タイトルカード':branch.pile==='A'?'愚者':'魔術師',
+          orientation:title?'reversed':branch.pile==='A'?'upright':'reversed'
         }];
       }));
       const reply=()=>{
@@ -449,8 +450,8 @@ try {
     const independentProof=await cdp.call('Page.captureScreenshot',{format:'png'});
     await writeFile('ux90-independent-390.png',Buffer.from(independentProof.data,'base64'));
 
-    // A/80 is not a mere B-label alias: its introduction ID, display/detail
-    // and copied notes must match, with no GUARANTEE or invented biography.
+    // A/80 must use Deck A-only title and introduction keyword/meaning references.
+    // Copy retains independent card IDs with no GUARANTEE.
     await navigate(390);
     const intro = await evalInPage(`(async()=>{
       const q=s=>document.querySelector(s), all=s=>[...document.querySelectorAll(s)];
@@ -468,14 +469,36 @@ try {
       const first=q('.primary-matrix .card-detail-trigger');
       const visualTitle=first.querySelector('.card-title').textContent;
       first.click();
-      const detailText=q('#cardDetailCustomText').textContent;
-      const detailOpen=q('#cardDetailDialog').open;
+      const introDetailOpen=q('#cardDetailDialog').open;
+      const introKeywordRows=all('#cardDetailKeywordRows tbody tr').length;
+      const introKeywordTerms=all('#cardDetailKeywordRows tbody td').length;
+      const introEssence=q('#cardDetailEssence').textContent;
+      const introUpright=q('#cardDetailUpright').textContent;
+      const introReversed=q('#cardDetailReversed').textContent;
+      const introSelected=q('#cardDetailUprightBlock').dataset.active;
+      const introAProvenance=!q('#cardDetailDeckASource').classList.contains('hidden');
+      const introTarotooHidden=q('#cardDetailTarotooSource').classList.contains('hidden');
+      const introCustomHidden=q('#cardDetailCustom').classList.contains('hidden');
+      q('#cardDetailClose').click();
+      const second=all('.primary-matrix .card-detail-trigger')[1];
+      second.click();
+      const titleDetailOpen=q('#cardDetailDialog').open;
+      const titleEssence=q('#cardDetailEssence').textContent;
+      const titleUpright=q('#cardDetailUpright').textContent;
+      const titleReversed=q('#cardDetailReversed').textContent;
+      const titleKeywordRows=all('#cardDetailKeywordRows tbody tr').length;
+      const titleSelected=q('#cardDetailReversedBlock').dataset.active;
+      const titleAProvenance=!q('#cardDetailDeckASource').classList.contains('hidden');
       q('#cardDetailClose').click();
       q('.copy-button').click();
       for(let i=0;i<20&&!__p0.copiedText;i++)await sleep(20);
       return {
         sizes,summary:q('.reading-deck-summary').textContent,
-        visualTitle,detailText,detailOpen,
+        visualTitle,introDetailOpen,introKeywordRows,introKeywordTerms,
+        introEssence,introUpright,introReversed,introSelected,
+        introAProvenance,introTarotooHidden,introCustomHidden,
+        titleDetailOpen,titleEssence,titleUpright,titleReversed,titleKeywordRows,
+        titleSelected,titleAProvenance,
         copyIntro:__p0.copiedText?.includes('パメラ・コールマン・スミス紹介カード'),
         copyGuarantee:__p0.copiedText?.includes('GUARANTEE')
       };
@@ -483,8 +506,23 @@ try {
     assert.deepEqual(intro.sizes,['27枚','27枚','26枚']);
     assert.equal(intro.summary,'デッキA・80枚');
     assert.ok(intro.visualTitle.includes('パメラ・コールマン・スミス紹介カード'));
-    assert.equal(intro.detailOpen,true);
-    assert.ok(intro.detailText.includes('23 紹介カード'));
+    assert.equal(intro.introDetailOpen,true);
+    assert.equal(intro.introKeywordRows,5);
+    assert.equal(intro.introKeywordTerms,20);
+    assert.match(intro.introEssence,/創り手（遺されるもの）/);
+    assert.match(intro.introUpright,/創造の継承/);
+    assert.match(intro.introReversed,/埋もれた創造/);
+    assert.equal(intro.introSelected,'true');
+    assert.equal(intro.introAProvenance,true);
+    assert.equal(intro.introTarotooHidden,true);
+    assert.equal(intro.introCustomHidden,true);
+    assert.equal(intro.titleDetailOpen,true);
+    assert.equal(intro.titleKeywordRows,5);
+    assert.match(intro.titleEssence,/ウロボロス（境界の鏡）/);
+    assert.match(intro.titleUpright,/終わりの始まり/);
+    assert.match(intro.titleReversed,/始まりの終わり/);
+    assert.equal(intro.titleSelected,'true');
+    assert.equal(intro.titleAProvenance,true);
     assert.equal(intro.copyIntro,true);
     assert.equal(intro.copyGuarantee,false);
     report('UX78-DECK-A-INTRO-DRAW',{status:'PASS',...intro});
