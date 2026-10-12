@@ -1,4 +1,5 @@
-import { cp, mkdir, rm, writeFile } from 'node:fs/promises';
+import { cp, mkdir, readFile, rm, writeFile } from 'node:fs/promises';
+import sharp from 'sharp';
 import { fileURLToPath } from 'node:url';
 import { resolve } from 'node:path';
 
@@ -11,6 +12,13 @@ export async function buildPagesSite({
   await rm(outputDir, { recursive: true, force: true });
   await mkdir(outputDir, { recursive: true });
   await cp(WEB_ROOT, outputDir, { recursive: true });
+
+  // Favicon SVG is the single editable source. Render raster touch icons
+  // at build time without storing generated binaries in Git history.
+  const icon = await readFile(resolve(WEB_ROOT, 'favicon.svg'));
+  for (const [size, name] of [[180, 'apple-touch-icon.png'], [192, 'icon-192.png'], [512, 'icon-512.png']]) {
+    await sharp(icon).resize(size, size).png({ compressionLevel: 9 }).toFile(resolve(outputDir, name));
+  }
 
   const config = {
     apiMode: 'external',
