@@ -292,6 +292,7 @@ try {
     const restored=await evalInPage(`(async()=> {
       const q=s=>document.querySelector(s), all=s=>[...document.querySelectorAll(s)];
       const wait=ms=>new Promise(r=>setTimeout(r,ms));
+      __p0.deferDraw=false;
       const summary=q('.reading-deck-summary').textContent;
       q('#settingsButton').click();
       const bSelected=q('input[name="deckId"][value="B"]').checked;
