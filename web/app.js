@@ -13,6 +13,7 @@ import {
 } from './model.js';
 import { cardDetail } from './card-details.js';
 import { keywordGridDraft } from './card-keyword-grid.js';
+import { deckASpecialInterpretation } from './deck-a-special-interpretations.js';
 import { buildApiUrl, resolveRuntimeConfig } from './runtime-config.js';
 
 const runtime = resolveRuntimeConfig(globalThis.__TAROT_DRAW_CONFIG__ ?? {});
@@ -35,6 +36,8 @@ const page = {
   cardDetailKeywordGrid: document.querySelector('#cardDetailKeywordGrid'),
   cardDetailKeywordRows: document.querySelector('#cardDetailKeywordRows'),
   cardDetailSourceInfo: document.querySelector('#cardDetailSourceInfo'),
+  cardDetailTarotooSource: document.querySelector('#cardDetailTarotooSource'),
+  cardDetailDeckASource: document.querySelector('#cardDetailDeckASource'),
   cardDetailReference: document.querySelector('#cardDetailReference'),
   cardDetailEssence: document.querySelector('#cardDetailEssence'),
   cardDetailUpright: document.querySelector('#cardDetailUpright'),
@@ -274,12 +277,14 @@ function closeCardDetail() {
   if (page.cardDetailDialog.open) page.cardDetailDialog.close();
 }
 
-function renderKeywordGrid(cardId) {
-  const groups = cardId ? keywordGridDraft(cardId) : null;
+function renderKeywordGrid(cardId, specialInterpretation = null) {
+  const groups = specialInterpretation?.keywords ?? (cardId ? keywordGridDraft(cardId) : null);
   const body = page.cardDetailKeywordRows.tBodies[0];
   body.replaceChildren();
   page.cardDetailSourceInfo.open = false;
   page.cardDetailSourceInfo.classList.toggle('hidden', !groups);
+  page.cardDetailTarotooSource.classList.toggle('hidden', !groups || Boolean(specialInterpretation));
+  page.cardDetailDeckASource.classList.toggle('hidden', !specialInterpretation);
   page.cardDetailKeywordGrid.classList.toggle('hidden', !groups);
   if (!groups) return;
 
@@ -301,7 +306,8 @@ function renderKeywordGrid(cardId) {
 
 function openCardDetail(card, trigger, deckId = 'B') {
   const parts = cardDisplayParts(card, deckId);
-  const detail = cardDetail(card.card_id);
+  const specialInterpretation = deckASpecialInterpretation(card.card_id, deckId);
+  const detail = specialInterpretation ?? cardDetail(card.card_id);
   lastCardTrigger = trigger;
 
   setCardTitle(page.cardDetailTitle, parts);
@@ -309,7 +315,7 @@ function openCardDetail(card, trigger, deckId = 'B') {
   page.cardDetailVisual.replaceChildren(createCardVisual(card, {
     detail: true, deckId, gridSource: trigger?.querySelector('img.card-art')?.src ?? null
   }));
-  renderKeywordGrid(detail ? card.card_id : null);
+  renderKeywordGrid(detail ? card.card_id : null, specialInterpretation);
 
   if (detail) {
     page.cardDetailReference.classList.remove('hidden');
