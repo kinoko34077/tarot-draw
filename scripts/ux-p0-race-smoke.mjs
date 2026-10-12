@@ -132,7 +132,8 @@ async function evalInPage(expression) {
     }
   }
 }
-async function navigate(width=1440) {
+async function navigate(width=1440, retainSettings=false) {
+  if (!retainSettings) await cdp.call('Runtime.evaluate', { expression: 'try { localStorage.removeItem("tarot-draw.preferences.v1") } catch {}' });
   await cdp.call('Emulation.setDeviceMetricsOverride',{width,height:857,deviceScaleFactor:1,mobile:false});
   await cdp.call('Page.navigate',{url:base+'?p0='+Math.random()});
   for(let attempt=0;attempt<90;attempt++){
@@ -204,8 +205,8 @@ try {
       q('#settingsButton').click();
       const opened=q('#settingsDialog').open;
       const previewCount=all('#settingsDialog .deck-preview-face').length;
-      const initialDisabled = all('.deck-preview-checkbox[data-deck="A"]').every(e=>e.disabled) &&
-        all('.deck-preview-checkbox[data-deck="B"]').every(e=>!e.disabled);
+      const initialDisabled = all('.deck-preview-checkbox[data-deck="A"]').every(e=>!e.disabled) &&
+        all('.deck-preview-checkbox[data-deck="B"]').every(e=>e.disabled);
       const dialogFits = q('#settingsDialog').scrollWidth <= q('#settingsDialog').clientWidth + 1;
       const majorTop=q('.settings-major-choice').getBoundingClientRect().top;
       const deckTop=q('.deck-choice-line').getBoundingClientRect().top;
@@ -250,7 +251,7 @@ try {
     assert.equal(settings.opened,true);
     assert.equal(settings.closed,true);
     assert.equal(settings.previewCount,4);
-    assert.equal(settings.initialDisabled,true,'Inactive Deck A checkboxes must initially be disabled');
+    assert.equal(settings.initialDisabled,true,'Deck A must be initially selected, while Deck B controls are disabled');
     assert.equal(settings.selectedEnabled,true,'Radio selection enables only active deck cards');
     assert.equal(settings.controlOnCard,true,'Checkbox overlay geometry '+JSON.stringify(settings.cardRects));
     assert.equal(settings.dialogFits,true,'Settings must have no horizontal clipping on mobile');
@@ -358,8 +359,9 @@ try {
       assert.ok(follow.initialLeft>=follow.initialStripLeft-1,
         'Initial row + clipped to the left: '+JSON.stringify(follow));
       assert.ok(follow.snapshots.every(d=>d.left>=d.stripLeft-1 &&
-        d.plusRight<=d.stripRight+1 && d.minusLeft>=d.plusRight-1),
-        'Row + must fit in the left strip; minus must stay right of +: '+JSON.stringify(follow));
+        Math.abs((d.plusRight+d.minusLeft)/2-d.stripRight)<=2 &&
+        d.plusRight<d.stripRight && d.minusLeft>d.stripRight),
+        'Row divider must fall between + and minus, not through minus: '+JSON.stringify(follow));
       assert.ok(follow.snapshots.every(d=>d.screenBottom<=d.viewportBottom-5),
         'Repeated row + must remain visible at bottom: '+JSON.stringify(follow.snapshots));
       assert.ok(follow.snapshots.every(d=>d.scrollLeft===follow.snapshots[0].scrollLeft),
@@ -446,8 +448,16 @@ try {
         maskStyle.backgroundColor==='rgba(0, 0, 0, 0)';
       q('.shuffle-button').click();
       for(let i=0;i<100&&all('.primary-pile-options .pile-button').length!==3;i++)await sleep(20);
-      const shared=q('.pile-panel').classList.contains('pile-panel-shared') &&
+      const pane=q('.pile-panel'), stage=q('.matrix-stage'), matrix=q('.primary-matrix');
+      const shared=pane.classList.contains('pile-panel-shared') &&
         q('.pile-set-parallel').classList.contains('hidden');
+      const stacks=all('.primary-pile-options .pile-card-back');
+      const overlay=stage.contains(pane) && stage.contains(matrix) &&
+        getComputedStyle(pane).position==='absolute' &&
+        stacks.length===3 && stacks.every(el=>getComputedStyle(el).backgroundImage!=='none');
+      const stageBounds=stage.getBoundingClientRect(), paneBounds=pane.getBoundingClientRect();
+      const overlayFits=paneBounds.top>=stageBounds.top-1 && paneBounds.bottom<=stageBounds.bottom+2 &&
+        stacks.every(el=>{const r=el.getBoundingClientRect();return r.left>=stageBounds.left && r.right<=stageBounds.right;});
       all('.primary-pile-options .pile-button')[0].click();
       const firstOnly=all('.primary-pile-options .pile-role').map(x=>x.textContent);
       all('.primary-pile-options .pile-button')[1].click();
@@ -455,9 +465,11 @@ try {
       const drawReady=!q('.draw-button').disabled;
       all('.primary-pile-options .pile-button')[1].click();
       const clearedParallel=all('.primary-pile-options .pile-button')[1].getAttribute('aria-pressed')==='false';
-      return {shared,firstOnly,both,drawReady,clearedParallel,noRoundFrame,deckRightAligned,alignedAxisWidth};
+      return {shared,overlay,overlayFits,firstOnly,both,drawReady,clearedParallel,noRoundFrame,deckRightAligned,alignedAxisWidth};
     })()`);
     assert.equal(compact.shared,true);
+    assert.equal(compact.overlay,true,'Three visual card stacks must cover the matrix');
+    assert.equal(compact.overlayFits,true,'Piles must fit over the primary table at 320px');
     assert.deepEqual(compact.firstOnly,['Primary','','']);
     assert.deepEqual(compact.both,['Primary','Parallel','']);
     assert.equal(compact.drawReady,true);
@@ -478,6 +490,10 @@ try {
       q('.shuffle-button').click();
       for(let i=0;i<100&&all('.primary-pile-options .pile-button').length!==3;i++)await sleep(20);
       const independent=q('.pile-set-parallel').classList.contains('hidden')===false;
+      const overlaid=q('.matrix-stage').contains(q('.pile-panel')) &&
+        getComputedStyle(q('.pile-panel')).position==='absolute' &&
+        all('.pile-set-primary .pile-card-back').length===3 &&
+        all('.pile-set-parallel .pile-card-back').length===3;
       all('.primary-pile-options .pile-button')[0].click();
       const noOrdinalForSingle=all('.primary-pile-options .pile-role').every(e=>!e.textContent);
       all('.parallel-pile-options .pile-button')[1].click();
@@ -490,9 +506,9 @@ try {
       q('.primary-matrix [data-position="r0c0"] .cell-mask-toggle').click();
       const expanded=!q('.pile-panel').classList.contains('pile-panel-shared') &&
         all('.parallel-pile-options .pile-button')[1].getAttribute('aria-pressed')==='true';
-      return {independent,noOrdinalForSingle,separate,collapsed,expanded};
+      return {independent,overlaid,noOrdinalForSingle,separate,collapsed,expanded};
     })()`);
-    assert.deepEqual(boundary,{independent:true,noOrdinalForSingle:true,separate:true,collapsed:true,expanded:true});
+    assert.deepEqual(boundary,{independent:true,overlaid:true,noOrdinalForSingle:true,separate:true,collapsed:true,expanded:true});
     report('UX90-27-BOUNDARY',{status:'PASS',...boundary});
     const independentProof=await cdp.call('Page.captureScreenshot',{format:'png'});
     await writeFile('ux90-independent-390.png',Buffer.from(independentProof.data,'base64'));
@@ -1031,7 +1047,7 @@ try {
       const ghostRemoved=!one('.axis-drag-ghost');
       const columnControlsStacked=getComputedStyle(one('.axis-add-actions-column')).flexDirection==='column';
       const rowControlsSideBySide=getComputedStyle(one('.axis-add-row-header .axis-add-actions')).flexDirection==='row';
-      const historyOutsideHeading=one('.axis-history-actions').previousElementSibling.classList.contains('primary-matrix');
+      const historyOutsideHeading=one('.axis-history-actions').previousElementSibling.classList.contains('matrix-stage');
       const rowLabel=one('.row-header .axis-inline-label');
       rowLabel.click();
       const rowInput=one('.row-header .axis-inline-input');
