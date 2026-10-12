@@ -271,6 +271,58 @@ try {
     assert.ok(settings.nextNotice.includes('次の新しい占い'));
     report('UX78-DECK-SETTINGS',{status:'PASS',...settings});
 
+    // #111: persist only validated local settings (both deck-specific toggles)
+    // through reload, and propagate the preference to a new Reading.
+    await navigate(390);
+    const beforeReload = await evalInPage(`(() => {
+      const q=s=>document.querySelector(s);
+      q('#settingsButton').click();
+      q('#includeSecondaryCardA').click();
+      q('input[name="deckId"][value="B"]').click();
+      q('#includeTitleCard').click();
+      q('#majorOnlyCheckbox').click();
+      q('#settingsDone').click();
+      return { summary:q('.reading-deck-summary').textContent,
+        saved:localStorage.getItem('tarot-draw.preferences.v1') };
+    })()`);
+    assert.equal(beforeReload.summary,'デッキB・大アルカナ・23枚');
+    assert.ok(beforeReload.saved && !beforeReload.saved.includes('question'),
+      'Only preference values, never user questions, should persist');
+    await navigate(390,true);
+    const restored=await evalInPage(`(async()=> {
+      const q=s=>document.querySelector(s), all=s=>[...document.querySelectorAll(s)];
+      const wait=ms=>new Promise(r=>setTimeout(r,ms));
+      const summary=q('.reading-deck-summary').textContent;
+      q('#settingsButton').click();
+      const bSelected=q('input[name="deckId"][value="B"]').checked;
+      const bTitle=q('#includeTitleCard').checked;
+      const bIntro=q('#includeSecondaryCard').checked;
+      const major=q('#majorOnlyCheckbox').checked;
+      q('input[name="deckId"][value="A"]').click();
+      const aTitle=q('#includeTitleCardA').checked;
+      const aIntro=q('#includeSecondaryCardA').checked;
+      q('input[name="deckId"][value="B"]').click();
+      q('#settingsDone').click();
+      q('.shuffle-button').click();
+      for(let i=0;i<120 && all('.primary-pile-options .pile-button').length!==3;i++)await wait(20);
+      const counts=all('.primary-pile-options .pile-count').map(x=>x.textContent);
+      all('.primary-pile-options .pile-button')[0].click();
+      q('.draw-button').click();
+      for(let i=0;i<160 && !q('.reading-status').textContent.includes('抽選完了');i++)await wait(20);
+      const completed=q('.reading-status').textContent.includes('抽選完了');
+      q('#newReadingButton').click();
+      const newSummary=q('.reading-deck-summary').textContent;
+      const readings=all('.reading-workbench').length;
+      return {summary,bSelected,bTitle,bIntro,major,aTitle,aIntro,counts,completed,newSummary,readings};
+    })()`);
+    assert.deepEqual(restored,{
+      summary:'デッキB・大アルカナ・23枚',bSelected:true,bTitle:false,bIntro:true,
+      major:true,aTitle:true,aIntro:false,counts:['8枚','8枚','7枚'],
+      completed:true,newSummary:'デッキB・大アルカナ・23枚',readings:2
+    }, 'Settings must carry through reload and a newly created reading');
+    report('UX111-SETTINGS-PERSISTENCE',{status:'PASS',...restored});
+
+
     await navigate(320);
     const mobileSettings=await evalInPage(`(() => {
       document.querySelector('#settingsButton').click();
