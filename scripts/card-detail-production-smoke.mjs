@@ -365,7 +365,7 @@ try {
     // The 24 KiB budget belongs to standard RWS cards. Deck A's separately
     // authored, font-baked title and illustrated biography have their own
     // validated raster budget (scripts/check-deck-a-assets.mjs).
-    const special = item => /\\/deck-a-(?:title|introduction)\\.webp$/.test(item.name);
+    const special = item => item.name.endsWith('/deck-a-title.webp') || item.name.endsWith('/deck-a-introduction.webp');
     const standardMeasured = resourceSizes.filter(item => !special(item)).map(bytes).filter(size => size > 0);
     const deckAMeasured = resourceSizes.filter(special).map(bytes).filter(size => size > 0);
     if (standardMeasured.length === 0) throw new Error('Standard RWS WebP resource timing is not measurable.');
