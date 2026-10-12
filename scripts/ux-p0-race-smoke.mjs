@@ -132,11 +132,24 @@ async function evalInPage(expression) {
     }
   }
 }
-async function navigate(width=1440) {
+async function navigate(width=1440, retainSettings=false, verifyDefaultA=false) {
+  if (!retainSettings) await cdp.call('Runtime.evaluate', { expression: 'try { localStorage.removeItem("tarot-draw.preferences.v1") } catch {}' });
   await cdp.call('Emulation.setDeviceMetricsOverride',{width,height:857,deviceScaleFactor:1,mobile:false});
   await cdp.call('Page.navigate',{url:base+'?p0='+Math.random()});
   for(let attempt=0;attempt<90;attempt++){
-    try {if(await evalInPage("Boolean(document.querySelector('.axis-add-row-header .axis-add-button'))"))return;}catch{}
+    try {
+      if(await evalInPage("Boolean(document.querySelector('.axis-add-row-header .axis-add-button'))")) {
+        // Baseline UX flows previously used Deck B. Select it explicitly in
+        // tests that require legacy B fixtures; default-A assertions skip it.
+        if (!verifyDefaultA) await evalInPage(`(() => {
+          const q=s=>document.querySelector(s);
+          q('#settingsButton').click();
+          q('input[name="deckId"][value="B"]').click();
+          q('#settingsDone').click();
+        })()`);
+        return;
+      }
+    }catch{}
     await sleep(80);
   }
   throw Error('P0 test UI did not load');
@@ -195,7 +208,7 @@ try {
   if (expectSafe) {
     // #78 settings are discoverable, native-dialog accessible and applied only
     // to the current unshuffled reading, never retroactively to a frozen draw.
-    await navigate(390);
+    await navigate(390,false,true);
     const settings = await evalInPage(`(async()=>{
       const sleep=ms=>new Promise(r=>setTimeout(r,ms));
       const q=s=>document.querySelector(s), all=s=>[...document.querySelectorAll(s)];
@@ -204,8 +217,8 @@ try {
       q('#settingsButton').click();
       const opened=q('#settingsDialog').open;
       const previewCount=all('#settingsDialog .deck-preview-face').length;
-      const initialDisabled = all('.deck-preview-checkbox[data-deck="A"]').every(e=>e.disabled) &&
-        all('.deck-preview-checkbox[data-deck="B"]').every(e=>!e.disabled);
+      const initialDisabled = all('.deck-preview-checkbox[data-deck="A"]').every(e=>!e.disabled) &&
+        all('.deck-preview-checkbox[data-deck="B"]').every(e=>e.disabled);
       const dialogFits = q('#settingsDialog').scrollWidth <= q('#settingsDialog').clientWidth + 1;
       const majorTop=q('.settings-major-choice').getBoundingClientRect().top;
       const deckTop=q('.deck-choice-line').getBoundingClientRect().top;
@@ -250,7 +263,7 @@ try {
     assert.equal(settings.opened,true);
     assert.equal(settings.closed,true);
     assert.equal(settings.previewCount,4);
-    assert.equal(settings.initialDisabled,true,'Inactive Deck A checkboxes must initially be disabled');
+    assert.equal(settings.initialDisabled,true,'Deck A must be initially selected, while Deck B controls are disabled');
     assert.equal(settings.selectedEnabled,true,'Radio selection enables only active deck cards');
     assert.equal(settings.controlOnCard,true,'Checkbox overlay geometry '+JSON.stringify(settings.cardRects));
     assert.equal(settings.dialogFits,true,'Settings must have no horizontal clipping on mobile');
@@ -269,6 +282,59 @@ try {
     assert.equal(settings.immutability,'デッキA・78枚');
     assert.ok(settings.nextNotice.includes('次の新しい占い'));
     report('UX78-DECK-SETTINGS',{status:'PASS',...settings});
+
+    // #111: persist only validated local settings (both deck-specific toggles)
+    // through reload, and propagate the preference to a new Reading.
+    await navigate(390,false,true);
+    const beforeReload = await evalInPage(`(() => {
+      const q=s=>document.querySelector(s);
+      q('#settingsButton').click();
+      q('#includeSecondaryCardA').click();
+      q('input[name="deckId"][value="B"]').click();
+      q('#includeTitleCard').click();
+      q('#majorOnlyCheckbox').click();
+      q('#settingsDone').click();
+      return { summary:q('.reading-deck-summary').textContent,
+        saved:localStorage.getItem('tarot-draw.preferences.v1') };
+    })()`);
+    assert.equal(beforeReload.summary,'デッキB・大アルカナ・23枚');
+    assert.ok(beforeReload.saved && !beforeReload.saved.includes('question'),
+      'Only preference values, never user questions, should persist');
+    await navigate(390,true,true);
+    const restored=await evalInPage(`(async()=> {
+      const q=s=>document.querySelector(s), all=s=>[...document.querySelectorAll(s)];
+      const wait=ms=>new Promise(r=>setTimeout(r,ms));
+      __p0.deferDraw=false;
+      const summary=q('.reading-deck-summary').textContent;
+      q('#settingsButton').click();
+      const bSelected=q('input[name="deckId"][value="B"]').checked;
+      const bTitle=q('#includeTitleCard').checked;
+      const bIntro=q('#includeSecondaryCard').checked;
+      const major=q('#majorOnlyCheckbox').checked;
+      q('input[name="deckId"][value="A"]').click();
+      const aTitle=q('#includeTitleCardA').checked;
+      const aIntro=q('#includeSecondaryCardA').checked;
+      q('input[name="deckId"][value="B"]').click();
+      q('#settingsDone').click();
+      q('.shuffle-button').click();
+      for(let i=0;i<120 && all('.primary-pile-options .pile-button').length!==3;i++)await wait(20);
+      const counts=all('.primary-pile-options .pile-count').map(x=>x.textContent);
+      all('.primary-pile-options .pile-button')[0].click();
+      q('.draw-button').click();
+      for(let i=0;i<160 && !q('.reading-status').textContent.includes('抽選完了');i++)await wait(20);
+      const completed=q('.reading-status').textContent.includes('抽選完了');
+      q('#newReadingButton').click();
+      const newSummary=q('.reading-deck-summary').textContent;
+      const readings=all('.reading-workbench').length;
+      return {summary,bSelected,bTitle,bIntro,major,aTitle,aIntro,counts,completed,newSummary,readings};
+    })()`);
+    assert.deepEqual(restored,{
+      summary:'デッキB・大アルカナ・23枚',bSelected:true,bTitle:false,bIntro:true,
+      major:true,aTitle:true,aIntro:false,counts:['8枚','8枚','7枚'],
+      completed:true,newSummary:'デッキB・大アルカナ・23枚',readings:2
+    }, 'Settings must carry through reload and a newly created reading');
+    report('UX111-SETTINGS-PERSISTENCE',{status:'PASS',...restored});
+
 
     await navigate(320);
     const mobileSettings=await evalInPage(`(() => {
@@ -358,8 +424,9 @@ try {
       assert.ok(follow.initialLeft>=follow.initialStripLeft-1,
         'Initial row + clipped to the left: '+JSON.stringify(follow));
       assert.ok(follow.snapshots.every(d=>d.left>=d.stripLeft-1 &&
-        d.plusRight<=d.stripRight+1 && d.minusLeft>=d.plusRight-1),
-        'Row + must fit in the left strip; minus must stay right of +: '+JSON.stringify(follow));
+        Math.abs((d.plusRight+d.minusLeft)/2-d.stripRight)<=2 &&
+        d.plusRight<d.stripRight && d.minusLeft>d.stripRight),
+        'Row divider must fall between + and minus, not through minus: '+JSON.stringify(follow));
       assert.ok(follow.snapshots.every(d=>d.screenBottom<=d.viewportBottom-5),
         'Repeated row + must remain visible at bottom: '+JSON.stringify(follow.snapshots));
       assert.ok(follow.snapshots.every(d=>d.scrollLeft===follow.snapshots[0].scrollLeft),
@@ -446,8 +513,16 @@ try {
         maskStyle.backgroundColor==='rgba(0, 0, 0, 0)';
       q('.shuffle-button').click();
       for(let i=0;i<100&&all('.primary-pile-options .pile-button').length!==3;i++)await sleep(20);
-      const shared=q('.pile-panel').classList.contains('pile-panel-shared') &&
+      const pane=q('.pile-panel'), stage=q('.matrix-stage'), matrix=q('.primary-matrix');
+      const shared=pane.classList.contains('pile-panel-shared') &&
         q('.pile-set-parallel').classList.contains('hidden');
+      const stacks=all('.primary-pile-options .pile-card-back');
+      const overlay=stage.contains(pane) && stage.contains(matrix) &&
+        getComputedStyle(pane).position==='absolute' &&
+        stacks.length===3 && stacks.every(el=>getComputedStyle(el).backgroundImage!=='none');
+      const stageBounds=stage.getBoundingClientRect(), paneBounds=pane.getBoundingClientRect();
+      const overlayFits=paneBounds.top>=stageBounds.top-1 && paneBounds.bottom<=stageBounds.bottom+2 &&
+        stacks.every(el=>{const r=el.getBoundingClientRect();return r.left>=stageBounds.left && r.right<=stageBounds.right;});
       all('.primary-pile-options .pile-button')[0].click();
       const firstOnly=all('.primary-pile-options .pile-role').map(x=>x.textContent);
       all('.primary-pile-options .pile-button')[1].click();
@@ -455,9 +530,11 @@ try {
       const drawReady=!q('.draw-button').disabled;
       all('.primary-pile-options .pile-button')[1].click();
       const clearedParallel=all('.primary-pile-options .pile-button')[1].getAttribute('aria-pressed')==='false';
-      return {shared,firstOnly,both,drawReady,clearedParallel,noRoundFrame,deckRightAligned,alignedAxisWidth};
+      return {shared,overlay,overlayFits,firstOnly,both,drawReady,clearedParallel,noRoundFrame,deckRightAligned,alignedAxisWidth};
     })()`);
     assert.equal(compact.shared,true);
+    assert.equal(compact.overlay,true,'Three visual card stacks must cover the matrix');
+    assert.equal(compact.overlayFits,true,'Piles must fit over the primary table at 320px');
     assert.deepEqual(compact.firstOnly,['Primary','','']);
     assert.deepEqual(compact.both,['Primary','Parallel','']);
     assert.equal(compact.drawReady,true);
@@ -478,6 +555,10 @@ try {
       q('.shuffle-button').click();
       for(let i=0;i<100&&all('.primary-pile-options .pile-button').length!==3;i++)await sleep(20);
       const independent=q('.pile-set-parallel').classList.contains('hidden')===false;
+      const overlaid=q('.matrix-stage').contains(q('.pile-panel')) &&
+        getComputedStyle(q('.pile-panel')).position==='absolute' &&
+        all('.pile-set-primary .pile-card-back').length===3 &&
+        all('.pile-set-parallel .pile-card-back').length===3;
       all('.primary-pile-options .pile-button')[0].click();
       const noOrdinalForSingle=all('.primary-pile-options .pile-role').every(e=>!e.textContent);
       all('.parallel-pile-options .pile-button')[1].click();
@@ -490,9 +571,9 @@ try {
       q('.primary-matrix [data-position="r0c0"] .cell-mask-toggle').click();
       const expanded=!q('.pile-panel').classList.contains('pile-panel-shared') &&
         all('.parallel-pile-options .pile-button')[1].getAttribute('aria-pressed')==='true';
-      return {independent,noOrdinalForSingle,separate,collapsed,expanded};
+      return {independent,overlaid,noOrdinalForSingle,separate,collapsed,expanded};
     })()`);
-    assert.deepEqual(boundary,{independent:true,noOrdinalForSingle:true,separate:true,collapsed:true,expanded:true});
+    assert.deepEqual(boundary,{independent:true,overlaid:true,noOrdinalForSingle:true,separate:true,collapsed:true,expanded:true});
     report('UX90-27-BOUNDARY',{status:'PASS',...boundary});
     const independentProof=await cdp.call('Page.captureScreenshot',{format:'png'});
     await writeFile('ux90-independent-390.png',Buffer.from(independentProof.data,'base64'));
@@ -1031,7 +1112,7 @@ try {
       const ghostRemoved=!one('.axis-drag-ghost');
       const columnControlsStacked=getComputedStyle(one('.axis-add-actions-column')).flexDirection==='column';
       const rowControlsSideBySide=getComputedStyle(one('.axis-add-row-header .axis-add-actions')).flexDirection==='row';
-      const historyOutsideHeading=one('.axis-history-actions').previousElementSibling.classList.contains('primary-matrix');
+      const historyOutsideHeading=one('.axis-history-actions').previousElementSibling.classList.contains('matrix-stage');
       const rowLabel=one('.row-header .axis-inline-label');
       rowLabel.click();
       const rowInput=one('.row-header .axis-inline-input');

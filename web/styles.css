@@ -1435,3 +1435,146 @@ input:focus-visible {
   .settings-mode-row .settings-card-count { font-size: .72rem; }
   .deck-preview-checkbox { width: 21px; height: 21px; top: 4px; right: 4px; }
 }
+
+/* #111: the 36px row gutter border belongs precisely between + and −. */
+.reading-table .axis-add-row-header .axis-add-actions {
+  gap: 2px;
+  margin-left: 6px;
+}
+
+/* The three piles are cards laid on the spread, never a full-width toolbar
+   displacing the matrix. They use only CSS artwork (no external deck image). */
+.matrix-stage { position: relative; min-width: 0; }
+.matrix-stage.is-choosing { min-height: 260px; }
+.matrix-stage.is-multi-pile { min-height: 466px; }
+.matrix-stage.is-choosing > .primary-matrix { opacity: .40; }
+.reading-workbench .matrix-stage > .pile-panel {
+  position: absolute;
+  z-index: 12;
+  inset: 0 0 auto;
+  box-sizing: border-box;
+  min-height: 252px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  gap: 9px;
+  padding: 13px 8px 9px;
+  border: 0;
+  background: color-mix(in srgb, var(--surface) 77%, transparent);
+  pointer-events: none;
+}
+.reading-workbench .matrix-stage.is-multi-pile > .pile-panel { min-height: 458px; }
+.reading-workbench .pile-panel .pile-set {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  flex-direction: column;
+  gap: 5px;
+  min-width: 0;
+}
+.reading-workbench .pile-panel .pile-set.hidden { display: none !important; }
+.reading-workbench .pile-panel .pile-set-title {
+  display: block;
+  font-size: .76rem;
+  line-height: 1.25;
+  color: var(--muted);
+  font-weight: 600;
+  letter-spacing: .04em;
+  text-align: center;
+}
+.reading-workbench .pile-panel .pile-options {
+  width: 100%;
+  display: flex;
+  flex-wrap: nowrap;
+  justify-content: center;
+  align-items: start;
+  gap: clamp(8px, 4vw, 28px);
+}
+.reading-workbench .pile-panel .pile-button {
+  box-sizing: border-box;
+  width: min(28%, 112px);
+  min-width: 0;
+  min-height: 0;
+  padding: 6px 3px 4px;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--text);
+  box-shadow: none;
+  display: flex;
+  align-items: center;
+  flex-direction: column;
+  gap: 2px;
+  cursor: pointer;
+  pointer-events: auto;
+}
+.reading-workbench .pile-panel .pile-button:hover:not(:disabled),
+.reading-workbench .pile-panel .pile-button:focus-visible {
+  border-color: var(--border-strong);
+  background: var(--surface-soft);
+}
+.reading-workbench .pile-panel .pile-button[aria-pressed="true"] {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+}
+.reading-workbench .pile-panel .pile-button:disabled { opacity: .55; cursor: not-allowed; }
+.reading-workbench .pile-panel .pile-card-back {
+  box-sizing: border-box;
+  position: relative;
+  display: block;
+  width: clamp(58px, 18vw, 80px);
+  height: clamp(92px, 29vw, 117px);
+  border: 4px double #d7bf93;
+  border-radius: 5px;
+  background:
+    radial-gradient(ellipse at center, transparent 0 26%, #bfa27b 27% 28%, transparent 29%),
+    repeating-linear-gradient(45deg, transparent 0 8px, #bfa27b40 8px 9px, transparent 9px 16px),
+    linear-gradient(140deg, #183c52, #26465d 53%, #142c40);
+  box-shadow: 2px -3px 0 #d0bd9c, 4px -6px 0 #233b4e, 6px -8px 0 #d0bd9c, 7px -10px 7px #0003;
+  transition: transform .13s ease;
+}
+.reading-workbench .pile-panel .pile-card-back::after {
+  content: "✧";
+  color: #e8d4b1;
+  font-size: 2rem;
+  display: grid;
+  place-items: center;
+  position: absolute;
+  inset: 9px;
+  border: 1px solid #bfa27b;
+  border-radius: 50%;
+}
+.reading-workbench .pile-panel .pile-button:hover:not(:disabled) .pile-card-back,
+.reading-workbench .pile-panel .pile-button[aria-pressed="true"] .pile-card-back { transform: translateY(-4px); }
+.reading-workbench .pile-panel .pile-name {
+  font-size: .69rem;
+  color: var(--muted);
+  font-weight: 500;
+  letter-spacing: .08em;
+}
+.reading-workbench .pile-panel .pile-count { font-size: .72rem; color: var(--muted); }
+.reading-workbench .pile-panel .pile-role {
+  font-size: .73rem;
+  line-height: 1.1;
+  font-weight: 700;
+  color: var(--accent);
+}
+.reading-workbench .pile-panel .pile-status {
+  margin: 0;
+  padding: 0 5px;
+  min-width: 0;
+  max-width: 100%;
+  min-height: 0;
+  font-size: .75rem;
+  line-height: 1.4;
+  text-align: center;
+  white-space: normal;
+  background: transparent;
+  border: 0;
+}
+@media (max-width: 380px) {
+  .reading-workbench .pile-panel .pile-options { gap: 5px; }
+  .reading-workbench .pile-panel .pile-button { padding-inline: 1px; }
+  .reading-workbench .pile-panel .pile-card-back { width: 58px; height: 93px; }
+}

@@ -15,6 +15,7 @@ import { cardDetail } from './card-details.js';
 import { keywordGridDraft } from './card-keyword-grid.js';
 import { deckASpecialInterpretation } from './deck-a-special-interpretations.js';
 import { buildApiUrl, resolveRuntimeConfig } from './runtime-config.js';
+import { defaultSettings, loadSettings, saveSettings } from './settings-store.js';
 
 const runtime = resolveRuntimeConfig(globalThis.__TAROT_DRAW_CONFIG__ ?? {});
 const LONG_PRESS_MS = 520;
@@ -60,11 +61,25 @@ const readings = [];
 let nextReadingNumber = 1;
 let axisMenuContext = null;
 let lastCardTrigger = null;
-const deckSelections = {
-  A: { includeTitle: true, includeSecondary: true },
-  B: { includeTitle: true, includeSecondary: true }
+const savedPreferences = (() => {
+  try { return loadSettings(window.localStorage); }
+  catch { return defaultSettings(); }
+})();
+const deckSelections = savedPreferences.selections;
+const chosenSettings = {
+  deckId: savedPreferences.deckId,
+  ...deckSelections[savedPreferences.deckId],
+  majorOnly: savedPreferences.majorOnly
 };
-const chosenSettings = { deckId: 'B', ...deckSelections.B, majorOnly: false };
+function rememberSettings() {
+  try {
+    saveSettings(window.localStorage, {
+      deckId: chosenSettings.deckId,
+      majorOnly: chosenSettings.majorOnly,
+      selections: deckSelections
+    });
+  } catch { /* Settings remain usable if local storage is unavailable. */ }
+}
 function deckCardCount(value) {
   return (value.majorOnly ? 22 : 78) + Number(value.includeTitle) + Number(value.includeSecondary);
 }
@@ -146,6 +161,7 @@ page.settingsDialog.addEventListener('change', event => {
     includeTitle: next.includeTitle, includeSecondary: next.includeSecondary
   });
   applySettingsToCurrent();
+  rememberSettings();
 });
 syncSettingsControls();
 renderSettingsSummary();
@@ -602,19 +618,6 @@ function createReadingController(number) {
 
     
 
-    <div class="pile-panel hidden" aria-label="山選択">
-      <span class="pile-label">山</span>
-      <div class="pile-set pile-set-primary">
-        <span class="pile-set-title">Primary（メイン）</span>
-        <div class="pile-options primary-pile-options" aria-label="Primaryの山を選択"></div>
-      </div>
-      <div class="pile-set pile-set-parallel">
-        <span class="pile-set-title">Parallel（別の選び方・任意）</span>
-        <div class="pile-options parallel-pile-options" aria-label="Parallelの山を選択"></div>
-      </div>
-      <p class="selection-message helper pile-status" role="status" aria-live="polite"></p>
-    </div>
-
     <div class="matrix-stack">
       <section class="matrix-section">
         <div class="matrix-heading">
@@ -629,7 +632,20 @@ function createReadingController(number) {
             <button class="copy-button secondary hidden" type="button" title="Markdown形式の表をコピー">結果をコピー</button>
           </div>
         </div>
-        <div class="primary-matrix table-scroll"></div>
+        <div class="matrix-stage">
+          <div class="primary-matrix table-scroll"></div>
+          <div class="pile-panel hidden" aria-label="山選択">
+            <div class="pile-set pile-set-primary">
+              <span class="pile-set-title">Primary（メイン）</span>
+              <div class="pile-options primary-pile-options" aria-label="Primaryの山を選択"></div>
+            </div>
+            <div class="pile-set pile-set-parallel">
+              <span class="pile-set-title">Parallel（別の選び方・任意）</span>
+              <div class="pile-options parallel-pile-options" aria-label="Parallelの山を選択"></div>
+            </div>
+            <p class="selection-message helper pile-status" role="status" aria-live="polite"></p>
+          </div>
+        </div>
         <div class="axis-history-actions" aria-label="配置編集履歴">
           <button class="axis-undo-button secondary hidden" type="button" title="直前の編集を元に戻す">戻す</button>
           <button class="axis-redo-button secondary hidden" type="button" title="取り消した編集をやり直す">やり直す</button>
@@ -665,6 +681,7 @@ function createReadingController(number) {
     undoButton: article.querySelector('.axis-undo-button'),
     redoButton: article.querySelector('.axis-redo-button'),
     primaryMatrix: article.querySelector('.primary-matrix'),
+    matrixStage: article.querySelector('.matrix-stage'),
     parallelSection: article.querySelector('.parallel-section'),
     parallelPileLabel: article.querySelector('.parallel-pile-label'),
     parallelMatrix: article.querySelector('.parallel-matrix'),
@@ -1396,7 +1413,10 @@ function createReadingController(number) {
       role.className = 'pile-role';
       role.textContent = isSelected ? (selected.length > 1 ? `${selected.indexOf(pile.pile_id) + 1}番目` : '') : '';
       button.setAttribute('aria-label', `${side === 'primary' ? 'Primary' : 'Parallel'} 山${pile.pile_id} ${pile.count}枚 ${role.textContent || '未選択'}`);
-      button.append(name, amount, role);
+      const cardBack = document.createElement('span');
+      cardBack.className = 'pile-card-back';
+      cardBack.setAttribute('aria-hidden', 'true');
+      button.append(cardBack, name, amount, role);
       button.addEventListener('click', () => selectPile(pile.pile_id, side));
       return button;
     });
@@ -1426,7 +1446,10 @@ function createReadingController(number) {
       role.className = 'pile-role';
       role.textContent = main ? 'Primary' : other ? 'Parallel' : '';
       button.setAttribute('aria-label', `山${pile.pile_id} ${pile.count}枚 ${role.textContent || '未選択'}`);
-      button.append(name, amount, role);
+      const cardBack = document.createElement('span');
+      cardBack.className = 'pile-card-back';
+      cardBack.setAttribute('aria-hidden', 'true');
+      button.append(cardBack, name, amount, role);
       button.addEventListener('click', () => selectPile(pile.pile_id, 'shared'));
       return button;
     });
@@ -1434,6 +1457,10 @@ function createReadingController(number) {
 
   function renderPiles() {
     const independent = independentPileChoices();
+    const visible = state.phase === 'choosing' && state.piles.length > 0;
+    refs.pilePanel.classList.toggle('hidden', !visible);
+    refs.matrixStage.classList.toggle('is-choosing', visible);
+    refs.matrixStage.classList.toggle('is-multi-pile', visible && independent);
     const primarySet = refs.pileOptions.closest('.pile-set-primary');
     const parallelSet = refs.parallelPileOptions.closest('.pile-set-parallel');
     primarySet?.classList.toggle('pile-set-shared', !independent);
