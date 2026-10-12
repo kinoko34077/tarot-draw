@@ -795,6 +795,15 @@ function createReadingController(number) {
       // rightmost column must bring the +/− controls into view immediately.
       const viewport = refs.primaryMatrix;
       viewport.scrollLeft = Math.max(0, viewport.scrollWidth - viewport.clientWidth);
+    } else {
+      // The row + is recreated lower down on each render. Follow only as far
+      // as necessary to leave it tappable at the bottom of the visible page;
+      // no forced horizontal pan or vertical jump while it is already visible.
+      const addRowButton = refs.primaryMatrix.querySelector('.axis-add-row-header .axis-add-button');
+      if (addRowButton) {
+        const belowViewport = addRowButton.getBoundingClientRect().bottom - (window.innerHeight - 12);
+        if (belowViewport > 0) window.scrollBy({ top: Math.ceil(belowViewport), behavior: 'instant' });
+      }
     }
   }
 
