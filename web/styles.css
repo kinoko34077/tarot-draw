@@ -1439,7 +1439,7 @@ input:focus-visible {
 /* #111: the 36px row gutter border belongs precisely between + and −. */
 .reading-table .axis-add-row-header .axis-add-actions {
   gap: 2px;
-  margin-left: 7px;
+  margin-left: 6px;
 }
 
 /* The three piles are cards laid on the spread, never a full-width toolbar
