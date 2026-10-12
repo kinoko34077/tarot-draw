@@ -226,8 +226,8 @@ try {
         const opened=q('#helpDialog').open;
         const helpTitle=q('#helpTitle').textContent;
         const firstFocus=document.activeElement===q('#helpClose');
-        const sections=[...q('#helpDialog .help-section h3')].map(x=>x.textContent);
-        const terms=[...q('#helpDialog .help-cards dt')].map(x=>x.textContent);
+        const sections=[...document.querySelectorAll('#helpDialog .help-section h3')].map(x=>x.textContent);
+        const terms=[...document.querySelectorAll('#helpDialog .help-cards dt')].map(x=>x.textContent);
         const text=q('#helpDialog .help-content').textContent;
         const overflowSafe=q('#helpDialog').scrollWidth<=q('#helpDialog').clientWidth+1;
         const bounded=q('#helpDialog').getBoundingClientRect().height<=innerHeight-8;
