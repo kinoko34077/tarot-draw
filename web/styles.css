@@ -1578,3 +1578,31 @@ input:focus-visible {
   .reading-workbench .pile-panel .pile-button { padding-inline: 1px; }
   .reading-workbench .pile-panel .pile-card-back { width: 58px; height: 93px; }
 }
+
+/* #116: explicit identity for the two Deck A specials, without changing
+   standard 78 / Deck B headings or their keyword grids. */
+.card-detail-heading-line { flex-wrap: wrap; }
+.detail-original-mark {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 6px;
+  border: 1px solid var(--border-strong);
+  border-radius: 4px;
+  background: var(--surface-soft);
+  color: var(--muted);
+  font-size: .69rem;
+  line-height: 1.35;
+  white-space: nowrap;
+}
+
+/* #116: keep the action for the selected pile immediately below the actual
+   piles, even when a tall matrix moves the global footer offscreen. */
+.reading-workbench .pile-panel .pile-draw-button {
+  position: relative;
+  z-index: 1;
+  min-width: 136px;
+  min-height: 38px;
+  padding: 7px 14px;
+  pointer-events: auto;
+}
