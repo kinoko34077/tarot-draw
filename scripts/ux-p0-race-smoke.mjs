@@ -206,6 +206,71 @@ try {
   await cdp.call('Page.addScriptToEvaluateOnNewDocument',{source:mock});
 
   if (expectSafe) {
+    // #118: question-mark Help adjacent to Settings. The taller header must
+    // still fit the 320/390 mobile viewport; help is a state-free native modal.
+    for (const width of [320, 390, 1440]) {
+      await navigate(width,false,true);
+      const help = await evalInPage(`(async()=> {
+        const q=s=>document.querySelector(s);
+        const wait=ms=>new Promise(r=>setTimeout(r,ms));
+        const top=q('.topbar').getBoundingClientRect();
+        const helpButton=q('#helpButton');
+        const helpRect=helpButton.getBoundingClientRect();
+        const settingsRect=q('#settingsButton').getBoundingClientRect();
+        const headerFits=q('.topbar').scrollWidth<=q('.topbar').clientWidth+1;
+        const adjacent=helpRect.right<=settingsRect.left+1 && settingsRect.left-helpRect.right<=12;
+        const controlsInside=helpRect.left>=top.left-1&&settingsRect.right<=top.right+1;
+        const labelled=helpButton.getAttribute('aria-controls')==='helpDialog' &&
+          helpButton.getAttribute('aria-haspopup')==='dialog';
+        helpButton.click();
+        const opened=q('#helpDialog').open;
+        const helpTitle=q('#helpTitle').textContent;
+        const firstFocus=document.activeElement===q('#helpClose');
+        const sections=[...document.querySelectorAll('#helpDialog .help-section h3')].map(x=>x.textContent);
+        const terms=[...document.querySelectorAll('#helpDialog .help-cards dt')].map(x=>x.textContent);
+        const text=q('#helpDialog .help-content').textContent;
+        const overflowSafe=q('#helpDialog').scrollWidth<=q('#helpDialog').clientWidth+1;
+        const bounded=q('#helpDialog').getBoundingClientRect().height<=innerHeight-8;
+        q('#helpDone').click(); await wait(25);
+        const footerClosed=!q('#helpDialog').open && document.activeElement===helpButton;
+        helpButton.click();
+        q('#helpClose').click(); await wait(25);
+        const xClosed=!q('#helpDialog').open && document.activeElement===helpButton;
+        helpButton.click();
+        q('#helpDialog').dispatchEvent(new MouseEvent('click',{bubbles:true}));
+        await wait(25);
+        const backdropClosed=!q('#helpDialog').open&&document.activeElement===helpButton;
+        return {height:top.height,headerFits,adjacent,controlsInside,labelled,
+          opened,helpTitle,firstFocus,sections,terms,overflowSafe,bounded,
+          footerClosed,xClosed,backdropClosed,
+          hasReading:/正位置・逆位置|正位置.*逆位置/.test(text) && text.includes('問いとマスの位置'),
+          hasSteps:text.includes('シャッフル')&&text.includes('結果をコピー')&&text.includes('Primary')&&text.includes('Parallel'),
+          hasCustom:text.includes('ウロボロス')&&text.includes('創り手')&&text.includes('GUARANTEE')&&
+            text.includes('出る')&&text.includes('大アルカナのみ')};
+      })()`);
+      assert.ok(help.height>=60,'Topbar should have visible vertical space at '+width);
+      assert.equal(help.headerFits,true,'No horizontal scroll in topbar '+width+': '+JSON.stringify(help));
+      assert.equal(help.adjacent,true,'? must be immediately left of Settings');
+      assert.equal(help.controlsInside,true,'? and Settings must fit inside viewport');
+      assert.equal(help.labelled,true);
+      assert.equal(help.opened,true);
+      assert.equal(help.firstFocus,true);
+      assert.equal(help.helpTitle,'使い方とリーディング');
+      assert.deepEqual(help.sections,['基本操作','リーディングの考え方','デッキとオリジナルカード']);
+      assert.equal(help.terms.length,4);
+      assert.ok(help.hasReading && help.hasSteps && help.hasCustom,'Help needs correct reading/custom-card instructions');
+      assert.equal(help.overflowSafe,true,'Help dialog content must fit horizontally');
+      assert.equal(help.bounded,true,'Help modal must fit screen height');
+      assert.ok(help.footerClosed && help.xClosed && help.backdropClosed,'Help must close and restore focus in all paths');
+      await evalInPage(`document.querySelector('#helpButton').click();true`);
+      await cdp.call('Input.dispatchKeyEvent',{type:'keyDown',key:'Escape',code:'Escape',windowsVirtualKeyCode:27});
+      await cdp.call('Input.dispatchKeyEvent',{type:'keyUp',key:'Escape',code:'Escape',windowsVirtualKeyCode:27});
+      await sleep(50);
+      const escape=await evalInPage(`!document.querySelector('#helpDialog').open && document.activeElement===document.querySelector('#helpButton')`);
+      assert.equal(escape,true,'Escape must close native Help and restore focus');
+      report('UX118-HEADER-HELP',{status:'PASS',width,...help,escape});
+    }
+
     // #78 settings are discoverable, native-dialog accessible and applied only
     // to the current unshuffled reading, never retroactively to a frozen draw.
     await navigate(390,false,true);
@@ -503,8 +568,8 @@ try {
       const question=q('.question-input').getBoundingClientRect();
       const deck=q('.reading-deck-summary').getBoundingClientRect();
       const topbar=q('.topbar').getBoundingClientRect();
-      const settings=q('#settingsButton').getBoundingClientRect();
-      const deckRightAligned=deck.right<=settings.left+1 && settings.left-deck.right<=14 &&
+      const helpStart=q('#helpButton').getBoundingClientRect();
+      const deckRightAligned=deck.right<=helpStart.left+1 && helpStart.left-deck.right<=14 &&
         deck.top>=topbar.top-1 && deck.bottom<=topbar.bottom+1 &&
         deck.width>50 && question.width>100;
       const alignedAxisWidth=Math.abs(rowHeader.getBoundingClientRect().width-columnHeader.getBoundingClientRect().height)<1;

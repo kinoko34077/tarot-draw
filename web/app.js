@@ -48,6 +48,10 @@ const page = {
   cardDetailReversedBlock: document.querySelector('#cardDetailReversedBlock'),
   cardDetailCustom: document.querySelector('#cardDetailCustom'),
   cardDetailCustomText: document.querySelector('#cardDetailCustomText'),
+  helpButton: document.querySelector('#helpButton'),
+  helpDialog: document.querySelector('#helpDialog'),
+  helpClose: document.querySelector('#helpClose'),
+  helpDone: document.querySelector('#helpDone'),
   settingsButton: document.querySelector('#settingsButton'),
   deckSummary: document.querySelector('#deckSummary'),
   settingsDialog: document.querySelector('#settingsDialog'),
@@ -111,6 +115,18 @@ function applySettingsToCurrent() {
     ? 'この設定で次のシャッフルを行います。'
     : 'この設定は次の新しい占いから反映されます。進行中・完了済みの抽選は変更しません。';
 }
+page.helpButton.addEventListener('click', () => {
+  page.helpDialog.showModal();
+  page.helpClose.focus({ preventScroll: true });
+});
+function closeHelp() { if (page.helpDialog.open) page.helpDialog.close(); }
+page.helpClose.addEventListener('click', closeHelp);
+page.helpDone.addEventListener('click', closeHelp);
+page.helpDialog.addEventListener('click', event => {
+  if (event.target === page.helpDialog) closeHelp();
+});
+page.helpDialog.addEventListener('close', () => page.helpButton.focus({ preventScroll: true }));
+
 page.settingsButton.addEventListener('click', () => {
   syncSettingsControls();
   const current = readings.at(-1);
