@@ -132,12 +132,24 @@ async function evalInPage(expression) {
     }
   }
 }
-async function navigate(width=1440, retainSettings=false) {
+async function navigate(width=1440, retainSettings=false, verifyDefaultA=false) {
   if (!retainSettings) await cdp.call('Runtime.evaluate', { expression: 'try { localStorage.removeItem("tarot-draw.preferences.v1") } catch {}' });
   await cdp.call('Emulation.setDeviceMetricsOverride',{width,height:857,deviceScaleFactor:1,mobile:false});
   await cdp.call('Page.navigate',{url:base+'?p0='+Math.random()});
   for(let attempt=0;attempt<90;attempt++){
-    try {if(await evalInPage("Boolean(document.querySelector('.axis-add-row-header .axis-add-button'))"))return;}catch{}
+    try {
+      if(await evalInPage("Boolean(document.querySelector('.axis-add-row-header .axis-add-button'))")) {
+        // Baseline UX flows previously used Deck B. Select it explicitly in
+        // tests that require legacy B fixtures; default-A assertions skip it.
+        if (!verifyDefaultA) await evalInPage(`(() => {
+          const q=s=>document.querySelector(s);
+          q('#settingsButton').click();
+          q('input[name="deckId"][value="B"]').click();
+          q('#settingsDone').click();
+        })()`);
+        return;
+      }
+    }catch{}
     await sleep(80);
   }
   throw Error('P0 test UI did not load');
@@ -196,7 +208,7 @@ try {
   if (expectSafe) {
     // #78 settings are discoverable, native-dialog accessible and applied only
     // to the current unshuffled reading, never retroactively to a frozen draw.
-    await navigate(390);
+    await navigate(390,false,true);
     const settings = await evalInPage(`(async()=>{
       const sleep=ms=>new Promise(r=>setTimeout(r,ms));
       const q=s=>document.querySelector(s), all=s=>[...document.querySelectorAll(s)];
@@ -273,7 +285,7 @@ try {
 
     // #111: persist only validated local settings (both deck-specific toggles)
     // through reload, and propagate the preference to a new Reading.
-    await navigate(390);
+    await navigate(390,false,true);
     const beforeReload = await evalInPage(`(() => {
       const q=s=>document.querySelector(s);
       q('#settingsButton').click();
@@ -288,7 +300,7 @@ try {
     assert.equal(beforeReload.summary,'デッキB・大アルカナ・23枚');
     assert.ok(beforeReload.saved && !beforeReload.saved.includes('question'),
       'Only preference values, never user questions, should persist');
-    await navigate(390,true);
+    await navigate(390,true,true);
     const restored=await evalInPage(`(async()=> {
       const q=s=>document.querySelector(s), all=s=>[...document.querySelectorAll(s)];
       const wait=ms=>new Promise(r=>setTimeout(r,ms));
