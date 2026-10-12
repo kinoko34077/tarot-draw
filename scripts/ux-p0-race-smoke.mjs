@@ -326,6 +326,53 @@ try {
       'Each column + must keep controls visible at the new far right: '+JSON.stringify(axisFollow.deltas));
     report('UX93-COLUMN-PLUS-AUTOFOLLOW',{status:'PASS',...axisFollow});
 
+    // #109: 36px row gutter must fully contain its left-aligned +. Repeated
+    // adds follow the new bottom controls downward without moving the X axis.
+    for(const width of [320,390]) {
+      await navigate(width);
+      const follow=await evalInPage(`(() => {
+        const q=s=>document.querySelector(s);
+        const first=q('.axis-add-row-header .axis-add-actions');
+        const initial=q('.axis-add-row-header .axis-add-button').getBoundingClientRect();
+        const strip=q('.axis-add-row-header').getBoundingClientRect();
+        const snapshots=[];
+        for(let i=0;i<10;i++){
+          q('.axis-add-row-header .axis-add-button').click();
+          const plus=q('.axis-add-row-header .axis-add-button').getBoundingClientRect();
+          const minus=q('.axis-add-row-header .axis-remove-button').getBoundingClientRect();
+          const parent=q('.axis-add-row-header').getBoundingClientRect();
+          snapshots.push({
+            left:plus.left, stripLeft:parent.left, stripRight:parent.right,
+            plusRight:plus.right, minusLeft:minus.left,
+            screenBottom:plus.bottom, viewportBottom:innerHeight,
+            scrollY:scrollY, scrollLeft:q('.primary-matrix').scrollLeft
+          });
+        }
+        const countBefore=q('.primary-matrix').querySelectorAll('.row-header').length;
+        q('.axis-add-row-header .axis-remove-button').click();
+        const countAfter=q('.primary-matrix').querySelectorAll('.row-header').length;
+        return {initialLeft:initial.left,initialStripLeft:strip.left,
+          justify:getComputedStyle(first).justifyContent, snapshots,countBefore,countAfter};
+      })()`);
+      assert.equal(follow.justify,'flex-start');
+      assert.ok(follow.initialLeft>=follow.initialStripLeft-1,
+        'Initial row + clipped to the left: '+JSON.stringify(follow));
+      assert.ok(follow.snapshots.every(d=>d.left>=d.stripLeft-1 &&
+        d.plusRight<=d.stripRight+1 && d.minusLeft>=d.plusRight-1),
+        'Row + must fit in the left strip; minus must stay right of +: '+JSON.stringify(follow));
+      assert.ok(follow.snapshots.every(d=>d.screenBottom<=d.viewportBottom-5),
+        'Repeated row + must remain visible at bottom: '+JSON.stringify(follow.snapshots));
+      assert.ok(follow.snapshots.every(d=>d.scrollLeft===follow.snapshots[0].scrollLeft),
+        'Row auto-follow must not pan horizontally');
+      assert.ok(follow.snapshots.at(-1).scrollY>follow.snapshots[0].scrollY,
+        'Repeated + must scroll down as rows grow');
+      assert.equal(follow.countBefore,11);
+      assert.equal(follow.countAfter,10);
+      report('UX109-ROW-PLUS-LEFT-AND-AUTOFOLLOW',{status:'PASS',width,
+        scrollY:follow.snapshots.at(-1).scrollY,countAfter:follow.countAfter});
+    }
+
+
 
     // #99: major-only option is not a CSS filter. The mock returns server
     // metadata (including mode) and all three authoritative pile capacities.
@@ -468,9 +515,11 @@ try {
       for(let i=0;i<120 && q('.reading-status').textContent!=='抽選完了';i++)await sleep(20);
       const first=q('.primary-matrix .card-detail-trigger');
       const visualTitle=first.querySelector('.card-title').textContent;
+      const introResultName=first.getAttribute('aria-label');
       first.click();
       const introDetailOpen=q('#cardDetailDialog').open;
       const introKeywordRows=all('#cardDetailKeywordRows tbody tr').length;
+      const introDetailName=q('#cardDetailTitle').textContent;
       const introKeywordTerms=all('#cardDetailKeywordRows tbody td').length;
       const introEssence=q('#cardDetailEssence').textContent;
       const introUpright=q('#cardDetailUpright').textContent;
@@ -484,6 +533,7 @@ try {
       second.click();
       const titleDetailOpen=q('#cardDetailDialog').open;
       const titleEssence=q('#cardDetailEssence').textContent;
+      const titleDetailName=q('#cardDetailTitle').textContent;
       const titleUpright=q('#cardDetailUpright').textContent;
       const titleReversed=q('#cardDetailReversed').textContent;
       const titleKeywordRows=all('#cardDetailKeywordRows tbody tr').length;
@@ -494,18 +544,22 @@ try {
       for(let i=0;i<20&&!__p0.copiedText;i++)await sleep(20);
       return {
         sizes,summary:q('.reading-deck-summary').textContent,
-        visualTitle,introDetailOpen,introKeywordRows,introKeywordTerms,
+        visualTitle,introResultName,introDetailName,introDetailOpen,introKeywordRows,introKeywordTerms,
         introEssence,introUpright,introReversed,introSelected,
         introAProvenance,introTarotooHidden,introCustomHidden,
-        titleDetailOpen,titleEssence,titleUpright,titleReversed,titleKeywordRows,
+        titleDetailOpen,titleDetailName,titleEssence,titleUpright,titleReversed,titleKeywordRows,
         titleSelected,titleAProvenance,
-        copyIntro:__p0.copiedText?.includes('パメラ・コールマン・スミス紹介カード'),
+        copyIntro:__p0.copiedText?.includes('23 創り手'),
+        copyTitle:__p0.copiedText?.includes('22 ウロボロス'),
         copyGuarantee:__p0.copiedText?.includes('GUARANTEE')
       };
     })()`);
     assert.deepEqual(intro.sizes,['27枚','27枚','26枚']);
     assert.equal(intro.summary,'デッキA・80枚');
-    assert.ok(intro.visualTitle.includes('パメラ・コールマン・スミス紹介カード'));
+    assert.ok(intro.visualTitle.includes('創り手'));
+    assert.match(intro.introResultName,/創り手/);
+    assert.match(intro.introDetailName,/23 創り手/);
+    assert.match(intro.titleDetailName,/22 ウロボロス/);
     assert.equal(intro.introDetailOpen,true);
     assert.equal(intro.introKeywordRows,5);
     assert.equal(intro.introKeywordTerms,20);
@@ -524,6 +578,7 @@ try {
     assert.equal(intro.titleSelected,'true');
     assert.equal(intro.titleAProvenance,true);
     assert.equal(intro.copyIntro,true);
+    assert.equal(intro.copyTitle,true);
     assert.equal(intro.copyGuarantee,false);
     report('UX78-DECK-A-INTRO-DRAW',{status:'PASS',...intro});
 
