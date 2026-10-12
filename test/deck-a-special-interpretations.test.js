@@ -6,6 +6,7 @@ import { createTarotServer } from '../src/server.js';
 import { deckASpecialInterpretation } from '../web/deck-a-special-interpretations.js';
 import { keywordGridDraft } from '../web/card-keyword-grid.js';
 import { cardDetail } from '../web/card-details.js';
+import { cardDisplayParts, cardDisplayText, customCardPresentation, customCardNotesForResults } from '../web/model.js';
 
 const TITLE = 'meta.title';
 const INTRO = 'meta.introduction';
@@ -95,4 +96,25 @@ test('local HTTP server serves Deck A detail module as JavaScript', async () => 
   } finally {
     await new Promise(resolve => server.close(resolve));
   }
+});
+
+test('Deck A visible names are ウロボロス/創り手 without renaming Deck B or settings', async () => {
+  const aTitle = { card_id: TITLE, name_ja: 'タイトルカード', orientation: 'upright' };
+  const aIntro = { card_id: INTRO, name_ja: 'パメラ・コールマン・スミス紹介カード', orientation: 'reversed' };
+  assert.equal(cardDisplayParts(aTitle, 'A').title, '22 ウロボロス');
+  assert.equal(cardDisplayParts(aIntro, 'A').title, '23 創り手');
+  assert.equal(cardDisplayText(aTitle, 'A'), '22 ウロボロス 正位置');
+  assert.equal(cardDisplayText(aIntro, 'A'), '23 創り手 逆位置');
+  assert.equal(customCardPresentation(TITLE, 'A').faceTitle, '22 ウロボロス');
+  assert.equal(customCardPresentation(INTRO, 'A').faceTitle, '23 創り手');
+  assert.deepEqual(customCardNotesForResults({ positions: { r0c0: aTitle, r0c1: aIntro } }, null, 'A'),
+    ['22 ウロボロス：独自カード。正位置・逆位置あり。', '23 創り手：独自カード。正位置・逆位置あり。']);
+  assert.equal(cardDisplayParts(aTitle, 'B').title, '22 タイトルカード');
+  assert.equal(cardDisplayParts({ card_id: 'meta.guarantee', name_ja: 'GUARANTEE', orientation: 'upright' }, 'B').title, '23 GUARANTEE');
+  assert.equal(cardDisplayParts(aIntro, 'B').title, '23 パメラ・コールマン・スミス紹介カード');
+  const html = await readFile(new URL('../web/index.html', import.meta.url), 'utf8');
+  assert.match(html, /class="deck-preview-name">タイトルカード<\/span>/);
+  assert.match(html, /class="deck-preview-name">紹介カード<\/span>/);
+  assert.match(html, /aria-label="デッキAのタイトルカードを抽選に含める"/);
+  assert.match(html, /aria-label="デッキAの紹介カードを抽選に含める"/);
 });
