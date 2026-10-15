@@ -45,13 +45,13 @@ const mock = `(() => {
   const p0 = window.__p0 = {
     sessions: 0, shuffleCalls: 0, branchCalls: [], drawCalls: [],
     deferredShuffle: [], deferredDraw: [], deferShuffle: false, deferDraw: true,
-    copiedText: null, failDrawPiles: [], failDrawStatuses: {}
+    copiedText: null, clipboardDenied: false, failDrawPiles: [], failDrawStatuses: {}
   };
   const ok = (data,status=200) => new Response(JSON.stringify(data),{
     status,headers:{'Content-Type':'application/json'}
   });
   Object.defineProperty(navigator,'clipboard',{configurable:true,value:{
-    writeText: async value => { p0.copiedText = value; }
+    writeText: async value => { if (p0.clipboardDenied) throw Error('NotAllowedError: blocked by user'); p0.copiedText = value; }
   }});
   window.fetch = async (input, init={}) => {
     const path = new URL(typeof input === 'string' ? input : input.url, location.href).pathname;
@@ -773,6 +773,9 @@ try {
       first.click();
       const introDetailOpen=q('#cardDetailDialog').open;
       const introKeywordRows=all('#cardDetailKeywordRows tbody tr').length;
+      const introBulletFormat=q('#cardDetailEssence').tagName==='UL' && q('#cardDetailEssence').children.length>1 &&
+        q('#cardDetailUpright').tagName==='UL' && q('#cardDetailUpright').children.length>1 &&
+        q('#cardDetailReversed').tagName==='UL' && q('#cardDetailReversed').children.length>1;
       const introDetailName=q('#cardDetailTitle').textContent;
       const introOriginal=!q('#cardDetailOriginalMark').classList.contains('hidden') &&
         q('#cardDetailOriginalMark').textContent==='オリジナルカード';
@@ -801,11 +804,41 @@ try {
       third.click();
       const standardOriginalHidden=q('#cardDetailOriginalMark').classList.contains('hidden');
       q('#cardDetailClose').click();
+      const resultCueVisible=all('.primary-matrix .card-result-block .card-detail-cue').length===3 &&
+        getComputedStyle(all('.primary-matrix .card-detail-cue')[0]).pointerEvents==='none' &&
+        all('.primary-matrix .card-detail-cue')[0].textContent.includes('詳細');
       q('.copy-button').click();
       for(let i=0;i<20&&!__p0.copiedText;i++)await sleep(20);
+      const copyBefore=__p0.copiedText;
+      const copyBox=q('.copy-preview-text');
+      const previewVisible=!q('.copy-preview-panel').classList.contains('hidden') &&
+        copyBox.value===copyBefore && copyBox.readOnly &&
+        q('.copy-preview-all').textContent==='一括コピー';
+      __p0.clipboardDenied=true;
+      q('.copy-preview-all').click();
+      for(let i=0;i<20&&!q('.copy-feedback').textContent.includes('自動コピーできません');i++)await sleep(20);
+      const denialDiagnostic={valuePreserved:copyBox.value===copyBefore,
+        activeElement:document.activeElement?.className,
+        selectionStart:copyBox.selectionStart,selectionEnd:copyBox.selectionEnd,
+        sourceLength:copyBox.value.length,status:q('.copy-feedback').textContent,
+        requestedDenied:__p0.clipboardDenied};
+      // A pending card-detail dialog close event may restore focus to its
+      // trigger in this immediate synthetic sequence; the *visible selection*
+      // and preserved text, not activeElement, establish manual-copy safety.
+      const deniedManualSelectable=denialDiagnostic.valuePreserved &&
+        copyBox.selectionStart===0 && copyBox.selectionEnd===copyBox.value.length &&
+        q('.copy-feedback').textContent.includes('選択してコピー');
+      __p0.clipboardDenied=false;
+      q('.copy-preview-all').click();
+      for(let i=0;i<20&&!q('.copy-feedback').textContent.includes('コピーしました');i++)await sleep(20);
+      const retryCopied=__p0.copiedText===copyBefore &&
+        q('.copy-feedback').textContent.includes('コピーしました');
+      q('.copy-preview-close').click();
+      const previewClosed=q('.copy-preview-panel').classList.contains('hidden') && copyBox.value==='';
       return {
         sizes,summary:q('.reading-deck-summary').textContent,
         inlineDrawReady,inlineDrawLocked,introOriginal,titleOriginal,standardOriginalHidden,
+        introBulletFormat,resultCueVisible,previewVisible,deniedManualSelectable,denialDiagnostic,retryCopied,previewClosed,
         visualTitle,introResultName,introDetailName,introDetailOpen,introKeywordRows,introKeywordTerms,
         introEssence,introUpright,introReversed,introSelected,
         introAProvenance,introTarotooHidden,introCustomHidden,
@@ -827,6 +860,12 @@ try {
     assert.match(intro.titleDetailName,/22 ウロボロス/);
     assert.equal(intro.inlineDrawReady,true,'Near-pile Draw must be ready alongside the global Draw');
     assert.equal(intro.inlineDrawLocked,true,'Both Draw actions must lock synchronously after near-pile activation');
+    assert.equal(intro.introBulletFormat,true,'Meaning must display semantic bullet clauses');
+    assert.equal(intro.resultCueVisible,true,'Result card must advertise tapping for details');
+    assert.equal(intro.previewVisible,true,'Copy must display a selectable text area');
+    assert.equal(intro.deniedManualSelectable,true,'Permission denial must preserve complete selected text');
+    assert.equal(intro.retryCopied,true,'Bulk Copy button must retry after permission recovery');
+    assert.equal(intro.previewClosed,true,'Closing copy panel must erase local preview text');
     assert.equal(intro.introOriginal,true,'Deck A 創り手 must show the original-card marker');
     assert.equal(intro.titleOriginal,true,'Deck A ウロボロス must show the original-card marker');
     assert.equal(intro.standardOriginalHidden,true,'Standard tarot must not carry original-card marker');
@@ -1330,7 +1369,11 @@ try {
       const mainClearedAfterDone=piles().every(p=>p.getAttribute('aria-pressed')==='false');
       piles()[1].click();alternatives()[0].click();
       const drawEnabledAfterReselect=!one('.draw-button').disabled;
-      const right=()=>one('.heading-right-controls').getBoundingClientRect().right;
+      // Changing the visible Copy preview may introduce/remove the page's
+      // vertical scrollbar. Verify the buttons' fixed position *inside the
+      // header*, not its viewport X coordinate after a scroll-bar change.
+      const right=()=>one('.matrix-heading').getBoundingClientRect().right -
+        one('.heading-right-controls').getBoundingClientRect().right;
       const initialRight=right();
       __p0.deferDraw=false;
       one('.draw-button').click();

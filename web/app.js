@@ -12,6 +12,7 @@ import {
   rwsImageUrl
 } from './model.js';
 import { cardDetail } from './card-details.js';
+import { renderMeaningPoints } from './meaning-points.js';
 import { keywordGridDraft } from './card-keyword-grid.js';
 import { deckASpecialInterpretation } from './deck-a-special-interpretations.js';
 import { buildApiUrl, resolveRuntimeConfig } from './runtime-config.js';
@@ -355,9 +356,9 @@ function openCardDetail(card, trigger, deckId = 'B') {
   if (detail) {
     page.cardDetailReference.classList.remove('hidden');
     page.cardDetailCustom.classList.add('hidden');
-    page.cardDetailEssence.textContent = detail.essence;
-    page.cardDetailUpright.textContent = detail.upright;
-    page.cardDetailReversed.textContent = detail.reversed;
+    renderMeaningPoints(page.cardDetailEssence, detail.essence);
+    renderMeaningPoints(page.cardDetailUpright, detail.upright);
+    renderMeaningPoints(page.cardDetailReversed, detail.reversed);
     const isUpright = card.orientation === 'upright';
     page.cardDetailUprightBlock.dataset.active = String(isUpright);
     page.cardDetailReversedBlock.dataset.active = String(!isUpright);
@@ -652,6 +653,15 @@ function createReadingController(number, template = null) {
             <button class="copy-button secondary hidden" type="button" title="Markdown形式の表をコピー">結果をコピー</button>
           </div>
         </div>
+        <div class="copy-preview-panel hidden" role="group" aria-label="結果テキストをコピー">
+          <label class="copy-preview-label">コピー用テキスト（長押し・選択して手動コピーできます）
+            <textarea class="copy-preview-text" readonly spellcheck="false" rows="8" aria-label="選択してコピーできるリーディング結果"></textarea>
+          </label>
+          <div class="copy-preview-actions">
+            <button type="button" class="copy-preview-all secondary">一括コピー</button>
+            <button type="button" class="copy-preview-close secondary">閉じる</button>
+          </div>
+        </div>
         <div class="matrix-stage">
           <div class="primary-matrix table-scroll"></div>
           <div class="pile-panel hidden" aria-label="山選択">
@@ -688,6 +698,10 @@ function createReadingController(number, template = null) {
     cardCount: article.querySelector('.card-count'),
     copyButton: article.querySelector('.copy-button'),
     copyFeedback: article.querySelector('.copy-feedback'),
+    copyPreview: article.querySelector('.copy-preview-panel'),
+    copyPreviewText: article.querySelector('.copy-preview-text'),
+    copyPreviewAll: article.querySelector('.copy-preview-all'),
+    copyPreviewClose: article.querySelector('.copy-preview-close'),
     shuffleButton: page.shuffleButton,
     drawButton: page.drawButton,
     pileDrawButton: article.querySelector('.pile-draw-button'),
@@ -742,6 +756,12 @@ function createReadingController(number, template = null) {
     state.question = event.target.value;
   });
   refs.copyButton.addEventListener('click', copyReading);
+  refs.copyPreviewAll.addEventListener('click', copyPreviewAll);
+  refs.copyPreviewClose.addEventListener('click', () => {
+    refs.copyPreview.classList.add('hidden');
+    refs.copyPreviewText.value = '';
+    refs.copyButton.focus({ preventScroll: true });
+  });
   // Both Draw controls call the same guarded operation; they do not create
   // independent branches or allow a second request while pending.
   refs.pileDrawButton.addEventListener('click', draw);
@@ -1116,7 +1136,11 @@ function createReadingController(number, template = null) {
     orientation.textContent = parts.orientation;
 
     label.append(title, orientation);
-    result.append(visual, label);
+    const cue = document.createElement('span');
+    cue.className = 'card-detail-cue';
+    cue.textContent = 'ⓘ 詳細';
+    cue.setAttribute('aria-hidden', 'true');
+    result.append(visual, label, cue);
     result.setAttribute('aria-label', `${parts.plainTitle} ${parts.orientation}の詳細を表示`);
     // Hover, keyboard focus, and touch-start warm only the next likely detail.
     // Click still works immediately, even if preloading has not finished.
@@ -1793,11 +1817,23 @@ function createReadingController(number, template = null) {
       parallelPile: state.parallelPiles.join(' → ')
     });
 
+    refs.copyPreviewText.value = text;
+    refs.copyPreview.classList.remove('hidden');
+    // Preserve the old one-click Copy behavior, while always providing a
+    // selectable text area and a separate button to retry copying.
+    await copyPreviewAll();
+  }
+
+  async function copyPreviewAll() {
+    const text = refs.copyPreviewText.value;
+    if (!text) return;
     try {
       await copyText(text);
       setTextStatus(refs.copyFeedback, 'コピーしました。');
     } catch (error) {
-      setTextStatus(refs.copyFeedback, error.message, 'error');
+      setTextStatus(refs.copyFeedback, '自動コピーできません。表示された文章を選択してコピーしてください。', 'error');
+      refs.copyPreviewText.focus({ preventScroll: true });
+      refs.copyPreviewText.select();
     }
   }
 
