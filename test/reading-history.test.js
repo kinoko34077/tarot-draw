@@ -19,7 +19,7 @@ test('parse current copied Markdown question, exact axes, masked cells and reado
   assert.deepEqual(data.columnLabels,['仕事','創作']);
   assert.deepEqual(data.inactivePositions,['r1c0']);
   assert.deepEqual(data.tables.map(x=>x.label),['Primary','Parallel']);
-  assert.match(data.tables[0].values[0][0],/愚者/);
+  assert.match(data.tables[0].values[0][0],/正位置/);
   assert.equal(data.tables[0].values[1][0],'-');
   assert.equal(data.raw,sample().trim());
 });
