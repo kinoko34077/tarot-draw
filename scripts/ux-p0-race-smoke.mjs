@@ -534,7 +534,7 @@ try {
         edit('.primary-matrix .column-header .axis-inline-label',3,'創作');
         const mask=q('.primary-matrix td[data-position="r0c0"] .cell-mask-toggle');
         mask.click();
-        const sourceMask=q('.primary-matrix .cell-mask-excluded')?.length||0;
+        const sourceMask=q('.primary-matrix').querySelectorAll('td.cell-inactive').length;
         const firstLabels=[...all('.primary-matrix .row-header .axis-inline-label')].map(e=>e.textContent);
         const firstColumns=[...all('.primary-matrix .column-header .axis-inline-label')].map(e=>e.textContent);
         const readyInitially=q('#repeatReadingButton').classList.contains('hidden');
@@ -554,7 +554,7 @@ try {
         const rowLabels=[...second.querySelectorAll('.primary-matrix .row-header .axis-inline-label')].map(e=>e.textContent);
         const columnLabels=[...second.querySelectorAll('.primary-matrix .column-header .axis-inline-label')].map(e=>e.textContent);
         const clone={question:second.querySelector('.question-input').value,
-          rowLabels,columnLabels,masks:second.querySelectorAll('.primary-matrix .cell-mask-excluded').length,
+          rowLabels,columnLabels,masks:second.querySelectorAll('.primary-matrix td.cell-inactive').length,
           results:second.querySelectorAll('.primary-matrix .card-detail-trigger').length,
           status:second.querySelector('.reading-status').textContent,
           oldResults:readings[0].querySelectorAll('.primary-matrix .card-detail-trigger').length,
