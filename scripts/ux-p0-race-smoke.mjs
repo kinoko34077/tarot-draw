@@ -817,7 +817,12 @@ try {
       __p0.clipboardDenied=true;
       q('.copy-preview-all').click();
       for(let i=0;i<20&&!q('.copy-feedback').textContent.includes('自動コピーできません');i++)await sleep(20);
-      const deniedManualSelectable=copyBox.value===copyBefore &&
+      const denialDiagnostic={valuePreserved:copyBox.value===copyBefore,
+        activeElement:document.activeElement?.className,
+        selectionStart:copyBox.selectionStart,selectionEnd:copyBox.selectionEnd,
+        sourceLength:copyBox.value.length,status:q('.copy-feedback').textContent,
+        requestedDenied:__p0.clipboardDenied};
+      const deniedManualSelectable=denialDiagnostic.valuePreserved &&
         document.activeElement===copyBox &&
         copyBox.selectionStart===0 && copyBox.selectionEnd===copyBox.value.length &&
         q('.copy-feedback').textContent.includes('選択してコピー');
@@ -831,7 +836,7 @@ try {
       return {
         sizes,summary:q('.reading-deck-summary').textContent,
         inlineDrawReady,inlineDrawLocked,introOriginal,titleOriginal,standardOriginalHidden,
-        introBulletFormat,resultCueVisible,previewVisible,deniedManualSelectable,retryCopied,previewClosed,
+        introBulletFormat,resultCueVisible,previewVisible,deniedManualSelectable,denialDiagnostic,retryCopied,previewClosed,
         visualTitle,introResultName,introDetailName,introDetailOpen,introKeywordRows,introKeywordTerms,
         introEssence,introUpright,introReversed,introSelected,
         introAProvenance,introTarotooHidden,introCustomHidden,
@@ -856,6 +861,7 @@ try {
     assert.equal(intro.introBulletFormat,true,'Meaning must display semantic bullet clauses');
     assert.equal(intro.resultCueVisible,true,'Result card must advertise tapping for details');
     assert.equal(intro.previewVisible,true,'Copy must display a selectable text area');
+    report('UX57-COPY-FALLBACK-DIAG',intro.denialDiagnostic);
     assert.equal(intro.deniedManualSelectable,true,'Permission denial must preserve complete selected text');
     assert.equal(intro.retryCopied,true,'Bulk Copy button must retry after permission recovery');
     assert.equal(intro.previewClosed,true,'Closing copy panel must erase local preview text');
