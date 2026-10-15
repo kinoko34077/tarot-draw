@@ -260,6 +260,61 @@ try {
       report('UX124-LOCAL-HISTORY-IMPORT',{status:'PASS',width,...first,after});
     }
 
+    // #126 audit: a corrupt cached item cannot crash page startup or reuse
+    // an unapproved deck; denied storage writes must not report a deletion.
+    await navigate(390,false,true);
+    const seeded=await evalInPage(`(async()=>{
+      const q=s=>document.querySelector(s), wait=ms=>new Promise(r=>setTimeout(r,ms));
+      __p0.deferDraw=false;
+      q('.shuffle-button').click();
+      for(let i=0;i<100&&!q('.primary-pile-options .pile-button');i++)await wait(20);
+      q('.primary-pile-options .pile-button').click();
+      q('.pile-draw-button').click();
+      for(let i=0;i<120&&q('.reading-status').textContent!=='抽選完了';i++)await wait(20);
+      const saved=JSON.parse(localStorage.getItem('tarot-draw.history.v1')||'[]');
+      const base=saved[0];
+      localStorage.setItem('tarot-draw.history.v1',JSON.stringify([
+        {...base,rowLabels:['tampered'],columnLabels:['tampered'],
+          tables:[{label:'Primary',values:null}],deck:{deckId:'corrupt',majorOnly:'yes'}},
+        {...base,id:'invalid',raw:'<script>bad</script>'},
+        {...base}
+      ]));
+      return {saved:saved.length,before:q('.reading-status').textContent};
+    })()`);
+    assert.equal(seeded.saved,1,'Seed one real completed draw');
+    await cdp.call('Page.navigate',{url:base+'?p126=cache-recovery'});
+    await waitFor("document.querySelectorAll('#savedHistory .saved-history-item').length===1");
+    const audit126=await evalInPage(`(()=>{
+      const q=s=>document.querySelector(s);
+      const entries=[...document.querySelectorAll('#savedHistory .saved-history-item')];
+      const recovered=entries.length===1&&
+        q('#savedHistory .history-result-table')?.rows.length===2&&
+        q('#savedHistory .history-result-table th')?.textContent==='項目';
+      const before=q('#savedHistory .saved-history-item').textContent;
+      const saved=JSON.parse(localStorage.getItem('tarot-draw.history.v1')||'[]');
+      const old=Storage.prototype.setItem;
+      Storage.prototype.setItem=function(){throw Error('quota denied');};
+      let failedSingle=false,failedBulk=false,unchanged=false;
+      try{
+        window.confirm=()=>true;
+        q('#savedHistory .history-item-actions button:nth-child(2)').click();
+        failedSingle=q('#historyStatus').textContent.includes('削除できません')&&
+          q('#savedHistory .saved-history-item')?.textContent===before;
+        q('#loadReadingButton').click();
+        q('#clearHistoryButton').click();
+        failedBulk=q('#loadReadingFeedback').textContent.includes('削除できません');
+        unchanged=q('#savedHistory .saved-history-item')?.textContent===before;
+        q('#loadReadingClose').click();
+      }finally{Storage.prototype.setItem=old;}
+      const notDeleted=JSON.parse(localStorage.getItem('tarot-draw.history.v1')||'[]').length===saved.length;
+      const noExtraRemote=__p0.sessions===0;
+      return {recovered,failedSingle,failedBulk,unchanged,notDeleted,noExtraRemote};
+    })()`);
+    assert.deepEqual(audit126,{recovered:true,failedSingle:true,failedBulk:true,
+      unchanged:true,notDeleted:true,noExtraRemote:true},
+      'Invalid cached state and denied storage writes should fail safely');
+    report('UX126-LOCAL-CACHE-RECOVERY',{status:'PASS',...audit126});
+
     // #118: question-mark Help adjacent to Settings. The taller header must
     // still fit the 320/390 mobile viewport; help is a state-free native modal.
     for (const width of [320, 390, 1440]) {
