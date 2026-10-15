@@ -1,4 +1,4 @@
-// Settings are local device preferences only. Never persist questions, piles, or results.
+// This module persists deck preferences ONLY. User-selected browser-local\n// question/results snapshots are stored separately by reading-history.js.\n// Neither module sends personal question/history data to a cloud database.
 export const SETTINGS_STORAGE_KEY = 'tarot-draw.preferences.v1';
 
 export function defaultSettings() {
