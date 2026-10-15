@@ -74,20 +74,40 @@ export function parseReadingCopy(input) {
   };
 }
 
+function validatedDeck(deck) {
+  if (!deck || typeof deck !== 'object' ||
+      !['A', 'B'].includes(deck.deckId) ||
+      typeof deck.majorOnly !== 'boolean' ||
+      typeof deck.includeTitle !== 'boolean' ||
+      typeof deck.includeSecondary !== 'boolean') return null;
+  return { deckId: deck.deckId, majorOnly: deck.majorOnly,
+    includeTitle: deck.includeTitle, includeSecondary: deck.includeSecondary };
+}
+
 export function safeHistoryRecords(storage) {
   try {
     const raw = storage?.getItem(HISTORY_KEY);
     if (!raw || raw.length > HISTORY_LIMIT * MAX_TEXT) return [];
     const list = JSON.parse(raw);
     if (!Array.isArray(list)) return [];
-    return list.slice(0, HISTORY_LIMIT).filter(item =>
-      item && typeof item.id === 'string' && typeof item.raw === 'string' &&
-      item.raw.length <= MAX_TEXT && typeof item.savedAt === 'string' &&
-      Array.isArray(item.rowLabels) && Array.isArray(item.columnLabels) &&
-      item.rowLabels.length > 0 && item.rowLabels.length <= MAX_AXES &&
-      item.columnLabels.length > 0 && item.columnLabels.length <= MAX_AXES &&
-      item.rowLabels.length * item.columnLabels.length <= MAX_AXES
-    );
+    const seen = new Set();
+    const valid = [];
+    for (const item of list.slice(0, HISTORY_LIMIT)) {
+      if (!item || typeof item.id !== 'string' || item.id.length > 128 ||
+          !item.id || seen.has(item.id) ||
+          typeof item.raw !== 'string' || item.raw.length > MAX_TEXT ||
+          typeof item.savedAt !== 'string') continue;
+      try {
+        // Treat localStorage like imported untrusted data. Regenerate every
+        // table and axis from the bounded, human-readable original text:
+        // stale or malformed cached tables/deck metadata cannot crash startup.
+        const parsed = parseReadingCopy(item.raw);
+        valid.push({ id: item.id, savedAt: item.savedAt, ...parsed,
+          deck: validatedDeck(item.deck) });
+        seen.add(item.id);
+      } catch { /* Skip only this malformed record, keep other history. */ }
+    }
+    return valid;
   } catch { return []; }
 }
 
@@ -107,4 +127,14 @@ export function saveHistoryRecords(storage, records) {
     storage.setItem(HISTORY_KEY, JSON.stringify(records.slice(0,HISTORY_LIMIT)));
     return true;
   } catch { return false; }
+}
+
+// Mutate the in-memory list only after the requested deletion was durably
+// written. Otherwise a deleted item would misleadingly reappear on reload.
+export function applyHistoryDeletion(storage, records, id = null) {
+  const after = id === null ? [] : records.filter(record => record.id !== id);
+  if (id !== null && after.length === records.length) return false;
+  if (!saveHistoryRecords(storage, after)) return false;
+  records.splice(0, records.length, ...after);
+  return true;
 }
