@@ -110,7 +110,7 @@ test('bulk copy starts with question, preserves TSV geometry, and appends custom
   assert.match(text, /\t開発\t作品/);
   assert.match(text, /優先度\tXII 吊るされた男 逆位置\t23 GUARANTEE 正位置/);
   assert.match(text, /【独自カード説明】/);
-  assert.match(text, /22 タイトルカード：独自カード/);
+  assert.match(text, /22 タイトルカード：デッキBの表題/);
   assert.match(text, /23 GUARANTEE（保証カード）：デッキB/);
 });
 
