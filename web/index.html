@@ -20,6 +20,11 @@
   </header>
 
   <main class="workspace">
+    <div class="history-toolbar">
+      <button id="loadReadingButton" type="button" class="secondary" aria-haspopup="dialog" aria-controls="loadReadingDialog">読込・履歴</button>
+      <span id="historyStatus" role="status" aria-live="polite" class="history-status"></span>
+    </div>
+    <section id="savedHistory" class="saved-history hidden" aria-label="ブラウザ保存履歴"></section>
     <div id="readings" class="readings" aria-label="リーディング履歴"></div>
 
     <div class="history-actions">
@@ -36,6 +41,25 @@
   </main>
 
 
+  <dialog id="loadReadingDialog" class="settings-dialog history-dialog" aria-labelledby="loadReadingTitle">
+    <div class="settings-panel">
+      <header class="settings-heading">
+        <h2 id="loadReadingTitle">読込・履歴</h2>
+        <button id="loadReadingClose" class="secondary settings-close" type="button" aria-label="読込を閉じる">×</button>
+      </header>
+      <p class="history-instructions">「結果をコピー」で得たMarkdownを貼り付けて読み込めます。質問と行列を復元し、表は閲覧専用で表示します。</p>
+      <label class="history-import-label">コピーした内容
+        <textarea id="loadReadingText" rows="8" placeholder="# タロット占い結果&#10;**問い：** ..." aria-label="読込むMarkdownを貼り付ける"></textarea>
+      </label>
+      <p id="loadReadingFeedback" class="history-status" role="status" aria-live="polite"></p>
+      <div class="history-dialog-actions">
+        <button id="importReadingButton" class="primary" type="button">読み込む</button>
+        <button id="clearHistoryButton" class="secondary" type="button">保存履歴をすべて削除</button>
+      </div>
+      <p class="history-instructions">履歴はこのブラウザ内のみに保存されます。ブラウザのデータを削除すると消えるため、必要な記録はコピーして保管してください。元の抽選セッションは復元しません。</p>
+    </div>
+  </dialog>
+
   <dialog id="helpDialog" class="settings-dialog help-dialog" aria-labelledby="helpTitle" aria-describedby="helpIntro">
     <div class="settings-panel help-panel">
       <header class="settings-heading">
@@ -51,6 +75,7 @@
             <li><strong>シャッフルする：</strong>「シャッフル」でカードの順序と正逆位置が確定し、山A・B・Cに分かれます。</li>
             <li><strong>山を選ぶ：</strong>最初に選ぶのがPrimary（メイン）の山。迷った別の山は必要に応じてParallelに選べます。必要枚数が多い場合は、表示されたPrimary・Parallelそれぞれの欄で、足りるまで順番に山を選びます。</li>
             <li><strong>カードを引く：</strong>山札の下、またはページ下部の「引く」を押します。山の枚数が足りないときは選び足してください。</li>
+            <li><strong>履歴・読込：</strong>画面上部の「読込・履歴」から以前コピーしたMarkdownを貼り付けるか、ブラウザ内の保存履歴を閲覧できます。保存結果は閲覧専用で、質問・配置を引き継いで新しく占えます。</li>
             <li><strong>引き直す：</strong>「同じ質問・配置で引き直す」を押すと、直前の問い・行列・除外マス・デッキ設定を引き継いだ新しい占いを作れます。元の結果は残り、新しくシャッフルして引き直します。</li>
             <li><strong>結果を見る：</strong>カード端の「ⓘ 詳細」を目印にカードをタップして、キーワード・本質・正位置／逆位置の説明を確認。「結果をコピー」で表をMarkdown形式でコピーでき、「＋ 新規」で前の結果を残して次の占いを始められます。</li>
           </ol>

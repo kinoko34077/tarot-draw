@@ -1760,3 +1760,30 @@ input:focus-visible {
   #cardDetailEssence.detail-meaning-points { font-size: .87rem; }
   .card-detail-cue { font-size: .54rem; }
 }
+
+/* #124: local-only history remains compact until an item is expanded. */
+.history-toolbar { display:flex; flex-wrap:wrap; align-items:center; gap:8px; padding:8px 12px 5px; }
+.history-toolbar button { min-height:34px; }
+.history-status { font-size:.78rem; color:var(--muted); overflow-wrap:anywhere; }
+.saved-history { margin:6px 12px 12px; padding:10px; border:1px solid var(--border); border-radius:6px; background:var(--surface-soft); }
+.saved-history h2 { font-size:.88rem; margin:0 0 7px; }
+.saved-history-item { margin:5px 0; padding:6px; background:var(--surface); border:1px solid var(--border); border-radius:4px; }
+.saved-history-item > summary { cursor:pointer; font-size:.81rem; overflow-wrap:anywhere; }
+.saved-history-question { font-size:.82rem; margin:9px 0 5px; white-space:pre-wrap; overflow-wrap:anywhere; }
+.saved-history-item h3 { font-size:.79rem; margin:11px 0 5px; }
+.history-table-scroll { max-width:100%; overflow:auto; }
+.history-result-table { width:max-content; min-width:100%; border-collapse:collapse; font-size:.78rem; }
+.history-result-table th,.history-result-table td { border:1px solid var(--border); padding:5px 7px; min-width:66px; max-width:240px; overflow-wrap:anywhere; vertical-align:top; }
+.history-result-table th { background:var(--surface-soft); font-weight:700; }
+.history-item-actions,.history-dialog-actions { display:flex; flex-wrap:wrap; gap:8px; margin:8px 0; }
+.history-item-actions button,.history-dialog-actions button { min-height:34px; }
+.saved-history-source { margin:7px 0; font-size:.79rem; }
+.saved-history-source textarea,.history-import-label textarea { display:block; box-sizing:border-box; width:100%; min-width:0; max-height:44dvh; resize:vertical; padding:8px; border:1px solid var(--border-strong); border-radius:4px; background:var(--surface); color:inherit; font:.8rem/1.55 ui-monospace,monospace; }
+.history-dialog { width:min(640px,calc(100vw - 20px)); }
+.history-instructions { margin:12px 0; font-size:.8rem; line-height:1.55; color:var(--muted); }
+.history-import-label { display:grid; gap:6px; font-size:.84rem; font-weight:650; }
+@media(max-width:420px) {
+ .history-toolbar { padding:6px 9px; }
+ .saved-history { margin:5px 8px; padding:6px; }
+ .history-result-table { font-size:.74rem; }
+}

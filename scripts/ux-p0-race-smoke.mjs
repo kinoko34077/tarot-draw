@@ -133,7 +133,7 @@ async function evalInPage(expression) {
   }
 }
 async function navigate(width=1440, retainSettings=false, verifyDefaultA=false) {
-  if (!retainSettings) await cdp.call('Runtime.evaluate', { expression: 'try { localStorage.removeItem("tarot-draw.preferences.v1") } catch {}' });
+  if (!retainSettings) await cdp.call('Runtime.evaluate', { expression: 'try { localStorage.removeItem("tarot-draw.preferences.v1"); localStorage.removeItem("tarot-draw.history.v1") } catch {}' });
   await cdp.call('Emulation.setDeviceMetricsOverride',{width,height:857,deviceScaleFactor:1,mobile:false});
   await cdp.call('Page.navigate',{url:base+'?p0='+Math.random()});
   for(let attempt=0;attempt<90;attempt++){
@@ -206,6 +206,60 @@ try {
   await cdp.call('Page.addScriptToEvaluateOnNewDocument',{source:mock});
 
   if (expectSafe) {
+    // #124: imported copies are inert, on-device snapshots that survive reload.
+    for(const width of [320,390]){
+      await navigate(width,false,true);
+      const first=await evalInPage(`(async()=>{
+        const q=s=>document.querySelector(s);
+        const wait=ms=>new Promise(r=>setTimeout(r,ms));
+        const input=q('.question-input');input.value='履歴の質問';
+        input.dispatchEvent(new Event('input',{bubbles:true}));
+        __p0.deferDraw=false;
+        q('.shuffle-button').click();
+        for(let i=0;i<100&&q('.primary-pile-options .pile-button')===null;i++)await wait(20);
+        q('.primary-pile-options .pile-button').click();
+        q('.pile-draw-button').click();
+        for(let i=0;i<120&&q('.reading-status').textContent!=='抽選完了';i++)await wait(20);
+        const completed=q('.reading-status').textContent==='抽選完了';
+        q('.copy-button').click();
+        for(let i=0;i<40&&!__p0.copiedText;i++)await wait(20);
+        const copied=__p0.copiedText, beforeSessions=__p0.sessions;
+        const savedBefore=JSON.parse(localStorage.getItem('tarot-draw.history.v1')||'[]');
+        q('#loadReadingButton').click();
+        const dialogOpened=q('#loadReadingDialog').open;
+        q('#loadReadingText').value=copied;
+        q('#importReadingButton').click();
+        const stored=JSON.parse(localStorage.getItem('tarot-draw.history.v1')||'[]');
+        const two=stored.length===2&&stored[0].question==='履歴の質問';
+        const inert=q('#savedHistory .history-result-table')?.querySelector('td')?.textContent.length>0;
+        const readonly=!!q('#savedHistory textarea[readonly]');
+        const noRemote=__p0.sessions===beforeSessions;
+        q('#savedHistory .saved-history-item .history-item-actions button').click();
+        const next=document.querySelectorAll('.reading-workbench');
+        const reused=next.length===2&&next[1].querySelector('.question-input').value==='履歴の質問'&&
+          next[1].querySelector('.reading-status').textContent==='問いと配置を編集';
+        return {completed,savedBefore:savedBefore.length,dialogOpened,two,inert,readonly,noRemote,reused,
+          savedCount:stored.length,headerFits:q('.history-toolbar').scrollWidth<=q('.history-toolbar').clientWidth+1};
+      })()`);
+      assert.equal(first.completed,true);
+      assert.equal(first.savedBefore,1,'Completed reading should auto-save locally');
+      assert.ok(first.dialogOpened&&first.two&&first.inert&&first.readonly&&first.noRemote&&first.reused,JSON.stringify(first));
+      assert.equal(first.headerFits,true);
+      // Full navigation must restore only inert text history; it must not restore
+      // a previously shuffled session or trigger an implicit new draw.
+      await cdp.call('Page.navigate',{url:base+'?p5=reload-'+width});
+      await waitFor("document.querySelectorAll('#savedHistory .saved-history-item').length===2");
+      const after=await evalInPage(`({
+        records:JSON.parse(localStorage.getItem('tarot-draw.history.v1')).length,
+        savedTables:document.querySelectorAll('#savedHistory .history-result-table').length,
+        fresh:document.querySelectorAll('.reading-workbench').length===1 &&
+          document.querySelector('.reading-status').textContent==='問いと配置を編集',
+        copiedText:document.querySelector('#savedHistory textarea[readonly]')?.value.includes('履歴の質問')
+      })`);
+      assert.deepEqual(after,{records:2,savedTables:2,fresh:true,copiedText:true});
+      report('UX124-LOCAL-HISTORY-IMPORT',{status:'PASS',width,...first,after});
+    }
+
     // #118: question-mark Help adjacent to Settings. The taller header must
     // still fit the 320/390 mobile viewport; help is a state-free native modal.
     for (const width of [320, 390, 1440]) {
