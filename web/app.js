@@ -1753,6 +1753,7 @@ function createReadingController(number, template = null) {
         state.phase = 'completed';
         setTextStatus(refs.status, '抽選完了');
         page.newReadingButton.classList.remove('hidden');
+        page.repeatReadingButton.classList.remove('hidden');
         const completedSession = intent.sessionId;
         state.sessionId = null;
         if (completedSession) {
