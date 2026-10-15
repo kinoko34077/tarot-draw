@@ -52,7 +52,7 @@
             <li><strong>山を選ぶ：</strong>最初に選ぶのがPrimary（メイン）の山。迷った別の山は必要に応じてParallelに選べます。必要枚数が多い場合は、表示されたPrimary・Parallelそれぞれの欄で、足りるまで順番に山を選びます。</li>
             <li><strong>カードを引く：</strong>山札の下、またはページ下部の「引く」を押します。山の枚数が足りないときは選び足してください。</li>
             <li><strong>引き直す：</strong>「同じ質問・配置で引き直す」を押すと、直前の問い・行列・除外マス・デッキ設定を引き継いだ新しい占いを作れます。元の結果は残り、新しくシャッフルして引き直します。</li>
-            <li><strong>結果を見る：</strong>カードをタップしてキーワード・本質・正位置／逆位置の説明を確認。「結果をコピー」で表をMarkdown形式でコピーでき、「＋ 新規」で前の結果を残して次の占いを始められます。</li>
+            <li><strong>結果を見る：</strong>カード端の「ⓘ 詳細」を目印にカードをタップして、キーワード・本質・正位置／逆位置の説明を確認。「結果をコピー」で表をMarkdown形式でコピーでき、「＋ 新規」で前の結果を残して次の占いを始められます。</li>
           </ol>
         </section>
         <section class="help-section" aria-labelledby="helpReadingTitle">
@@ -99,6 +99,7 @@
         <label class="settings-major-choice" for="majorOnlyCheckbox"><input id="majorOnlyCheckbox" name="majorOnly" type="checkbox"><span>大アルカナのみで占う</span></label>
         <p id="selectedDeckCount" class="settings-card-count" aria-live="polite">80枚（通常78枚＋独自カード2枚）</p>
       </div>
+      <p class="settings-card-detail-hint">ⓘ 結果のカードは、タップ・クリックすると詳しい意味を確認できます。カードの端にある「ⓘ 詳細」が目印です。</p>
       <fieldset class="deck-choices">
         <legend>デッキを選択</legend>
         <section class="deck-choice" data-deck-option="A" aria-label="デッキAの独自カード">
@@ -190,16 +191,16 @@
           <div id="cardDetailReference">
             <section class="detail-meaning">
               <h3>本質</h3>
-              <p id="cardDetailEssence"></p>
+              <ul id="cardDetailEssence" class="detail-meaning-points"></ul>
             </section>
             <div class="detail-orientations" role="group" aria-label="正位置と逆位置の意味を比較">
               <section id="cardDetailUprightBlock" class="detail-meaning" data-active="false" aria-label="正位置">
                 <h3>正位置 <span class="detail-picked-label hidden">今回</span></h3>
-                <p id="cardDetailUpright"></p>
+                <ul id="cardDetailUpright" class="detail-meaning-points"></ul>
               </section>
               <section id="cardDetailReversedBlock" class="detail-meaning" data-active="false" aria-label="逆位置">
                 <h3>逆位置 <span class="detail-picked-label hidden">今回</span></h3>
-                <p id="cardDetailReversed"></p>
+                <ul id="cardDetailReversed" class="detail-meaning-points"></ul>
               </section>
             </div>
           </div>
