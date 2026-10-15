@@ -17,11 +17,21 @@ import { keywordGridDraft } from './card-keyword-grid.js';
 import { deckASpecialInterpretation } from './deck-a-special-interpretations.js';
 import { buildApiUrl, resolveRuntimeConfig } from './runtime-config.js';
 import { defaultSettings, loadSettings, saveSettings } from './settings-store.js';
+import { makeHistoryEntry, safeHistoryRecords, saveHistoryRecords, HISTORY_LIMIT } from './reading-history.js';
 
 const runtime = resolveRuntimeConfig(globalThis.__TAROT_DRAW_CONFIG__ ?? {});
 const LONG_PRESS_MS = 520;
 
 const page = {
+  loadReadingButton: document.querySelector('#loadReadingButton'),
+  loadReadingDialog: document.querySelector('#loadReadingDialog'),
+  loadReadingClose: document.querySelector('#loadReadingClose'),
+  loadReadingText: document.querySelector('#loadReadingText'),
+  loadReadingFeedback: document.querySelector('#loadReadingFeedback'),
+  importReadingButton: document.querySelector('#importReadingButton'),
+  clearHistoryButton: document.querySelector('#clearHistoryButton'),
+  savedHistory: document.querySelector('#savedHistory'),
+  historyStatus: document.querySelector('#historyStatus'),
   readings: document.querySelector('#readings'),
   newReadingButton: document.querySelector('#newReadingButton'),
   repeatReadingButton: document.querySelector('#repeatReadingButton'),
@@ -65,6 +75,8 @@ const page = {
 };
 
 const readings = [];
+const storedHistory = safeHistoryRecords((() => { try { return window.localStorage; } catch { return null; } })());
+let nextHistoryId = 0;
 let nextReadingNumber = 1;
 let axisMenuContext = null;
 let lastCardTrigger = null;
@@ -1775,6 +1787,8 @@ function createReadingController(number, template = null) {
       } else {
         state.drawOutcome = 'completed';
         state.phase = 'completed';
+        try { recordHistory(copySnapshot(controller), { deckId:state.deckId, includeTitle:state.includeTitle, includeSecondary:state.includeSecondary, majorOnly:state.majorOnly }); }
+        catch { page.historyStatus.textContent='履歴を保存できませんでした。結果をコピーして保管してください。'; }
         setTextStatus(refs.status, '抽選完了');
         page.newReadingButton.classList.remove('hidden');
         page.repeatReadingButton.classList.remove('hidden');
@@ -1848,6 +1862,130 @@ function createReadingController(number, template = null) {
   return controller;
 }
 
+
+// Saved records are inert display snapshots: never replay a server draw or
+// reinterpret copied card text as an authenticated card ID/orientation.
+function copySnapshot(controller) {
+  const s = controller.state;
+  return formatReadingMarkdown({
+    question:s.question, deckId:s.deckId,
+    rowCount:s.rowLabels.length, columnCount:s.columnLabels.length,
+    rowLabels:s.rowLabels, columnLabels:s.columnLabels,
+    inactivePositions:[...s.inactivePositions],
+    primary:s.primaryResult, parallel:s.parallelResult,
+    primaryPile:s.primaryPiles.join(' → '), parallelPile:s.parallelPiles.join(' → ')
+  });
+}
+function recordHistory(raw, deck = null) {
+  const entry = makeHistoryEntry(raw, {
+    id: `h${Date.now().toString(36)}-${++nextHistoryId}`,
+    savedAt: new Date().toISOString(), deck
+  });
+  storedHistory.unshift(entry);
+  if (storedHistory.length > HISTORY_LIMIT) storedHistory.length = HISTORY_LIMIT;
+  let saved = false;
+  try { saved = saveHistoryRecords(window.localStorage, storedHistory); } catch {}
+  renderStoredHistory(entry.id);
+  page.historyStatus.textContent = saved
+    ? 'このブラウザに保存しました。' : '履歴を画面に追加しましたがブラウザ保存に失敗しました。コピーして保管してください。';
+  return entry;
+}
+function drawStoredTable(section) {
+  const table=document.createElement('table');
+  table.className='history-result-table';
+  const thead=table.createTHead(); const header=thead.insertRow();
+  for(const h of ['項目',...section.columnLabels]){
+    const th=document.createElement('th'); th.scope='col'; th.textContent=h; header.append(th);
+  }
+  const tbody=table.createTBody();
+  for(let r=0;r<section.rowLabels.length;r++){
+    const tr=tbody.insertRow();
+    const th=document.createElement('th'); th.scope='row'; th.textContent=section.rowLabels[r]; tr.append(th);
+    for(const value of section.values[r]??[]){
+      const td=tr.insertCell(); td.textContent=value;
+    }
+  }
+  return table;
+}
+function renderStoredHistory(openId = null) {
+  page.savedHistory.replaceChildren();
+  page.savedHistory.classList.toggle('hidden', storedHistory.length === 0);
+  if(!storedHistory.length){page.historyStatus.textContent='保存履歴はありません。';return;}
+  const heading=document.createElement('h2');heading.textContent=`保存履歴（${storedHistory.length}件）`;page.savedHistory.append(heading);
+  for(const record of storedHistory){
+    const details=document.createElement('details');details.className='saved-history-item';
+    if (record.id===openId) details.open=true;
+    const summary=document.createElement('summary');
+    const date=Number.isFinite(Date.parse(record.savedAt)) ? new Date(record.savedAt).toLocaleString('ja-JP') : '';
+    summary.textContent=`${date}　${record.question || '（問い未入力）'}`;
+    details.append(summary);
+    const question=document.createElement('p');question.className='saved-history-question';
+    question.textContent=`Q. ${record.question || '（未入力）'}`;details.append(question);
+    for(const branch of record.tables??[]){
+      const label=document.createElement('h3');label.textContent=branch.label;details.append(label);
+      const scroller=document.createElement('div');scroller.className='history-table-scroll';
+      scroller.append(drawStoredTable(branch));details.append(scroller);
+    }
+    const actions=document.createElement('div');actions.className='history-item-actions';
+    const reuse=document.createElement('button');reuse.type='button';reuse.className='secondary';reuse.textContent='この質問・配置で新規';
+    reuse.addEventListener('click',()=> {
+      const deck=record.deck ?? chosenSettings;
+      const validDeck={...deck};
+      if (record.rowLabels.length*record.columnLabels.length>deckCardCount(validDeck)) {
+        validDeck.majorOnly=false;validDeck.includeTitle=true;validDeck.includeSecondary=true;
+      }
+      Object.assign(chosenSettings,validDeck);
+      Object.assign(deckSelections[validDeck.deckId],{
+        includeTitle:validDeck.includeTitle,includeSecondary:validDeck.includeSecondary
+      });
+      rememberSettings();syncSettingsControls();renderSettingsSummary();
+      appendReading({question:record.question, rowLabels:record.rowLabels,
+        columnLabels:record.columnLabels, inactivePositions:record.inactivePositions,
+        deck:validDeck});
+    });
+    const original=document.createElement('details');original.className='saved-history-source';
+    const originalSummary=document.createElement('summary');originalSummary.textContent='コピー元の文章';original.append(originalSummary);
+    const text=document.createElement('textarea');text.readOnly=true;text.rows=6;text.value=record.raw;
+    text.setAttribute('aria-label','保存したコピー用Markdown');original.append(text);
+    const remove=document.createElement('button');remove.type='button';remove.className='secondary';remove.textContent='この履歴を削除';
+    remove.addEventListener('click',()=>{
+      if(!window.confirm('この保存履歴を削除しますか？'))return;
+      const i=storedHistory.findIndex(x=>x.id===record.id);
+      if(i>=0)storedHistory.splice(i,1);
+      try {saveHistoryRecords(window.localStorage,storedHistory);} catch {}
+      renderStoredHistory();
+    });
+    actions.append(reuse,remove);details.append(actions,original);
+    page.savedHistory.append(details);
+  }
+}
+function closeLoadDialog(){if(page.loadReadingDialog.open)page.loadReadingDialog.close();}
+page.loadReadingButton.addEventListener('click',()=> {
+  page.loadReadingDialog.showModal();page.loadReadingText.focus({preventScroll:true});
+});
+page.loadReadingClose.addEventListener('click',closeLoadDialog);
+page.loadReadingDialog.addEventListener('click',e=> {
+  if(e.target===page.loadReadingDialog)closeLoadDialog();
+});
+page.loadReadingDialog.addEventListener('close',()=>page.loadReadingButton.focus({preventScroll:true}));
+page.importReadingButton.addEventListener('click',()=> {
+  try {
+    const entry=recordHistory(page.loadReadingText.value);
+    page.loadReadingFeedback.textContent='読み込みました。下の保存履歴に追加しました。';
+    closeLoadDialog();page.savedHistory.querySelector('details[open]')?.scrollIntoView({block:'nearest'});
+    page.loadReadingText.value='';
+  } catch(error) {
+    page.loadReadingFeedback.textContent=error.message;
+  }
+});
+page.clearHistoryButton.addEventListener('click',()=> {
+  if(!storedHistory.length)return;
+  if(!window.confirm('このブラウザに保存された履歴をすべて削除しますか？'))return;
+  storedHistory.length=0;
+  try {saveHistoryRecords(window.localStorage,storedHistory);} catch {}
+  renderStoredHistory();page.loadReadingFeedback.textContent='保存履歴を削除しました。';
+});
+
 // A repeat is a NEW editable reading from a snapshot of the previous layout.
 // No remote draw/session, pile, card result or undo history may be transferred.
 function snapshotReadingTemplate(controller) {
@@ -1894,4 +2032,5 @@ page.repeatReadingButton.addEventListener('click', () => {
   appendReading(template);
 });
 
+renderStoredHistory();
 appendReading();
