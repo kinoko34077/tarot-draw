@@ -111,7 +111,7 @@ test('bulk copy starts with question, preserves TSV geometry, and appends custom
   assert.match(text, /優先度\tXII 吊るされた男 逆位置\t23 GUARANTEE 正位置/);
   assert.match(text, /【独自カード説明】/);
   assert.match(text, /22 タイトルカード：独自カード/);
-  assert.match(text, /23 保証カード：独自カード/);
+  assert.match(text, /23 GUARANTEE（保証カード）：デッキB/);
 });
 
 test('bulk copy supports the user-facing 3x6 table shape without flattening', () => {
@@ -196,11 +196,11 @@ test('Markdown paired results distinguish actual and alternate pile and explain 
   assert.match(markdown, /## パラレルリーディング（山C）[\s\S]*?\| 可能性 \| 23 GUARANTEE 逆位置 \|/);
   assert.match(markdown, /### パラレルリーディングについて\n\n/);
   assert.ok(markdown.includes(PARALLEL_READING_NOTE));
-  assert.match(markdown, /### 独自カードについて[\s\S]*- 23 保証カード：/);
+  assert.match(markdown, /### 独自カードについて[\s\S]*- 23 GUARANTEE（保証カード）：/);
   assert.match(tsv, /【Parallel】/);
   assert.match(tsv, /【パラレルリーディング説明】\n/);
   assert.ok(tsv.includes(PARALLEL_READING_NOTE));
-  assert.match(tsv, /【独自カード説明】[\s\S]*23 保証カード：/);
+  assert.match(tsv, /【独自カード説明】[\s\S]*23 GUARANTEE（保証カード）：/);
   assert.equal(formatReadingText({ ...data, parallel: null }).includes('【パラレルリーディング説明】'), false);
 });
 
@@ -258,7 +258,7 @@ test('Deck A introduction custom replaces Deck B guarantee only in display/notes
   assert.equal(cardDisplayText(intro,'A'),'23 創り手 正位置');
   assert.ok(customCardNotesForResults(result,null,'A')[0].includes('23 創り手'));
   assert.ok(!customCardNotesForResults(result,null,'A')[0].includes('GUARANTEE'));
-  assert.match(customCardNotesForResults(result,null,'A')[0], /本質：[\\s\\S]*創り手（遺されるもの）[\\s\\S]*正位置：[\\s\\S]*創造の継承[\\s\\S]*逆位置：[\\s\\S]*埋もれた創造/);
+  assert.match(customCardNotesForResults(result,null,'A')[0], /本質：[\s\S]*創り手（遺されるもの）[\s\S]*正位置：[\s\S]*創造の継承[\s\S]*逆位置：[\s\S]*埋もれた創造/);
   const markdown=formatReadingMarkdown({
     deckId:'A',rowCount:1,columnCount:1,rowLabels:['項'],columnLabels:['題'],primary:result
   });
@@ -291,8 +291,8 @@ test('copy notes have full approved A meanings and deck-specific B identity with
   const parallelA={positions:{r0c0:AIntro,r0c1:ATitle}};
   const aNotes=customCardNotesForResults(primaryA,parallelA,'A');
   assert.equal(aNotes.length,2);
-  assert.match(aNotes[0],/22 ウロボロス：[\\s\\S]*本質：[\\s\\S]*循環・死と再生[\\s\\S]*正位置：[\\s\\S]*終わりの始まり[\\s\\S]*逆位置：[\\s\\S]*始まりの終わり/);
-  assert.match(aNotes[1],/23 創り手：[\\s\\S]*本質：[\\s\\S]*後世に遺る影響[\\s\\S]*正位置：[\\s\\S]*創造の継承[\\s\\S]*逆位置：[\\s\\S]*埋もれた創造/);
+  assert.match(aNotes[0],/22 ウロボロス：[\s\S]*本質：[\s\S]*循環・死と再生[\s\S]*正位置：[\s\S]*終わりの始まり[\s\S]*逆位置：[\s\S]*始まりの終わり/);
+  assert.match(aNotes[1],/23 創り手：[\s\S]*本質：[\s\S]*後世に遺る影響[\s\S]*正位置：[\s\S]*創造の継承[\s\S]*逆位置：[\s\S]*埋もれた創造/);
   assert.ok(aNotes.every(n=>!n.includes('GUARANTEE')));
   const input={deckId:'A',question:'続ける？',rowCount:1,columnCount:2,rowLabels:['考え'],columnLabels:['甲','乙'],primary:primaryA,parallel:parallelA};
   const markdown=formatReadingMarkdown(input);
