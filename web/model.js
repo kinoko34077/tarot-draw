@@ -1,4 +1,5 @@
 import { MINOR_CARD_DISPLAY } from './card-name-ruby.js';
+import { deckASpecialInterpretation } from './deck-a-special-interpretations.js';
 
 const MAJOR_NUMBERS = Object.freeze({
   fool: '0',
@@ -190,6 +191,25 @@ export function rwsImageUrl(card, width = 128, deckId = 'B') {
 }
 
 
+// Export prose is separate from the compact detail-view fallback note.
+// Keep Deck A wording aligned with the accepted author-supplied interpretation;
+// Deck B has no approved symbolic meaning yet, so describe only its identity.
+function customCardCopyDescription(cardId, deckId) {
+  const title = customCardPresentation(cardId, deckId)?.title;
+  if (!title) return null;
+  const deckA = deckASpecialInterpretation(cardId, deckId);
+  if (deckA) {
+    return `${title}：デッキAに追加された、通常のタロット78枚には含まれないオリジナルカードです。\n本質：${deckA.essence}\n正位置：${deckA.upright}\n逆位置：${deckA.reversed}`;
+  }
+  if (deckId === 'B' && cardId === 'meta.title') {
+    return '22 タイトルカード：デッキBの表題を担う、通常のタロット78枚には含まれない独自カードです。大アルカナ0〜21番に続く追加の22番として扱い、通常のカードと同じく正位置・逆位置が抽選されます。このカード固有の占い上の意味や正逆それぞれの解釈文は、現時点で定義されていません。';
+  }
+  if (deckId === 'B' && cardId === 'meta.guarantee') {
+    return '23 GUARANTEE（保証カード）：デッキBの表題カード（22番）に続く、独自の23番カードです。通常のタロット78枚には含まれず、正位置・逆位置が抽選されます。「GUARANTEE」はカードの名前であり、必ず出現することや、占いの結果・未来を保証する意味ではありません。このカード固有の占い上の意味や正逆それぞれの解釈文は、現時点で定義されていません。';
+  }
+  return null;
+}
+
 export function customCardNotesForResults(primary, parallel, deckId = 'B') {
   const seen = new Set();
   for (const result of [primary, parallel]) {
@@ -200,7 +220,7 @@ export function customCardNotesForResults(primary, parallel, deckId = 'B') {
 
   return ['meta.title', 'meta.introduction', 'meta.guarantee']
     .filter(cardId => seen.has(cardId))
-    .map(cardId => customCardPresentation(cardId, deckId).note);
+    .map(cardId => customCardCopyDescription(cardId, deckId)).filter(Boolean);
 }
 
 export function formatReadingText({
