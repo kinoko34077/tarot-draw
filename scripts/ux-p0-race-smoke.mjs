@@ -507,6 +507,100 @@ try {
 
 
 
+
+    // #121: a repeat must clone layout metadata into a *new* editable Reading,
+    // never replay a committed or uncertain draw in its old server session.
+    for (const width of [320,390]) {
+      await navigate(width,false,true);
+      const result=await evalInPage(`(async()=>{
+        const q=s=>document.querySelector(s), all=s=>[...document.querySelectorAll(s)];
+        const wait=ms=>new Promise(r=>setTimeout(r,ms));
+        const edit=(selector,index,value)=>{
+          const label=all(selector)[index];
+          label.click();
+          const input=q('.axis-inline-input');
+          input.value=value;
+          input.dispatchEvent(new KeyboardEvent('keydown',{key:'Enter',bubbles:true}));
+        };
+        __p0.deferDraw=false;
+        const input=q('.question-input');
+        input.value='同じ配置で検証したい問い';
+        input.dispatchEvent(new Event('input',{bubbles:true}));
+        q('.axis-add-row-header .axis-add-button').click();
+        q('.axis-add-header .axis-add-button').click();
+        edit('.primary-matrix .row-header .axis-inline-label',0,'現在');
+        edit('.primary-matrix .row-header .axis-inline-label',1,'次の段階');
+        edit('.primary-matrix .column-header .axis-inline-label',0,'仕事');
+        edit('.primary-matrix .column-header .axis-inline-label',3,'創作');
+        const mask=q('.primary-matrix td[data-position="r0c0"] .cell-mask-toggle');
+        mask.click();
+        const sourceMask=q('.primary-matrix .cell-mask-excluded')?.length||0;
+        const firstLabels=[...all('.primary-matrix .row-header .axis-inline-label')].map(e=>e.textContent);
+        const firstColumns=[...all('.primary-matrix .column-header .axis-inline-label')].map(e=>e.textContent);
+        const readyInitially=q('#repeatReadingButton').classList.contains('hidden');
+        q('.shuffle-button').click();
+        for(let i=0;i<100&&all('.primary-pile-options .pile-button').length!==3;i++)await wait(20);
+        all('.primary-pile-options .pile-button')[0].click();
+        q('.pile-draw-button').click();
+        for(let i=0;i<150&&q('.reading-status').textContent!=='抽選完了';i++)await wait(20);
+        const sourceCompleted=q('.reading-status').textContent==='抽選完了';
+        const offered=!q('#repeatReadingButton').classList.contains('hidden') &&
+          !q('#newReadingButton').classList.contains('hidden');
+        const firstSessions=__p0.sessions,drawCalls=__p0.drawCalls.length;
+        const firstSource=q('.reading-workbench').innerText;
+        q('#repeatReadingButton').click();
+        const readings=all('.reading-workbench');
+        const second=readings.at(-1);
+        const rowLabels=[...second.querySelectorAll('.primary-matrix .row-header .axis-inline-label')].map(e=>e.textContent);
+        const columnLabels=[...second.querySelectorAll('.primary-matrix .column-header .axis-inline-label')].map(e=>e.textContent);
+        const clone={question:second.querySelector('.question-input').value,
+          rowLabels,columnLabels,masks:second.querySelectorAll('.primary-matrix .cell-mask-excluded').length,
+          results:second.querySelectorAll('.primary-matrix .card-detail-trigger').length,
+          status:second.querySelector('.reading-status').textContent,
+          oldResults:readings[0].querySelectorAll('.primary-matrix .card-detail-trigger').length,
+          oldQuestion:readings[0].querySelector('.question-input').value};
+        const cleanBeforeShuffle=__p0.sessions===firstSessions &&
+          __p0.drawCalls.length===drawCalls &&
+          q('#repeatReadingButton').classList.contains('hidden') &&
+          !q('.shuffle-button').disabled;
+        const fits= q('.history-actions').scrollWidth<=q('.history-actions').clientWidth+1;
+        q('.shuffle-button').click();
+        for(let i=0;i<100&&second.querySelectorAll('.primary-pile-options .pile-button').length!==3;i++)await wait(20);
+        const newSession=__p0.sessions===firstSessions+1;
+        second.querySelector('.primary-pile-options .pile-button').click();
+        second.querySelector('.pile-draw-button').click();
+        for(let i=0;i<150&&second.querySelector('.reading-status').textContent!=='抽選完了';i++)await wait(20);
+        const redrawn=second.querySelector('.reading-status').textContent==='抽選完了';
+        const oldStable=readings[0].innerText===firstSource;
+        q('#newReadingButton').click();
+        const fresh=all('.reading-workbench').at(-1);
+        const blank=fresh.querySelector('.question-input').value==='' &&
+          fresh.querySelectorAll('.primary-matrix .row-header').length===1 &&
+          fresh.querySelectorAll('.primary-matrix .column-header').length===3;
+        return {sourceMask,firstLabels,firstColumns,readyInitially,sourceCompleted,
+          offered,readingsAfterClone:readings.length,clone,cleanBeforeShuffle,fits,newSession,redrawn,oldStable,blank};
+      })()`);
+      assert.equal(result.sourceMask,1,JSON.stringify(result));
+      assert.equal(result.readyInitially,true);
+      assert.equal(result.sourceCompleted,true);
+      assert.equal(result.offered,true);
+      assert.equal(result.readingsAfterClone,2);
+      assert.deepEqual(result.clone.rowLabels,result.firstLabels);
+      assert.deepEqual(result.clone.columnLabels,result.firstColumns);
+      assert.equal(result.clone.question,'同じ配置で検証したい問い');
+      assert.equal(result.clone.masks,1);
+      assert.equal(result.clone.results,0);
+      assert.equal(result.clone.oldResults,7);
+      assert.equal(result.clone.oldQuestion,'同じ配置で検証したい問い');
+      assert.equal(result.cleanBeforeShuffle,true);
+      assert.equal(result.fits,true,'Repeat and New buttons must not overflow at '+width);
+      assert.equal(result.newSession,true,'Repeat must shuffle a fresh session');
+      assert.equal(result.redrawn,true);
+      assert.equal(result.oldStable,true,'Original result must not change');
+      assert.equal(result.blank,true,'Ordinary New must remain blank');
+      report('UX121-REPEAT-READING',{status:'PASS',width,...result});
+    }
+
     // #99: major-only option is not a CSS filter. The mock returns server
     // metadata (including mode) and all three authoritative pile capacities.
     for(const flags of [[false,false,22],[true,false,23],[false,true,23],[true,true,24]]) {
@@ -719,6 +813,9 @@ try {
         titleSelected,titleAProvenance,
         copyIntro:__p0.copiedText?.includes('23 創り手'),
         copyTitle:__p0.copiedText?.includes('22 ウロボロス'),
+        copyMeaning:__p0.copiedText?.includes('本質：')&&__p0.copiedText?.includes('正位置：')&&
+          __p0.copiedText?.includes('逆位置：')&&__p0.copiedText?.includes('創造の継承')&&
+          __p0.copiedText?.includes('終わりの始まり'),
         copyGuarantee:__p0.copiedText?.includes('GUARANTEE')
       };
     })()`);
@@ -753,6 +850,7 @@ try {
     assert.equal(intro.copyIntro,true);
     assert.equal(intro.copyTitle,true);
     assert.equal(intro.copyGuarantee,false);
+    assert.equal(intro.copyMeaning,true,'Copied Deck A extras need full essence/upright/reversed text');
     report('UX78-DECK-A-INTRO-DRAW',{status:'PASS',...intro});
 
     await navigate(390);
