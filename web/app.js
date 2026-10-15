@@ -17,7 +17,7 @@ import { keywordGridDraft } from './card-keyword-grid.js';
 import { deckASpecialInterpretation } from './deck-a-special-interpretations.js';
 import { buildApiUrl, resolveRuntimeConfig } from './runtime-config.js';
 import { defaultSettings, loadSettings, saveSettings } from './settings-store.js';
-import { makeHistoryEntry, safeHistoryRecords, saveHistoryRecords, HISTORY_LIMIT } from './reading-history.js';
+import { applyHistoryDeletion, makeHistoryEntry, safeHistoryRecords, saveHistoryRecords, HISTORY_LIMIT } from './reading-history.js';
 
 const runtime = resolveRuntimeConfig(globalThis.__TAROT_DRAW_CONFIG__ ?? {});
 const LONG_PRESS_MS = 520;
@@ -1950,10 +1950,14 @@ function renderStoredHistory(openId = null) {
     const remove=document.createElement('button');remove.type='button';remove.className='secondary';remove.textContent='この履歴を削除';
     remove.addEventListener('click',()=>{
       if(!window.confirm('この保存履歴を削除しますか？'))return;
-      const i=storedHistory.findIndex(x=>x.id===record.id);
-      if(i>=0)storedHistory.splice(i,1);
-      try {saveHistoryRecords(window.localStorage,storedHistory);} catch {}
+      let removed=false;
+      try { removed=applyHistoryDeletion(window.localStorage,storedHistory,record.id); } catch {}
+      if (!removed) {
+        page.historyStatus.textContent='ブラウザへの保存が失敗したため履歴を削除できません。ブラウザの保存容量・権限を確認してください。';
+        return;
+      }
       renderStoredHistory();
+      page.historyStatus.textContent='この保存履歴を削除しました。';
     });
     actions.append(reuse,remove);details.append(actions,original);
     page.savedHistory.append(details);
@@ -1981,9 +1985,14 @@ page.importReadingButton.addEventListener('click',()=> {
 page.clearHistoryButton.addEventListener('click',()=> {
   if(!storedHistory.length)return;
   if(!window.confirm('このブラウザに保存された履歴をすべて削除しますか？'))return;
-  storedHistory.length=0;
-  try {saveHistoryRecords(window.localStorage,storedHistory);} catch {}
-  renderStoredHistory();page.loadReadingFeedback.textContent='保存履歴を削除しました。';
+  let cleared=false;
+  try { cleared=applyHistoryDeletion(window.localStorage,storedHistory); } catch {}
+  if (!cleared) {
+    page.loadReadingFeedback.textContent='保存履歴を削除できません。ブラウザの保存容量・権限を確認してください。';
+    return;
+  }
+  renderStoredHistory();
+  page.loadReadingFeedback.textContent='保存履歴を削除しました。';
 });
 
 // A repeat is a NEW editable reading from a snapshot of the previous layout.

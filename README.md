@@ -2,16 +2,24 @@
 
 Public tarot draw API and single-page web application.
 
-## v1 scope
+## Current site (2026-10-15)
 
-- Rider-Waite-Smith standard 78 cards plus custom Title and GUARANTEE cards (80 total).
+- **Deck A (default)**: standard 78 Rider–Waite–Smith cards plus optional 22 ウロボロス and 23 創り手; **Deck B**: standard 78 plus optional 22 タイトルカード and 23 GUARANTEE. Settings can restrict draws to majors only (22–24 cards) or use the full deck (78–80).
+- Authenticated session shuffle, three card piles and optional independently drawn hypothetical Parallel branch. The browser displays positions/orientations and *reference meanings* (78 standard cards and accepted Deck A originals); it does **not** generate an automated reading or guarantee future outcomes.
+- The single-page workspace supports n×m row/column labels, disabled × cells, undo/redo, visible card detail prompts, side-by-side upright/reversed references, a Read/Help/Settings header, markdown copy plus a selectable fallback and a fresh same-question/layout redo.
+- **Browser-local history**: completed results are auto-saved as original copied Markdown snapshots under `tarot-draw.history.v1` using localStorage (at most 40; browser clearing/quota may erase them). `読込・履歴` above the workspace accepts pasted result Markdown, displays parsed Primary/Parallel tables **read-only**, allows deleting records and starts a fresh editing layout from the saved question/axes/masks. **It never reuses a server draw/session and never syncs questions/results to a cloud database.** The separate `tarot-draw.preferences.v1` key holds deck settings.
+- Production UI: https://kinoko34077.github.io/tarot-draw/ — canonical behavior and acceptance details live in [docs/SPECIFICATION.md](docs/SPECIFICATION.md) and [roadmap #39](https://github.com/kinoko34077/tarot-draw/issues/39).
+
+## v1 scope (historical initial design, superseded where different from the current section)
+
+- Initial concept: standard 78 plus Title and GUARANTEE (80); current Deck A and majors-only options supersede this.
 - Server-owned shuffle, upright/reversed orientation, three-way split, branch state, and draw state.
 - 27 / 27 / 26 split with independent branches from one split snapshot.
 - Optional parallel reading representing "if I had chosen the other pile".
 - Arbitrary rectangular n×m reading layout with web-owned row/column labels.
 - Result-only display: card identity + orientation + position context.
 - One-action bulk copy of the current Primary/Parallel results.
-- No tarot meanings or automated interpretation in v1.
+- Initial v1 omitted meanings; the current app includes source-backed reference meanings, **not** automated interpretation.
 
 ## Run
 
@@ -56,14 +64,14 @@ Deploy with `npm run deploy:cloudflare` after verification. The deployed Worker 
 
 ## Reading workspace
 
-The browser UI uses direct table manipulation: rows and columns are added from the matrix itself and can be removed from contextual axis controls before shuffle. Each completed reading keeps its question, matrix, optional Parallel branch and copy action in an append-only in-page history.
+The browser UI uses direct table manipulation: rows and columns are added from the matrix itself and can be removed from contextual axis controls before shuffle. Each completed reading remains visible in the current page; a browser-local Markdown snapshot is also saved to the separate optional localStorage archive.
 
 Standard 78-card results use the public-domain Pamela Colman Smith Rider-Waite-Smith image set sourced from Wikimedia Commons. Runtime delivery is self-hosted compressed WebP: 128px grid assets and 256px detail assets. The accepted generated set is 7.6 KB average / 11.2 KB maximum for grid images and 25.8 KB average / 41.4 KB maximum for detail images. Reversed cards rotate the artwork 180 degrees while keeping the textual card identity/orientation upright. Title Card and GUARANTEE intentionally use separate non-RWS faces.
 
 
 ## 78-card detail keyword grid (#26)
 
-The card-detail dialog for each standard Rider–Waite–Smith card displays the existing artwork, **five independent Japanese theme headings × four keywords**, and the previously available essence/upright/reversed reference text. The five groups are displayed in five semantic table rows, each row combining a vertical-writing heading and four vertical-writing short terms, always **to the right of the enlarged upper-left card**, including on mobile. The dialog height follows its contents with vertical scrolling where needed, avoiding oversized blank areas. The concise upright/reversed scope explanation and Tarotoo MIT source link live **only in the ⓘ popup**. Essence text remains slightly larger than upright/reversed descriptions. Two original cards (Title / GUARANTEE) deliberately have no tarot keywords. The 80-card draw, API, branch, row/column layout and TSV copy behavior remain unchanged.
+The card-detail dialog for each standard Rider–Waite–Smith card displays the existing artwork, **five independent Japanese theme headings × four keywords**, and the previously available essence/upright/reversed reference text. The five groups are displayed in five semantic table rows, each row combining a vertical-writing heading and four vertical-writing short terms, always **to the right of the enlarged upper-left card**, including on mobile. The dialog height follows its contents with vertical scrolling where needed, avoiding oversized blank areas. The concise upright/reversed scope explanation and Tarotoo MIT source link live **only in the ⓘ popup**. Essence text remains slightly larger than upright/reversed descriptions. Deck A 22/23 have approved independently authored keywords and essence/upright/reversed meanings; Deck B's own 22/23 do not have invented tarot meanings. The authoritative draw API and branch boundaries remain unchanged; current standard copy output is Markdown.
 
 The 78 keyword records are newly composed in Japanese using the [Tarotoo Tarot Card Meanings Dataset](https://github.com/Tarotoo-com/tarotoo-tarot-dataset) (MIT, © 2026 Tarotoo) as an English conceptual reference. [Full licence notice](docs/third-party/TAROTOO-LICENSE.txt), [editorial rules](docs/KEYWORD_EDITORIAL_GUIDE.md) and [78-card provenance / QA](docs/KEYWORD_W2_PROVENANCE.md) are preserved in the repository. Third-party concept-map graphics and the likely-transcribed original keyword compilation are **not** included and are not licensed by this feature.
 
@@ -71,7 +79,7 @@ For local browser verification with Chrome/Chromium available, run `node scripts
 
 ### #32: vertical-writing detail table layout
 
-The card detail window now places its **enlarged RWS card at upper left** and its five-by-five keyword table **directly to the right on every screen size** (including phones); it no longer stacks keywords below the image. Each thematic heading and each keyword is written **vertically** within its semantic table cell. The dialog adjusts height to its contents and avoids excessive blank space ahead of the original Essence, upright and reversed descriptions. A visible **「キーワード」** heading is placed immediately above the right-hand table, with an adjacent accessible **ⓘ action** for the short card-wide upright/reversed clarification and the independently edited Tarotoo MIT credit/link, rather than permanent on-page paragraphs. The keyword pane cannot pan horizontally. Existing 78 card meanings/draw behavior and special-card exclusion are unchanged.
+The card detail window now places its **enlarged RWS card at upper left** and its 5-row, 4-terms-per-row keyword table **directly to the right on every screen size** (including phones); it no longer stacks keywords below the image. Each thematic heading and each keyword is written **vertically** within its semantic table cell. The dialog adjusts height to its contents and avoids excessive blank space ahead of the original Essence, upright and reversed descriptions. A visible **「キーワード」** heading is placed immediately above the right-hand table, with an adjacent accessible **ⓘ action** for the short card-wide upright/reversed clarification and the independently edited Tarotoo MIT credit/link, rather than permanent on-page paragraphs. The keyword pane cannot pan horizontally. Existing 78 card meanings/draw behavior and special-card exclusion are unchanged.
 
 ### #34: label and contextual explanation
 
