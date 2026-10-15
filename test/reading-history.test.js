@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { parseReadingCopy, makeHistoryEntry, safeHistoryRecords, saveHistoryRecords, HISTORY_KEY } from '../web/reading-history.js';
+import { parseReadingCopy, makeHistoryEntry, safeHistoryRecords, saveHistoryRecords, applyHistoryDeletion, HISTORY_KEY } from '../web/reading-history.js';
 import { formatReadingMarkdown } from '../web/model.js';
 
 function sample() {
@@ -50,4 +50,44 @@ test('localStorage snapshot supports refresh, is bounded and never stores server
   assert.equal(restored[0].sessionId,undefined);
   assert.deepEqual(restored[0].deck,entry.deck);
   assert.equal(saveHistoryRecords({setItem(){throw Error('quota');}},[entry]),false);
+});
+
+test('cache recovery discards malformed sources and rebuilds untrusted cached tables/axes',()=>{
+  const source=sample(), base={id:'valid',savedAt:'2026-10-15T13:00:00.000Z',
+    raw:source,rowLabels:['corrupt'],columnLabels:['corrupt'],
+    tables:[{label:'Primary',rowLabels:['bad'],columnLabels:['bad'],values:null}],
+    deck:{deckId:'invalid',majorOnly:'yes',includeTitle:1,includeSecondary:1}};
+  const other={...base,id:'invalid',raw:'<script>alert(1)</script>'};
+  const duplicate={...base,id:'valid'};
+  const cache={getItem:()=>JSON.stringify([base,other,duplicate])};
+  const recovered=safeHistoryRecords(cache);
+  assert.equal(recovered.length,1);
+  assert.equal(recovered[0].question,'今日の仕事は進む？');
+  assert.deepEqual(recovered[0].rowLabels,['現在','未来']);
+  assert.deepEqual(recovered[0].columnLabels,['仕事','創作']);
+  assert.equal(recovered[0].tables[0].values[1][0],'-');
+  assert.equal(recovered[0].deck,null);
+  assert.equal(recovered[0].raw,source);
+  assert.equal(recovered[0].sessionId,undefined);
+});
+
+test('single/bulk deletion is durable or leaves records intact on storage failure',()=>{
+  const original=[makeHistoryEntry(sample(),{id:'a',savedAt:'2026-10-15T13:00:00.000Z'}),
+    makeHistoryEntry(sample(),{id:'b',savedAt:'2026-10-15T13:01:00.000Z'})];
+  const records=[...original],map=new Map();
+  const storage={getItem:k=>map.get(k)??null,setItem:(k,v)=>map.set(k,v)};
+  assert.ok(saveHistoryRecords(storage,records));
+  const frozen=map.get(HISTORY_KEY);
+  assert.equal(applyHistoryDeletion({setItem(){throw Error('quota exceeded');}},records,'a'),false);
+  assert.equal(records.length,2);
+  assert.equal(map.get(HISTORY_KEY),frozen);
+  assert.equal(applyHistoryDeletion(storage,records,'absent'),false);
+  assert.equal(applyHistoryDeletion(storage,records,'a'),true);
+  assert.deepEqual(records.map(r=>r.id),['b']);
+  assert.deepEqual(safeHistoryRecords(storage).map(r=>r.id),['b']);
+  assert.equal(applyHistoryDeletion({setItem(){throw Error('permission denied');}},records),false);
+  assert.deepEqual(records.map(r=>r.id),['b']);
+  assert.equal(applyHistoryDeletion(storage,records),true);
+  assert.deepEqual(records,[]);
+  assert.deepEqual(safeHistoryRecords(storage),[]);
 });
