@@ -296,7 +296,7 @@ export function formatReadingMarkdown({
 
   const notes = customCardNotesForResults(primary, parallel, deckId);
   if (notes.length) {
-    blocks.push(['### 独自カードについて', ...notes.map(note => `- ${note}`)].join('\n'));
+    blocks.push(['### 独自カードについて', ...notes.map(note => `- ${note.replaceAll('\n', '\n  ')}`)].join('\n'));
   }
   return blocks.join('\n\n');
 
