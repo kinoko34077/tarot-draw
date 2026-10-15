@@ -23,6 +23,7 @@ const LONG_PRESS_MS = 520;
 const page = {
   readings: document.querySelector('#readings'),
   newReadingButton: document.querySelector('#newReadingButton'),
+  repeatReadingButton: document.querySelector('#repeatReadingButton'),
   shuffleButton: document.querySelector('#shuffleButton'),
   drawButton: document.querySelector('#drawButton'),
   axisMenu: document.querySelector('#axisMenu'),
@@ -595,18 +596,19 @@ function fitMatrixAxes(root) {
   }
 }
 
-function createReadingController(number) {
+function createReadingController(number, template = null) {
+  const initialDeck = template?.deck ?? chosenSettings;
   const state = {
     number,
     phase: 'editing',
-    question: '',
-    deckId: chosenSettings.deckId,
-    includeTitle: chosenSettings.includeTitle,
-    includeSecondary: chosenSettings.includeSecondary,
-    majorOnly: chosenSettings.majorOnly,
-    inactivePositions: new Set(),
-    rowLabels: [''],
-    columnLabels: ['', '', ''],
+    question: template?.question ?? '',
+    deckId: initialDeck.deckId,
+    includeTitle: initialDeck.includeTitle,
+    includeSecondary: initialDeck.includeSecondary,
+    majorOnly: initialDeck.majorOnly,
+    inactivePositions: new Set(template?.inactivePositions ?? []),
+    rowLabels: template ? [...template.rowLabels] : [''],
+    columnLabels: template ? [...template.columnLabels] : ['', '', ''],
     sessionId: null,
     piles: [],
     primaryPile: null,
@@ -734,6 +736,7 @@ function createReadingController(number) {
     return true;
   }
 
+  refs.questionInput.value = state.question;
   refs.questionInput.addEventListener('input', event => {
     if (state.pendingOperation || state.phase === 'draw-uncertain' || state.phase === 'completed') return;
     state.question = event.target.value;
@@ -1744,6 +1747,7 @@ function createReadingController(number) {
           ? `${got} の結果は取得できました。ほかの抽選は確定状況が不明です。二重抽選を避けるため、この占いの再試行を停止しました。`
           : '抽選結果を確認できませんでした。サーバー側で確定済みの可能性があるため、同じ抽選の再試行は停止しました。', 'error');
         page.newReadingButton.classList.remove('hidden');
+        page.repeatReadingButton.classList.remove('hidden');
       } else {
         state.drawOutcome = 'completed';
         state.phase = 'completed';
@@ -1763,6 +1767,7 @@ function createReadingController(number) {
       state.phase = 'draw-uncertain';
       refs.pilePanel.classList.add('hidden');
       page.newReadingButton.classList.remove('hidden');
+      page.repeatReadingButton.classList.remove('hidden');
       setTextStatus(refs.status,
         `結果を安全に確定できませんでした。再抽選せず新しい占いからやり直してください。（${error.message}）`, 'error');
     } finally {
@@ -1806,18 +1811,50 @@ function createReadingController(number) {
   return controller;
 }
 
-function appendReading() {
-  const controller = createReadingController(nextReadingNumber++);
+// A repeat is a NEW editable reading from a snapshot of the previous layout.
+// No remote draw/session, pile, card result or undo history may be transferred.
+function snapshotReadingTemplate(controller) {
+  if (!controller || !['completed', 'draw-uncertain'].includes(controller.state.phase) ||
+      controller.state.pendingOperation) return null;
+  const state = controller.state;
+  return {
+    question: state.question,
+    rowLabels: [...state.rowLabels],
+    columnLabels: [...state.columnLabels],
+    inactivePositions: [...state.inactivePositions],
+    deck: { deckId: state.deckId, includeTitle: state.includeTitle,
+      includeSecondary: state.includeSecondary, majorOnly: state.majorOnly }
+  };
+}
+
+function appendReading(template = null) {
+  const controller = createReadingController(nextReadingNumber++, template);
   readings.push(controller);
   page.readings.append(controller.article);
   controller.render();
   page.newReadingButton.classList.add('hidden');
+  page.repeatReadingButton.classList.add('hidden');
   controller.focusQuestion();
   controller.article.scrollIntoView({ block: 'start' });
 }
 
 page.shuffleButton.addEventListener('click', () => readings.at(-1)?.shuffle());
 page.drawButton.addEventListener('click', () => readings.at(-1)?.draw());
-page.newReadingButton.addEventListener('click', appendReading);
+page.newReadingButton.addEventListener('click', () => appendReading());
+page.repeatReadingButton.addEventListener('click', () => {
+  const template = snapshotReadingTemplate(readings.at(-1));
+  if (!template) return;
+  // Keep the settings dialog and the new reading in sync even if the user's
+  // current preferences were changed after the old reading was shuffled.
+  Object.assign(chosenSettings, template.deck);
+  Object.assign(deckSelections[template.deck.deckId], {
+    includeTitle: template.deck.includeTitle,
+    includeSecondary: template.deck.includeSecondary
+  });
+  rememberSettings();
+  syncSettingsControls();
+  renderSettingsSummary();
+  appendReading(template);
+});
 
 appendReading();
