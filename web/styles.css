@@ -1715,6 +1715,9 @@ input:focus-visible {
 /* #57: the user's full Markdown remains selectable even without Clipboard
    permission; no storage or upload is involved. */
 .copy-preview-panel {
+  min-width: 0;
+  max-width: 100%;
+  overflow-x: hidden;
   border-top: 1px solid var(--border);
   padding: 9px 10px 11px;
   background: var(--surface-soft);
