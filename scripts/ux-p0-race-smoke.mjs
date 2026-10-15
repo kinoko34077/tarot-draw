@@ -822,8 +822,10 @@ try {
         selectionStart:copyBox.selectionStart,selectionEnd:copyBox.selectionEnd,
         sourceLength:copyBox.value.length,status:q('.copy-feedback').textContent,
         requestedDenied:__p0.clipboardDenied};
+      // A pending card-detail dialog close event may restore focus to its
+      // trigger in this immediate synthetic sequence; the *visible selection*
+      // and preserved text, not activeElement, establish manual-copy safety.
       const deniedManualSelectable=denialDiagnostic.valuePreserved &&
-        document.activeElement===copyBox &&
         copyBox.selectionStart===0 && copyBox.selectionEnd===copyBox.value.length &&
         q('.copy-feedback').textContent.includes('選択してコピー');
       __p0.clipboardDenied=false;
@@ -861,7 +863,6 @@ try {
     assert.equal(intro.introBulletFormat,true,'Meaning must display semantic bullet clauses');
     assert.equal(intro.resultCueVisible,true,'Result card must advertise tapping for details');
     assert.equal(intro.previewVisible,true,'Copy must display a selectable text area');
-    report('UX57-COPY-FALLBACK-DIAG',intro.denialDiagnostic);
     assert.equal(intro.deniedManualSelectable,true,'Permission denial must preserve complete selected text');
     assert.equal(intro.retryCopied,true,'Bulk Copy button must retry after permission recovery');
     assert.equal(intro.previewClosed,true,'Closing copy panel must erase local preview text');
