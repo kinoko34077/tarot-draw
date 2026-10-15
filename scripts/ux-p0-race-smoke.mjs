@@ -1369,7 +1369,11 @@ try {
       const mainClearedAfterDone=piles().every(p=>p.getAttribute('aria-pressed')==='false');
       piles()[1].click();alternatives()[0].click();
       const drawEnabledAfterReselect=!one('.draw-button').disabled;
-      const right=()=>one('.heading-right-controls').getBoundingClientRect().right;
+      // Changing the visible Copy preview may introduce/remove the page's
+      // vertical scrollbar. Verify the buttons' fixed position *inside the
+      // header*, not its viewport X coordinate after a scroll-bar change.
+      const right=()=>one('.matrix-heading').getBoundingClientRect().right -
+        one('.heading-right-controls').getBoundingClientRect().right;
       const initialRight=right();
       __p0.deferDraw=false;
       one('.draw-button').click();
