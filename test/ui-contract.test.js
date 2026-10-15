@@ -146,7 +146,10 @@ test('standard cards render lightweight Commons RWS art and reversed art rotates
 test('completed readings remain while new reading appends below and each keeps copy', async () => {
   const app = await read('../web/app.js');
   assert.ok(app.includes('page.readings.append(controller.article)'));
-  assert.ok(app.includes("page.newReadingButton.addEventListener('click', appendReading)"));
+  assert.ok(app.includes("page.newReadingButton.addEventListener('click', () => appendReading())"));
+  assert.ok(app.includes("page.repeatReadingButton.addEventListener('click'"));
+  const html = await readFile(new URL('../web/index.html',import.meta.url),'utf8');
+  assert.match(html, /id="repeatReadingButton"[^>]*>同じ質問・配置で引き直す<\/button>/);
   assert.ok(app.includes("page.newReadingButton.classList.remove('hidden')"));
   assert.ok(!app.includes('replaceChildren(controller.article)'));
 });

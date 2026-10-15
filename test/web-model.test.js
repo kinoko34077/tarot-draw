@@ -81,9 +81,9 @@ test('custom-card notes include only custom cards that occurred', () => {
   const title = { positions: { r0c0: { card_id: 'meta.title' } } };
   const normal = { positions: { r0c0: { card_id: 'major.sun' } } };
   assert.deepEqual(customCardNotesForResults(normal), []);
-  assert.deepEqual(customCardNotesForResults(title), [
-    '22 タイトルカード：独自カード。正位置・逆位置あり。'
-  ]);
+  assert.equal(customCardNotesForResults(title).length, 1);
+  assert.match(customCardNotesForResults(title)[0], /22 タイトルカード：デッキBの表題/);
+  assert.match(customCardNotesForResults(title)[0], /意味や正逆それぞれの解釈文は、現時点で定義されていません/);
 });
 
 test('bulk copy starts with question, preserves TSV geometry, and appends custom notes', () => {
@@ -110,8 +110,8 @@ test('bulk copy starts with question, preserves TSV geometry, and appends custom
   assert.match(text, /\t開発\t作品/);
   assert.match(text, /優先度\tXII 吊るされた男 逆位置\t23 GUARANTEE 正位置/);
   assert.match(text, /【独自カード説明】/);
-  assert.match(text, /22 タイトルカード：独自カード/);
-  assert.match(text, /23 保証カード：独自カード/);
+  assert.match(text, /22 タイトルカード：デッキBの表題/);
+  assert.match(text, /23 GUARANTEE（保証カード）：デッキB/);
 });
 
 test('bulk copy supports the user-facing 3x6 table shape without flattening', () => {
@@ -196,11 +196,11 @@ test('Markdown paired results distinguish actual and alternate pile and explain 
   assert.match(markdown, /## パラレルリーディング（山C）[\s\S]*?\| 可能性 \| 23 GUARANTEE 逆位置 \|/);
   assert.match(markdown, /### パラレルリーディングについて\n\n/);
   assert.ok(markdown.includes(PARALLEL_READING_NOTE));
-  assert.match(markdown, /### 独自カードについて[\s\S]*- 23 保証カード：/);
+  assert.match(markdown, /### 独自カードについて[\s\S]*- 23 GUARANTEE（保証カード）：/);
   assert.match(tsv, /【Parallel】/);
   assert.match(tsv, /【パラレルリーディング説明】\n/);
   assert.ok(tsv.includes(PARALLEL_READING_NOTE));
-  assert.match(tsv, /【独自カード説明】[\s\S]*23 保証カード：/);
+  assert.match(tsv, /【独自カード説明】[\s\S]*23 GUARANTEE（保証カード）：/);
   assert.equal(formatReadingText({ ...data, parallel: null }).includes('【パラレルリーディング説明】'), false);
 });
 
@@ -258,6 +258,7 @@ test('Deck A introduction custom replaces Deck B guarantee only in display/notes
   assert.equal(cardDisplayText(intro,'A'),'23 創り手 正位置');
   assert.ok(customCardNotesForResults(result,null,'A')[0].includes('23 創り手'));
   assert.ok(!customCardNotesForResults(result,null,'A')[0].includes('GUARANTEE'));
+  assert.match(customCardNotesForResults(result,null,'A')[0], /本質：[\s\S]*創り手（遺されるもの）[\s\S]*正位置：[\s\S]*創造の継承[\s\S]*逆位置：[\s\S]*埋もれた創造/);
   const markdown=formatReadingMarkdown({
     deckId:'A',rowCount:1,columnCount:1,rowLabels:['項'],columnLabels:['題'],primary:result
   });
@@ -280,4 +281,40 @@ test('masked cross layout copies skipped cells as literal - without shifting the
   assert.ok(!markdown.includes('\\- |'));
   const tsv=formatReadingText(data);
   assert.ok(tsv.includes('上\t-\t0 愚者 正位置\t-'));
+});
+
+test('copy notes have full approved A meanings and deck-specific B identity without duplication', () => {
+  const ATitle={card_id:'meta.title',orientation:'reversed'};
+  const AIntro={card_id:'meta.introduction',orientation:'upright'};
+  const BGuarantee={card_id:'meta.guarantee',orientation:'reversed'};
+  const primaryA={positions:{r0c0:ATitle,r0c1:AIntro}};
+  const parallelA={positions:{r0c0:AIntro,r0c1:ATitle}};
+  const aNotes=customCardNotesForResults(primaryA,parallelA,'A');
+  assert.equal(aNotes.length,2);
+  assert.match(aNotes[0],/22 ウロボロス：[\s\S]*本質：[\s\S]*循環・死と再生[\s\S]*正位置：[\s\S]*終わりの始まり[\s\S]*逆位置：[\s\S]*始まりの終わり/);
+  assert.match(aNotes[1],/23 創り手：[\s\S]*本質：[\s\S]*後世に遺る影響[\s\S]*正位置：[\s\S]*創造の継承[\s\S]*逆位置：[\s\S]*埋もれた創造/);
+  assert.ok(aNotes.every(n=>!n.includes('GUARANTEE')));
+  const input={deckId:'A',question:'続ける？',rowCount:1,columnCount:2,rowLabels:['考え'],columnLabels:['甲','乙'],primary:primaryA,parallel:parallelA};
+  const markdown=formatReadingMarkdown(input);
+  const tsv=formatReadingText(input);
+  for(const out of [markdown,tsv]){
+    assert.match(out,/終わりの始まり/);
+    assert.match(out,/始まりの終わり/);
+    assert.match(out,/創造の継承/);
+    assert.match(out,/埋もれた創造/);
+    assert.equal((out.match(/22 ウロボロス：デッキA/g)||[]).length,1);
+    assert.equal((out.match(/23 創り手：デッキA/g)||[]).length,1);
+    assert.doesNotMatch(out,/23 GUARANTEE/);
+  }
+  assert.match(markdown,/\\| 考え \\| 22 ウロボロス 逆位置 \\| 23 創り手 正位置 \\|/);
+  const b={...input,deckId:'B',primary:{positions:{r0c0:ATitle,r0c1:BGuarantee}},parallel:null};
+  const bNotes=customCardNotesForResults(b.primary,null,'B');
+  assert.equal(bNotes.length,2);
+  assert.match(bNotes[0],/22 タイトルカード：デッキBの表題/);
+  assert.match(bNotes[1],/23 GUARANTEE（保証カード）：デッキBの表題カード/);
+  assert.ok(bNotes.every(n=>n.includes('解釈文は、現時点で定義されていません')));
+  assert.ok(bNotes[1].includes('必ず出現することや'));
+  assert.ok(bNotes.every(n=>!n.includes('ウロボロス')&&!n.includes('創り手')));
+  assert.equal(customCardNotesForResults({positions:{r0c0:{card_id:'major.fool'}}},null,'A').length,0);
+  assert.equal(customCardNotesForResults({positions:{r0c0:AIntro}},null,'B').length,0);
 });

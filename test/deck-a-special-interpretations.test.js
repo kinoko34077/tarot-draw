@@ -107,8 +107,10 @@ test('Deck A visible names are ウロボロス/創り手 without renaming Deck B
   assert.equal(cardDisplayText(aIntro, 'A'), '23 創り手 逆位置');
   assert.equal(customCardPresentation(TITLE, 'A').faceTitle, '22 ウロボロス');
   assert.equal(customCardPresentation(INTRO, 'A').faceTitle, '23 創り手');
-  assert.deepEqual(customCardNotesForResults({ positions: { r0c0: aTitle, r0c1: aIntro } }, null, 'A'),
-    ['22 ウロボロス：独自カード。正位置・逆位置あり。', '23 創り手：独自カード。正位置・逆位置あり。']);
+  const copiedNotes=customCardNotesForResults({ positions: { r0c0: aTitle, r0c1: aIntro } }, null, 'A');
+  assert.equal(copiedNotes.length,2);
+  assert.match(copiedNotes[0], /22 ウロボロス：[\s\S]*本質：[\s\S]*正位置：[\s\S]*逆位置：/);
+  assert.match(copiedNotes[1], /23 創り手：[\s\S]*本質：[\s\S]*正位置：[\s\S]*逆位置：/);
   assert.equal(cardDisplayParts(aTitle, 'B').title, '22 タイトルカード');
   assert.equal(cardDisplayParts({ card_id: 'meta.guarantee', name_ja: 'GUARANTEE', orientation: 'upright' }, 'B').title, '23 GUARANTEE');
   assert.equal(cardDisplayParts(aIntro, 'B').title, '23 パメラ・コールマン・スミス紹介カード');

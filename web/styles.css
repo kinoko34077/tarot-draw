@@ -1677,3 +1677,7 @@ input:focus-visible {
   .help-panel { padding-inline: 11px; }
   .help-section p, .help-section li, .help-section dd { font-size: .82rem; }
 }
+
+/* #121: both next-reading paths stay visible and tappable on small screens. */
+.history-actions { flex-wrap: wrap; gap: 8px; padding-inline: 8px; }
+.repeat-reading-button { min-height: 38px; max-width: 100%; white-space: normal; }
