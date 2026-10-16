@@ -347,6 +347,14 @@ try {
         const sections=[...document.querySelectorAll('#helpDialog .help-section h3')].map(x=>x.textContent);
         const terms=[...document.querySelectorAll('#helpDialog .help-cards dt')].map(x=>x.textContent);
         const text=q('#helpDialog .help-content').textContent;
+        const imgs=[...document.querySelectorAll('#helpDialog .help-demo-cards img')];
+        const imageLoaded=await Promise.all(imgs.map(async img=>{
+          try { await img.decode(); return img.naturalWidth>0; } catch { return false; }
+        }));
+        const illustrated=[...document.querySelectorAll('#helpDialog .help-scene')].length===3 &&
+          !!document.querySelector('#helpDialog .help-demo-grid') &&
+          !!document.querySelector('#helpDialog .help-demo-piles') &&
+          imgs.length===3 && imageLoaded.every(Boolean);
         const overflowSafe=q('#helpDialog').scrollWidth<=q('#helpDialog').clientWidth+1;
         const bounded=q('#helpDialog').getBoundingClientRect().height<=innerHeight-8;
         q('#helpDone').click(); await wait(25);
@@ -359,7 +367,7 @@ try {
         await wait(25);
         const backdropClosed=!q('#helpDialog').open&&document.activeElement===helpButton;
         return {height:top.height,headerFits,adjacent,controlsInside,labelled,
-          opened,helpTitle,firstFocus,sections,terms,overflowSafe,bounded,
+          opened,helpTitle,firstFocus,sections,terms,illustrated,imageLoaded,overflowSafe,bounded,
           footerClosed,xClosed,backdropClosed,
           hasReading:/正位置・逆位置|正位置.*逆位置/.test(text) && text.includes('問いとマスの位置'),
           hasSteps:text.includes('シャッフル')&&text.includes('結果をコピー')&&text.includes('Primary')&&text.includes('Parallel'),
@@ -377,6 +385,7 @@ try {
       assert.deepEqual(help.sections,['基本操作','リーディングの考え方','デッキとオリジナルカード']);
       assert.equal(help.terms.length,4);
       assert.ok(help.hasReading && help.hasSteps && help.hasCustom,'Help needs correct reading/custom-card instructions');
+      assert.equal(help.illustrated,true,'Help must show actual existing card art and compact question/grid/pile scenes: '+JSON.stringify(help.imageLoaded));
       assert.equal(help.overflowSafe,true,'Help dialog content must fit horizontally');
       assert.equal(help.bounded,true,'Help modal must fit screen height');
       assert.ok(help.footerClosed && help.xClosed && help.backdropClosed,'Help must close and restore focus in all paths');
