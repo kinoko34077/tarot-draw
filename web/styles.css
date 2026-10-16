@@ -1792,6 +1792,8 @@ input:focus-visible {
 }
 .history-disclosure { margin-top: 10px; border-top: 1px solid var(--border); padding-top: 9px; }
 .history-disclosure > summary { cursor: pointer; font-size: .83rem; font-weight: 650; color: var(--muted); }
+/* Author display rules must not override the UA <details> closed state. */
+.history-disclosure:not([open]) > :not(summary) { display: none !important; }
 .history-disclosure .saved-history {
   margin: 8px 0 2px; padding: 5px; max-height: min(42dvh, 360px);
   overflow-y: auto; overflow-x: hidden;
