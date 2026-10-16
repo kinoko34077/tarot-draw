@@ -18,6 +18,7 @@ import { deckASpecialInterpretation } from './deck-a-special-interpretations.js'
 import { buildApiUrl, resolveRuntimeConfig } from './runtime-config.js';
 import { defaultSettings, loadSettings, saveSettings } from './settings-store.js';
 import { applyHistoryDeletion, makeHistoryEntry, safeHistoryRecords, saveHistoryRecords, HISTORY_LIMIT } from './reading-history.js';
+import { historyImportOutcome } from './history-import-outcome.js';
 
 const runtime = resolveRuntimeConfig(globalThis.__TAROT_DRAW_CONFIG__ ?? {});
 const LONG_PRESS_MS = 520;
@@ -1988,13 +1989,10 @@ page.importReadingButton.addEventListener('click',()=> {
   try {
     const { saved } = recordHistory(page.loadReadingText.value);
     page.historyDisclosure.open = true;
-    if (saved) {
-      page.loadReadingFeedback.textContent='読み込みました。このブラウザに保存しました。';
-      page.loadReadingText.value='';
-    } else {
-      // Do not discard the only copy when localStorage is full or unavailable.
-      page.loadReadingFeedback.textContent='読み込みましたが、ブラウザへ保存できませんでした。元の文章を残しています。コピーして保管してください。';
-    }
+    const outcome = historyImportOutcome(saved);
+    page.loadReadingFeedback.textContent=outcome.message;
+    // Do not discard the only source when localStorage rejects the write.
+    if (outcome.clearInput) page.loadReadingText.value='';
   } catch(error) {
     page.loadReadingFeedback.textContent=error.message;
   }
