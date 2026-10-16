@@ -227,23 +227,29 @@ try {
         const savedBefore=JSON.parse(localStorage.getItem('tarot-draw.history.v1')||'[]');
         q('#loadReadingButton').click();
         const dialogOpened=q('#loadReadingDialog').open;
+        const historyInitiallyCollapsed=!q('#historyDisclosure').open &&
+          !q('#savedHistory').closest('main') &&
+          !q('#savedHistory').getClientRects().length;
         q('#loadReadingText').value=copied;
         q('#importReadingButton').click();
         const stored=JSON.parse(localStorage.getItem('tarot-draw.history.v1')||'[]');
         const two=stored.length===2&&stored[0].question==='履歴の質問';
         const inert=q('#savedHistory .history-result-table')?.querySelector('td')?.textContent.length>0;
         const readonly=!!q('#savedHistory textarea[readonly]');
+        const historyOpenedOnImport=q('#historyDisclosure').open;
         const noRemote=__p0.sessions===beforeSessions;
         q('#savedHistory .saved-history-item .history-item-actions button').click();
         const next=document.querySelectorAll('.reading-workbench');
         const reused=next.length===2&&next[1].querySelector('.question-input').value==='履歴の質問'&&
           next[1].querySelector('.reading-status').textContent==='問いと配置を編集';
-        return {completed,savedBefore:savedBefore.length,dialogOpened,two,inert,readonly,noRemote,reused,
+        return {completed,savedBefore:savedBefore.length,dialogOpened,historyInitiallyCollapsed,
+          historyOpenedOnImport,two,inert,readonly,noRemote,reused,
           savedCount:stored.length,headerFits:q('.history-toolbar').scrollWidth<=q('.history-toolbar').clientWidth+1};
       })()`);
       assert.equal(first.completed,true);
       assert.equal(first.savedBefore,1,'Completed reading should auto-save locally');
-      assert.ok(first.dialogOpened&&first.two&&first.inert&&first.readonly&&first.noRemote&&first.reused,JSON.stringify(first));
+      assert.ok(first.dialogOpened&&first.historyInitiallyCollapsed&&first.historyOpenedOnImport&&
+        first.two&&first.inert&&first.readonly&&first.noRemote&&first.reused,JSON.stringify(first));
       assert.equal(first.headerFits,true);
       // Full navigation must restore only inert text history; it must not restore
       // a previously shuffled session or trigger an implicit new draw.
@@ -254,9 +260,11 @@ try {
         savedTables:document.querySelectorAll('#savedHistory .history-result-table').length,
         fresh:document.querySelectorAll('.reading-workbench').length===1 &&
           document.querySelector('.reading-status').textContent==='問いと配置を編集',
-        copiedText:document.querySelector('#savedHistory textarea[readonly]')?.value.includes('履歴の質問')
+        copiedText:document.querySelector('#savedHistory textarea[readonly]')?.value.includes('履歴の質問'),
+        archiveQuiet:document.querySelector('#historyDisclosure')?.open===false &&
+          !document.querySelector('#savedHistory').closest('main')
       })`);
-      assert.deepEqual(after,{records:2,savedTables:2,fresh:true,copiedText:true});
+      assert.deepEqual(after,{records:2,savedTables:2,fresh:true,copiedText:true,archiveQuiet:true});
       report('UX124-LOCAL-HISTORY-IMPORT',{status:'PASS',width,...first,after});
     }
 
@@ -297,10 +305,11 @@ try {
       let failedSingle=false,failedBulk=false,unchanged=false;
       try{
         window.confirm=()=>true;
+        q('#loadReadingButton').click();
+        q('#historyDisclosure').open=true;
         q('#savedHistory .history-item-actions button:nth-child(2)').click();
         failedSingle=q('#historyStatus').textContent.includes('削除できません')&&
           q('#savedHistory .saved-history-item')?.textContent===before;
-        q('#loadReadingButton').click();
         q('#clearHistoryButton').click();
         failedBulk=q('#loadReadingFeedback').textContent.includes('削除できません');
         unchanged=q('#savedHistory .saved-history-item')?.textContent===before;
@@ -913,19 +922,25 @@ try {
       third.click();
       const standardOriginalHidden=q('#cardDetailOriginalMark').classList.contains('hidden');
       q('#cardDetailClose').click();
-      const resultCueVisible=all('.primary-matrix .card-result-block .card-detail-cue').length===3 &&
-        getComputedStyle(all('.primary-matrix .card-detail-cue')[0]).pointerEvents==='none' &&
-        all('.primary-matrix .card-detail-cue')[0].textContent.includes('詳細');
+      const cue=q('#cardDetailHint'), cueBox=cue.querySelector('summary').getBoundingClientRect();
+      const quietDetailHint=all('.card-detail-cue').length===0 &&
+        cue.closest('.history-toolbar')!==null && cue.closest('.reading-workbench')===null &&
+        cueBox.width<=23 && cueBox.height<=23;
+      cue.querySelector('summary').click();
+      const cueExplained=cue.open&&cue.textContent.includes('タップ');
+      cue.querySelector('summary').click();
       q('.copy-button').click();
       for(let i=0;i<20&&!__p0.copiedText;i++)await sleep(20);
       const copyBefore=__p0.copiedText;
       const copyBox=q('.copy-preview-text');
-      const previewVisible=!q('.copy-preview-panel').classList.contains('hidden') &&
+      const copySuccessQuiet=q('.copy-preview-panel').classList.contains('hidden') &&
+        copyBox.value===''&&q('.copy-feedback').textContent.includes('コピーしました');
+      __p0.clipboardDenied=true;
+      q('.copy-button').click();
+      for(let i=0;i<20&&!q('.copy-feedback').textContent.includes('自動コピーできません');i++)await sleep(20);
+      const previewVisibleOnFailure=!q('.copy-preview-panel').classList.contains('hidden') &&
         copyBox.value===copyBefore && copyBox.readOnly &&
         q('.copy-preview-all').textContent==='一括コピー';
-      __p0.clipboardDenied=true;
-      q('.copy-preview-all').click();
-      for(let i=0;i<20&&!q('.copy-feedback').textContent.includes('自動コピーできません');i++)await sleep(20);
       const denialDiagnostic={valuePreserved:copyBox.value===copyBefore,
         activeElement:document.activeElement?.className,
         selectionStart:copyBox.selectionStart,selectionEnd:copyBox.selectionEnd,
@@ -942,12 +957,12 @@ try {
       for(let i=0;i<20&&!q('.copy-feedback').textContent.includes('コピーしました');i++)await sleep(20);
       const retryCopied=__p0.copiedText===copyBefore &&
         q('.copy-feedback').textContent.includes('コピーしました');
-      q('.copy-preview-close').click();
       const previewClosed=q('.copy-preview-panel').classList.contains('hidden') && copyBox.value==='';
       return {
         sizes,summary:q('.reading-deck-summary').textContent,
         inlineDrawReady,inlineDrawLocked,introOriginal,titleOriginal,standardOriginalHidden,
-        introBulletFormat,resultCueVisible,previewVisible,deniedManualSelectable,denialDiagnostic,retryCopied,previewClosed,
+        introBulletFormat,quietDetailHint,cueExplained,copySuccessQuiet,previewVisibleOnFailure,
+        deniedManualSelectable,denialDiagnostic,retryCopied,previewClosed,
         visualTitle,introResultName,introDetailName,introDetailOpen,introKeywordRows,introKeywordTerms,
         introEssence,introUpright,introReversed,introSelected,
         introAProvenance,introTarotooHidden,introCustomHidden,
@@ -970,8 +985,10 @@ try {
     assert.equal(intro.inlineDrawReady,true,'Near-pile Draw must be ready alongside the global Draw');
     assert.equal(intro.inlineDrawLocked,true,'Both Draw actions must lock synchronously after near-pile activation');
     assert.equal(intro.introBulletFormat,true,'Meaning must display semantic bullet clauses');
-    assert.equal(intro.resultCueVisible,true,'Result card must advertise tapping for details');
-    assert.equal(intro.previewVisible,true,'Copy must display a selectable text area');
+    assert.equal(intro.quietDetailHint,true,'Only a small ⓘ outside the result matrix may show detail guidance');
+    assert.equal(intro.cueExplained,true,'Discreet info icon must show actionable card tap instructions');
+    assert.equal(intro.copySuccessQuiet,true,'Successful automatic copy must not open a text panel');
+    assert.equal(intro.previewVisibleOnFailure,true,'Only failed copy may display selectable Markdown');
     assert.equal(intro.deniedManualSelectable,true,'Permission denial must preserve complete selected text');
     assert.equal(intro.retryCopied,true,'Bulk Copy button must retry after permission recovery');
     assert.equal(intro.previewClosed,true,'Closing copy panel must erase local preview text');
