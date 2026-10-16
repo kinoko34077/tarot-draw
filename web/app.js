@@ -18,6 +18,7 @@ import { deckASpecialInterpretation } from './deck-a-special-interpretations.js'
 import { buildApiUrl, resolveRuntimeConfig } from './runtime-config.js';
 import { defaultSettings, loadSettings, saveSettings } from './settings-store.js';
 import { applyHistoryDeletion, makeHistoryEntry, safeHistoryRecords, saveHistoryRecords, HISTORY_LIMIT } from './reading-history.js';
+import { historyImportOutcome } from './history-import-outcome.js';
 
 const runtime = resolveRuntimeConfig(globalThis.__TAROT_DRAW_CONFIG__ ?? {});
 const LONG_PRESS_MS = 520;
@@ -1896,7 +1897,8 @@ function recordHistory(raw, deck = null) {
   renderStoredHistory(entry.id);
   page.historyStatus.textContent = saved
     ? 'このブラウザに保存しました。' : '履歴を画面に追加しましたがブラウザ保存に失敗しました。コピーして保管してください。';
-  return entry;
+  // The caller must distinguish in-memory display from durable browser save.
+  return { entry, saved };
 }
 function drawStoredTable(section) {
   const table=document.createElement('table');
@@ -1985,10 +1987,12 @@ page.loadReadingDialog.addEventListener('click',e=> {
 page.loadReadingDialog.addEventListener('close',()=>page.loadReadingButton.focus({preventScroll:true}));
 page.importReadingButton.addEventListener('click',()=> {
   try {
-    recordHistory(page.loadReadingText.value);
-    page.loadReadingFeedback.textContent='読み込みました。保存履歴に追加しました。';
+    const { saved } = recordHistory(page.loadReadingText.value);
     page.historyDisclosure.open = true;
-    page.loadReadingText.value='';
+    const outcome = historyImportOutcome(saved);
+    page.loadReadingFeedback.textContent=outcome.message;
+    // Do not discard the only source when localStorage rejects the write.
+    if (outcome.clearInput) page.loadReadingText.value='';
   } catch(error) {
     page.loadReadingFeedback.textContent=error.message;
   }
