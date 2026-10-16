@@ -21,10 +21,12 @@
 
   <main class="workspace">
     <div class="history-toolbar">
-      <button id="loadReadingButton" type="button" class="secondary" aria-haspopup="dialog" aria-controls="loadReadingDialog">読込・履歴</button>
-      <span id="historyStatus" role="status" aria-live="polite" class="history-status"></span>
+      <button id="loadReadingButton" type="button" class="secondary" aria-haspopup="dialog" aria-controls="loadReadingDialog">読込</button>
+      <details id="cardDetailHint" class="card-detail-hint">
+        <summary aria-label="結果カードの詳細の開き方" title="結果カードはタップで詳細を表示">ⓘ</summary>
+        <p>結果のカードをタップ・クリックすると、キーワードや意味を確認できます。</p>
+      </details>
     </div>
-    <section id="savedHistory" class="saved-history hidden" aria-label="ブラウザ保存履歴"></section>
     <div id="readings" class="readings" aria-label="リーディング履歴"></div>
 
     <div class="history-actions">
@@ -56,7 +58,12 @@
         <button id="importReadingButton" class="primary" type="button">読み込む</button>
         <button id="clearHistoryButton" class="secondary" type="button">保存履歴をすべて削除</button>
       </div>
-      <p class="history-instructions">履歴はこのブラウザ内のみに保存されます。ブラウザのデータを削除すると消えるため、必要な記録はコピーして保管してください。元の抽選セッションは復元しません。</p>
+      <details id="historyDisclosure" class="history-disclosure">
+        <summary id="historyDisclosureSummary">保存履歴（0件）</summary>
+        <span id="historyStatus" role="status" aria-live="polite" class="history-status"></span>
+        <section id="savedHistory" class="saved-history hidden" aria-label="ブラウザ保存履歴"></section>
+      </details>
+      <p class="history-instructions">履歴はこのブラウザ内のみに保存されます。消える場合もあるため、必要な結果はコピーして保管してください。抽選セッションは復元しません。</p>
     </div>
   </dialog>
 
@@ -75,10 +82,36 @@
             <li><strong>シャッフルする：</strong>「シャッフル」でカードの順序と正逆位置が確定し、山A・B・Cに分かれます。</li>
             <li><strong>山を選ぶ：</strong>最初に選ぶのがPrimary（メイン）の山。迷った別の山は必要に応じてParallelに選べます。必要枚数が多い場合は、表示されたPrimary・Parallelそれぞれの欄で、足りるまで順番に山を選びます。</li>
             <li><strong>カードを引く：</strong>山札の下、またはページ下部の「引く」を押します。山の枚数が足りないときは選び足してください。</li>
-            <li><strong>履歴・読込：</strong>画面上部の「読込・履歴」から以前コピーしたMarkdownを貼り付けるか、ブラウザ内の保存履歴を閲覧できます。保存結果は閲覧専用で、質問・配置を引き継いで新しく占えます。</li>
+            <li><strong>履歴・読込：</strong>画面上部の「読込」から以前コピーしたMarkdownを貼り付けるか、ダイアログ内の「保存履歴」を開いて閲覧できます。保存結果は閲覧専用で、質問・配置を引き継いで新しく占えます。</li>
             <li><strong>引き直す：</strong>「同じ質問・配置で引き直す」を押すと、直前の問い・行列・除外マス・デッキ設定を引き継いだ新しい占いを作れます。元の結果は残り、新しくシャッフルして引き直します。</li>
-            <li><strong>結果を見る：</strong>カード端の「ⓘ 詳細」を目印にカードをタップして、キーワード・本質・正位置／逆位置の説明を確認。「結果をコピー」で表をMarkdown形式でコピーでき、「＋ 新規」で前の結果を残して次の占いを始められます。</li>
+            <li><strong>結果を見る：</strong>結果カード自体をタップして、キーワード・本質・正位置／逆位置の説明を確認。画面上部の小さなⓘでも操作方法を確認できます。「結果をコピー」で表をMarkdown形式でコピーでき、「＋ 新規」で前の結果を残して次の占いを始められます。</li>
           </ol>
+          <div class="help-visual-strip" aria-label="操作画面の図解">
+            <figure class="help-scene">
+              <figcaption>1. 質問と行列を配置</figcaption>
+              <div class="help-demo-question">Q. 今の仕事について</div>
+              <div class="help-demo-grid" aria-label="行が現在と次の段階、列が仕事と創作の行列例">
+                <span class="help-demo-corner"></span><span>仕事</span><span>創作</span>
+                <span>現在</span><b>○</b><b>○</b>
+                <span>次の段階</span><b>○</b><b class="help-demo-mask">×</b>
+              </div>
+            </figure>
+            <figure class="help-scene">
+              <figcaption>2. シャッフル → 山を選ぶ</figcaption>
+              <div class="help-demo-piles" aria-label="3つの山からPrimaryを選択し、必要なら別の山をParallelに設定">
+                <span class="help-demo-pile selected">A<small>Primary</small></span>
+                <span class="help-demo-pile">B<small>Parallel</small></span>
+                <span class="help-demo-pile">C<small>未選択</small></span>
+              </div>
+            </figure>
+            <figure class="help-scene">
+              <figcaption>3. 結果カードをタップして詳細</figcaption>
+              <div class="help-demo-cards">
+                <img src="./assets/cards/grid/major-fool.webp" width="56" height="94" loading="eager" alt="Rider–Waite–Smithの愚者のカード例">
+                <span>結果表のカード全体をタップ<br><span aria-hidden="true">→</span> 本質・正位置・逆位置の説明</span>
+              </div>
+            </figure>
+          </div>
         </section>
         <section class="help-section" aria-labelledby="helpReadingTitle">
           <h3 id="helpReadingTitle">リーディングの考え方</h3>
@@ -89,6 +122,14 @@
         <section class="help-section" aria-labelledby="helpDeckTitle">
           <h3 id="helpDeckTitle">デッキとオリジナルカード</h3>
           <p>通常のタロット78枚に、それぞれのデッキ独自のカードを最大2枚加えられます。独自カードにも正位置・逆位置があり、他のカードと同じように抽選されます。</p>
+          <figure class="help-deck-figure">
+            <div class="help-demo-cards">
+              <img src="./assets/cards/grid/deck-a-title.webp" width="62" height="102" loading="eager" alt="デッキAの22 ウロボロス">
+              <img src="./assets/cards/grid/deck-a-introduction.webp" width="62" height="102" loading="eager" alt="デッキAの23 創り手">
+              <div>デッキAの追加カード<br><small>22 ウロボロス ／ 23 創り手</small></div>
+            </div>
+            <figcaption>公開済みのデッキAカード画像を例示しています。</figcaption>
+          </figure>
           <dl class="help-cards">
             <div>
               <dt>デッキA：タイトルカード（22 ウロボロス）</dt>
@@ -124,7 +165,7 @@
         <label class="settings-major-choice" for="majorOnlyCheckbox"><input id="majorOnlyCheckbox" name="majorOnly" type="checkbox"><span>大アルカナのみで占う</span></label>
         <p id="selectedDeckCount" class="settings-card-count" aria-live="polite">80枚（通常78枚＋独自カード2枚）</p>
       </div>
-      <p class="settings-card-detail-hint">ⓘ 結果のカードは、タップ・クリックすると詳しい意味を確認できます。カードの端にある「ⓘ 詳細」が目印です。</p>
+      <p class="settings-card-detail-hint">ⓘ 抽選結果のカード自体をタップ・クリックすると、詳しい意味を確認できます。</p>
       <fieldset class="deck-choices">
         <legend>デッキを選択</legend>
         <section class="deck-choice" data-deck-option="A" aria-label="デッキAの独自カード">

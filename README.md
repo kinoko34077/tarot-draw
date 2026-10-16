@@ -84,3 +84,7 @@ The card detail window now places its **enlarged RWS card at upper left** and it
 ### #34: label and contextual explanation
 
 The keyword table is visibly titled **「キーワード」**, and both the table's accessible name and its adjacent ⓘ meaning/source disclosure refer to that same title. Readers can identify the contents before opening help. The left card/right vertically written 5×5 table, reading paragraphs, draw behavior and existing visual geometry remain unchanged. UX acceptance and unverified assistive-device questions are separately recorded in Issue #34, following `kinoko34077/.ai-guidelines#21`.
+
+### Latest display-density and Help correction (#128, 2026-10-16)
+
+Results stay fully tappable/clickable to open details, but the per-card `ⓘ 詳細` labels were removed in favor of one small explanatory `ⓘ` in the toolbar outside the result grid. A successful `結果をコピー` keeps the selectable textarea hidden; it becomes available only on clipboard failure for manual copying and retry. Browser-local history remains automatic but is disclosed only inside the `読込` dialog, not expanded across the main workspace. Help shows compact question/grid/piles diagrams plus existing published RWS and Deck A artwork; no new illustrations were generated.

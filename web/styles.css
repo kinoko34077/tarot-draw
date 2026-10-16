@@ -1682,26 +1682,6 @@ input:focus-visible {
 .history-actions { flex-wrap: wrap; gap: 8px; padding-inline: 8px; }
 .repeat-reading-button { min-height: 38px; max-width: 100%; white-space: normal; }
 
-/* #35: entire result card remains one accessible button; ⓘ is a
-   non-interactive, visible tap hint, not a nested click target. */
-.reading-table .card-result-block { position: relative; }
-.card-detail-cue {
-  position: absolute;
-  top: 3px;
-  right: 2px;
-  z-index: 2;
-  display: inline-block;
-  pointer-events: none;
-  border-radius: 3px;
-  padding: 2px 3px;
-  background: color-mix(in srgb, var(--surface) 93%, transparent);
-  color: var(--accent-strong);
-  border: 1px solid var(--border);
-  font-size: .56rem;
-  line-height: 1.15;
-  font-weight: 680;
-  white-space: nowrap;
-}
 .settings-card-detail-hint {
   margin: 6px 0 10px;
   padding: 5px 7px;
@@ -1758,7 +1738,6 @@ input:focus-visible {
 @media (max-width: 420px) {
   .detail-meaning-points { font-size: .77rem; gap: 3px; padding-inline-start: 1em; }
   #cardDetailEssence.detail-meaning-points { font-size: .87rem; }
-  .card-detail-cue { font-size: .54rem; }
 }
 
 /* #124: local-only history remains compact until an item is expanded. */
@@ -1786,4 +1765,91 @@ input:focus-visible {
  .history-toolbar { padding:6px 9px; }
  .saved-history { margin:5px 8px; padding:6px; }
  .history-result-table { font-size:.74rem; }
+}
+
+/* #128: unobtrusive ONE disclosure outside the entire result matrix. */
+.history-toolbar { position: relative; gap: 6px; padding-block: 3px; }
+.history-toolbar > button { min-height: 30px; padding: 4px 9px; font-size: .78rem; }
+.card-detail-hint { position: relative; align-self: center; z-index: 3; }
+.card-detail-hint > summary {
+  display: grid; place-items: center;
+  width: 19px; height: 19px; padding: 0; border-radius: 50%;
+  font: 600 12px/1 system-ui, sans-serif; color: var(--muted);
+  cursor: pointer; list-style: none; border: 0;
+}
+.card-detail-hint > summary::-webkit-details-marker { display: none; }
+.card-detail-hint > summary:hover, .card-detail-hint[open] > summary {
+  color: var(--accent-strong); background: var(--surface-soft);
+}
+.card-detail-hint > summary:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.card-detail-hint > p {
+  position: absolute; top: 23px; left: 0; z-index: 15;
+  width: min(230px, 72vw); padding: 8px 10px; margin: 0;
+  border: 1px solid var(--border-strong); border-radius: 5px;
+  background: var(--surface); color: var(--muted);
+  box-shadow: 0 3px 12px rgb(0 0 0 / 12%);
+  font-size: .76rem; line-height: 1.55;
+}
+.history-disclosure { margin-top: 10px; border-top: 1px solid var(--border); padding-top: 9px; }
+.history-disclosure > summary { cursor: pointer; font-size: .83rem; font-weight: 650; color: var(--muted); }
+/* Author display rules must not override the UA <details> closed state. */
+.history-disclosure:not([open]) > :not(summary) { display: none !important; }
+.history-disclosure .saved-history {
+  margin: 8px 0 2px; padding: 5px; max-height: min(42dvh, 360px);
+  overflow-y: auto; overflow-x: hidden;
+}
+.history-disclosure .history-status { display: block; padding: 3px 0; }
+.history-dialog .history-dialog-actions { margin-bottom: 3px; }
+.history-dialog .history-instructions { margin-block: 9px; }
+
+/* Existing published card assets, plus small semantic UI examples;
+   nothing generated, downloaded or fetched from a new outside provider. */
+.help-visual-strip {
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(168px, 1fr));
+  gap: 9px; margin-top: 12px;
+}
+.help-scene, .help-deck-figure {
+  margin: 0; min-width: 0; padding: 9px;
+  border-radius: 6px; border: 1px solid var(--border);
+  background: var(--surface-soft);
+}
+.help-scene figcaption { font-size: .76rem; font-weight: 700; margin-bottom: 8px; }
+.help-demo-question { color: var(--muted); font-size: .71rem; margin-bottom: 6px; }
+.help-demo-grid {
+  display: grid; grid-template-columns: minmax(46px,.9fr) repeat(2,minmax(0,1fr));
+  gap: 2px; font-size: .69rem; text-align:center; align-items:stretch;
+}
+.help-demo-grid > * {
+  display: grid; place-items: center; padding: 4px 2px;
+  border: 1px solid var(--border); border-radius: 2px;
+  min-width: 0; overflow-wrap: anywhere; background: var(--surface);
+}
+.help-demo-grid > b { color: var(--accent-strong); }
+.help-demo-grid > .help-demo-mask { color: var(--muted); opacity: .7; }
+.help-demo-piles { display: flex; justify-content: center; gap: 7px; padding-block: 7px; }
+.help-demo-pile {
+  width: 44px; min-height: 72px; border-radius: 4px;
+  border: 2px double var(--border-strong);
+  display: grid; align-content: center; justify-items: center;
+  background: var(--surface); font-size: .9rem; font-weight: 700;
+}
+.help-demo-pile.selected { outline: 2px solid var(--accent); outline-offset: 1px; }
+.help-demo-pile small { font-size: .58rem; font-weight: 400; white-space: nowrap; }
+.help-demo-cards { display:flex; align-items:center; justify-content:center; gap:9px; }
+.help-demo-cards img {
+  flex: none; width: auto; max-height: 105px; max-width: 66px; height:auto;
+  border: 1px solid var(--border-strong); border-radius: 3px; object-fit:contain;
+}
+.help-demo-cards > span, .help-demo-cards > div {
+  flex: 1; font-size: .72rem; line-height: 1.55; color: var(--muted);
+}
+.help-deck-figure { margin: 8px 0 10px; }
+.help-deck-figure figcaption { font-size: .7rem; margin-top: 6px; color: var(--muted); }
+@media(max-width:420px){
+  .help-visual-strip { grid-template-columns: 1fr 1fr; gap: 6px; }
+  .help-scene { padding: 6px; }
+  .help-scene:last-child { grid-column: 1 / -1; }
+  .help-demo-pile { width: 33px; min-height: 62px; }
+  .help-demo-pile small { font-size: .51rem; }
+  .history-disclosure .saved-history { padding: 3px; }
 }

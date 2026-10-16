@@ -31,6 +31,8 @@ const page = {
   importReadingButton: document.querySelector('#importReadingButton'),
   clearHistoryButton: document.querySelector('#clearHistoryButton'),
   savedHistory: document.querySelector('#savedHistory'),
+  historyDisclosure: document.querySelector('#historyDisclosure'),
+  historyDisclosureSummary: document.querySelector('#historyDisclosureSummary'),
   historyStatus: document.querySelector('#historyStatus'),
   readings: document.querySelector('#readings'),
   newReadingButton: document.querySelector('#newReadingButton'),
@@ -1148,11 +1150,7 @@ function createReadingController(number, template = null) {
     orientation.textContent = parts.orientation;
 
     label.append(title, orientation);
-    const cue = document.createElement('span');
-    cue.className = 'card-detail-cue';
-    cue.textContent = 'ⓘ 詳細';
-    cue.setAttribute('aria-hidden', 'true');
-    result.append(visual, label, cue);
+    result.append(visual, label);
     result.setAttribute('aria-label', `${parts.plainTitle} ${parts.orientation}の詳細を表示`);
     // Hover, keyboard focus, and touch-start warm only the next likely detail.
     // Click still works immediately, even if preloading has not finished.
@@ -1831,11 +1829,19 @@ function createReadingController(number, template = null) {
       parallelPile: state.parallelPiles.join(' → ')
     });
 
-    refs.copyPreviewText.value = text;
-    refs.copyPreview.classList.remove('hidden');
-    // Preserve the old one-click Copy behavior, while always providing a
-    // selectable text area and a separate button to retry copying.
-    await copyPreviewAll();
+    try {
+      await copyText(text);
+      refs.copyPreview.classList.add('hidden');
+      refs.copyPreviewText.value = '';
+      setTextStatus(refs.copyFeedback, 'コピーしました。');
+    } catch {
+      // Only clipboard failure warrants a large selectable fallback panel.
+      refs.copyPreviewText.value = text;
+      refs.copyPreview.classList.remove('hidden');
+      setTextStatus(refs.copyFeedback, '自動コピーできません。表示された文章を選択してコピーしてください。', 'error');
+      refs.copyPreviewText.focus({ preventScroll: true });
+      refs.copyPreviewText.select();
+    }
   }
 
   async function copyPreviewAll() {
@@ -1843,6 +1849,8 @@ function createReadingController(number, template = null) {
     if (!text) return;
     try {
       await copyText(text);
+      refs.copyPreview.classList.add('hidden');
+      refs.copyPreviewText.value = '';
       setTextStatus(refs.copyFeedback, 'コピーしました。');
     } catch (error) {
       setTextStatus(refs.copyFeedback, '自動コピーできません。表示された文章を選択してコピーしてください。', 'error');
@@ -1910,8 +1918,8 @@ function drawStoredTable(section) {
 function renderStoredHistory(openId = null) {
   page.savedHistory.replaceChildren();
   page.savedHistory.classList.toggle('hidden', storedHistory.length === 0);
-  if(!storedHistory.length){page.historyStatus.textContent='保存履歴はありません。';return;}
-  const heading=document.createElement('h2');heading.textContent=`保存履歴（${storedHistory.length}件）`;page.savedHistory.append(heading);
+  page.historyDisclosureSummary.textContent=`保存履歴（${storedHistory.length}件）`;
+  if(!storedHistory.length){return;}
   for(const record of storedHistory){
     const details=document.createElement('details');details.className='saved-history-item';
     if (record.id===openId) details.open=true;
@@ -1939,6 +1947,7 @@ function renderStoredHistory(openId = null) {
         includeTitle:validDeck.includeTitle,includeSecondary:validDeck.includeSecondary
       });
       rememberSettings();syncSettingsControls();renderSettingsSummary();
+      closeLoadDialog();
       appendReading({question:record.question, rowLabels:record.rowLabels,
         columnLabels:record.columnLabels, inactivePositions:record.inactivePositions,
         deck:validDeck});
@@ -1965,7 +1974,9 @@ function renderStoredHistory(openId = null) {
 }
 function closeLoadDialog(){if(page.loadReadingDialog.open)page.loadReadingDialog.close();}
 page.loadReadingButton.addEventListener('click',()=> {
-  page.loadReadingDialog.showModal();page.loadReadingText.focus({preventScroll:true});
+  page.historyDisclosure.open = false;
+  page.loadReadingDialog.showModal();
+  page.loadReadingText.focus({preventScroll:true});
 });
 page.loadReadingClose.addEventListener('click',closeLoadDialog);
 page.loadReadingDialog.addEventListener('click',e=> {
@@ -1974,9 +1985,9 @@ page.loadReadingDialog.addEventListener('click',e=> {
 page.loadReadingDialog.addEventListener('close',()=>page.loadReadingButton.focus({preventScroll:true}));
 page.importReadingButton.addEventListener('click',()=> {
   try {
-    const entry=recordHistory(page.loadReadingText.value);
-    page.loadReadingFeedback.textContent='読み込みました。下の保存履歴に追加しました。';
-    closeLoadDialog();page.savedHistory.querySelector('details[open]')?.scrollIntoView({block:'nearest'});
+    recordHistory(page.loadReadingText.value);
+    page.loadReadingFeedback.textContent='読み込みました。保存履歴に追加しました。';
+    page.historyDisclosure.open = true;
     page.loadReadingText.value='';
   } catch(error) {
     page.loadReadingFeedback.textContent=error.message;
