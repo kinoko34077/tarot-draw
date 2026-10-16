@@ -1896,7 +1896,8 @@ function recordHistory(raw, deck = null) {
   renderStoredHistory(entry.id);
   page.historyStatus.textContent = saved
     ? 'このブラウザに保存しました。' : '履歴を画面に追加しましたがブラウザ保存に失敗しました。コピーして保管してください。';
-  return entry;
+  // The caller must distinguish in-memory display from durable browser save.
+  return { entry, saved };
 }
 function drawStoredTable(section) {
   const table=document.createElement('table');
@@ -1985,10 +1986,15 @@ page.loadReadingDialog.addEventListener('click',e=> {
 page.loadReadingDialog.addEventListener('close',()=>page.loadReadingButton.focus({preventScroll:true}));
 page.importReadingButton.addEventListener('click',()=> {
   try {
-    recordHistory(page.loadReadingText.value);
-    page.loadReadingFeedback.textContent='読み込みました。保存履歴に追加しました。';
+    const { saved } = recordHistory(page.loadReadingText.value);
     page.historyDisclosure.open = true;
-    page.loadReadingText.value='';
+    if (saved) {
+      page.loadReadingFeedback.textContent='読み込みました。このブラウザに保存しました。';
+      page.loadReadingText.value='';
+    } else {
+      // Do not discard the only copy when localStorage is full or unavailable.
+      page.loadReadingFeedback.textContent='読み込みましたが、ブラウザへ保存できませんでした。元の文章を残しています。コピーして保管してください。';
+    }
   } catch(error) {
     page.loadReadingFeedback.textContent=error.message;
   }
