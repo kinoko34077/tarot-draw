@@ -1947,6 +1947,7 @@ function renderStoredHistory(openId = null) {
         includeTitle:validDeck.includeTitle,includeSecondary:validDeck.includeSecondary
       });
       rememberSettings();syncSettingsControls();renderSettingsSummary();
+      closeLoadDialog();
       appendReading({question:record.question, rowLabels:record.rowLabels,
         columnLabels:record.columnLabels, inactivePositions:record.inactivePositions,
         deck:validDeck});
