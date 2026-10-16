@@ -302,7 +302,7 @@ try {
       const saved=JSON.parse(localStorage.getItem('tarot-draw.history.v1')||'[]');
       const old=Storage.prototype.setItem;
       Storage.prototype.setItem=function(){throw Error('quota denied');};
-      let failedSingle=false,failedBulk=false,unchanged=false;
+      let failedSingle=false,failedBulk=false,unchanged=false,failedImport=false,sourceKept=false;
       try{
         window.confirm=()=>true;
         q('#loadReadingButton').click();
@@ -313,14 +313,19 @@ try {
         q('#clearHistoryButton').click();
         failedBulk=q('#loadReadingFeedback').textContent.includes('削除できません');
         unchanged=q('#savedHistory .saved-history-item')?.textContent===before;
+        // #130: failed import is only in-memory, so the pasted source stays recoverable.
+        q('#loadReadingText').value=saved[0].raw;
+        q('#importReadingButton').click();
+        failedImport=q('#loadReadingFeedback').textContent.includes('保存できませんでした');
+        sourceKept=q('#loadReadingText').value===saved[0].raw;
         q('#loadReadingClose').click();
       }finally{Storage.prototype.setItem=old;}
       const notDeleted=JSON.parse(localStorage.getItem('tarot-draw.history.v1')||'[]').length===saved.length;
       const noExtraRemote=__p0.sessions===0;
-      return {recovered,failedSingle,failedBulk,unchanged,notDeleted,noExtraRemote};
+      return {recovered,failedSingle,failedBulk,unchanged,failedImport,sourceKept,notDeleted,noExtraRemote};
     })()`);
     assert.deepEqual(audit126,{recovered:true,failedSingle:true,failedBulk:true,
-      unchanged:true,notDeleted:true,noExtraRemote:true},
+      unchanged:true,failedImport:true,sourceKept:true,notDeleted:true,noExtraRemote:true},
       'Invalid cached state and denied storage writes should fail safely');
     report('UX126-LOCAL-CACHE-RECOVERY',{status:'PASS',...audit126});
 
