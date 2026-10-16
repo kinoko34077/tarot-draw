@@ -939,7 +939,7 @@ try {
       const cueExplained=cue.open&&cue.textContent.includes('タップ');
       cue.querySelector('summary').click();
       q('.copy-button').click();
-      for(let i=0;i<20&&!__p0.copiedText;i++)await sleep(20);
+      for(let i=0;i<20&&!q('.copy-feedback').textContent.includes('コピーしました');i++)await sleep(20);
       const copyBefore=__p0.copiedText;
       const copyBox=q('.copy-preview-text');
       const copySuccessQuiet=q('.copy-preview-panel').classList.contains('hidden') &&
