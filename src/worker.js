@@ -201,7 +201,8 @@ export class TarotSession {
           );
         }
 
-        const mapped = {};
+        // Opaque user position IDs may include '__proto__'; retain every own JSON key.
+        const mapped = Object.create(null);
         positions.forEach((positionId, offset) => {
           const card = cards[branch.cursor + offset];
           mapped[positionId] = {
