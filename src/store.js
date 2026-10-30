@@ -91,7 +91,8 @@ export class TarotStore {
       );
     }
 
-    const mapped = {};
+    // Opaque user position IDs may include '__proto__'; retain every own JSON key.
+    const mapped = Object.create(null);
     ids.forEach((positionId, offset) => {
       const card = branch.cards[branch.cursor + offset];
       mapped[positionId] = {
