@@ -185,7 +185,7 @@ function bioCard(photoData) {
 }
 async function archivalPhoto() {
   // Commons rate-limits shared CI runners (HTTP 429); retry transient failures with backoff before failing the build.
-  const response=await fetchWithRetry(ARCHIVE_PHOTO,{headers:{'User-Agent':'TarotDrawArtworkBuild/1.0 (PD archival illustration recreation)'}},
+  const response=await fetchWithRetry(ARCHIVE_PHOTO,{headers:{'User-Agent':'TarotDrawArtworkBuild/1.0 (https://github.com/kinoko34077/tarot-draw; PD archival illustration recreation)'}},
     {onRetry:({attempt,delay,reason})=>console.warn('Commons 1912 photo fetch retry '+attempt+' in '+delay+'ms ('+reason+')')});
   if(!response.ok) throw new Error('Commons 1912 photo unavailable: HTTP '+response.status);
   const data=Buffer.from(await response.arrayBuffer());
