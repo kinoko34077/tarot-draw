@@ -9,6 +9,7 @@ import { mkdir, writeFile } from 'node:fs/promises';
 import { resolve, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { createHash } from 'node:crypto';
+import { fetchWithRetry } from './fetch-with-retry.mjs';
 import sharp from 'sharp';
 import opentype from 'opentype.js';
 import { spawnSync } from 'node:child_process';
@@ -183,7 +184,9 @@ function bioCard(photoData) {
     '<text x="512" y="1685" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="17" fill="#323232">Independent biography · Archival portrait: The Craftsman, October 1912</text>');
 }
 async function archivalPhoto() {
-  const response=await fetch(ARCHIVE_PHOTO,{headers:{'User-Agent':'TarotDrawArtworkBuild/1.0 (PD archival illustration recreation)'}});
+  // Commons rate-limits shared CI runners (HTTP 429); retry transient failures with backoff before failing the build.
+  const response=await fetchWithRetry(ARCHIVE_PHOTO,{headers:{'User-Agent':'TarotDrawArtworkBuild/1.0 (PD archival illustration recreation)'}},
+    {onRetry:({attempt,delay,reason})=>console.warn('Commons 1912 photo fetch retry '+attempt+' in '+delay+'ms ('+reason+')')});
   if(!response.ok) throw new Error('Commons 1912 photo unavailable: HTTP '+response.status);
   const data=Buffer.from(await response.arrayBuffer());
   if (data.length<12000 || data.length>2_500_000 || data[0]!==0xff || data[1]!==0xd8) throw new Error('Unexpected archival photo bytes');
