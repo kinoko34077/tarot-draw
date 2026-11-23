@@ -158,6 +158,15 @@ try {
       element.click();
     };
 
+    // The page is rendered asynchronously; a fixed startup sleep races on slow runners right after a deploy.
+    const waitForElement = async (selector, timeoutMs = 20000) => {
+      const deadline = Date.now() + timeoutMs;
+      while (!one(selector) && Date.now() < deadline) await sleep(100);
+      if (!one(selector)) throw new Error('Timed out waiting for element: ' + selector);
+    };
+    await waitForElement('#cardDetailDialog');
+    await waitForElement('.axis-add-header .axis-add-button');
+
     if (!one('#cardDetailDialog')) throw new Error('Card detail dialog is not deployed.');
 
     // A 27-card 3x9 reading must include Minor Arcana (only 24 non-minors exist).
